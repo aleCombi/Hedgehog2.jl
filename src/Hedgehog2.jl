@@ -1,33 +1,52 @@
 module Hedgehog2
 
-# # MARKET DATA
-# market conventions, e.g. day-count conventions, rate conventions.
-abstract type AbstractStaticData end
+# A payoff, such as a vanilla european option or an asian option or a forward.
+abstract type AbstractPayoff end
 
-# past and present security prices, such as past fixed interest rates, stock prices.
-abstract type AbstractSecurityPriceData end
+struct VanillaEuropeanCall <: AbstractPayoff
+    strike
+    time
+end
 
-# past and present derivatives prices, such as options quotes.
-abstract type AbstractDerivativePriceData end
+# vanilla european option callable to get the payoff given a spot price.
+(payoff::VanillaEuropeanCall)(spot) = max(spot - payoff.strike, 0.0)
 
-# derivatives trades specifics, such as vanilla call options, barrier options, interest rate swaps.
-abstract type AbstractTradeData end
+# market data inputs for pricers
+abstract type AbstractMarketInputs end
+
+struct BlackScholesInputs <: AbstractMarketInputs
+    rate
+    spot
+    sigma
+end
+
 
 # # MODELS
-# models, such as Black-Scholes, rate curve pricer, binomial model.
-abstract type AbstractPricingModel end
-
-# dynamics of the underlying of a derivatives, such as lognormal, Heston.
-abstract type AbstractUnderlyingDynamics end 
-
-# market-implied structures created by models, such as rate curves, volatility surfaces.
-abstract type AbstractMarketImpliedStructure end
-
-# model outputs relative to a trade, such as price, greeks.
-abstract type AbstractModelOutputs end
-
 # the whole algorithm to price a specific derivative.
-# it should be a callable made up of all the ingredients: trade data, market data, market-implied structures, dynamics (if needed), a pricing model (coherent with the dynamics)
+# it should be a callable made up of all the ingredients: a payoff, market data, a pricing model
 abstract type AbstractDerivativePricer end
+
+using Distributions
+
+struct BlackScholesPricer
+    marketInputs::BlackScholesInputs
+    payoff::VanillaEuropeanCall
+end
+
+(p::BlackScholesPricer)() = 
+    let S = p.marketInputs.spot,
+        K = p.payoff.strike,
+        r = p.marketInputs.rate,
+        σ = p.marketInputs.sigma,
+        T = p.payoff.time,
+        d1 = (log(S / K) + (r + 0.5 * σ^2) * T) / (σ * sqrt(T)),
+        d2 = d1 - σ * sqrt(T)
+    S * cdf(Normal(), d1) - K * exp(-r * T) * cdf(Normal(), d2)
+    end
+
+market_inputs = BlackScholesInputs(0.01, 1, 0.4)
+payoff = VanillaEuropeanCall(1, 1)
+pricer = BlackScholesPricer(market_inputs, payoff)
+print(pricer())
 
 end
