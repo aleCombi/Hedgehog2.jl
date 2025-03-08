@@ -5,10 +5,10 @@
 
 # Roadmap
 
-- define a roadmap (reviewing this one)
+- price calls with blackscholes, binomial tree, montecarlo.
+- greeks with AD, finite differences, analytical
 - define a generic workflow for derivatives pricing
 - define all the necessary abstract types to be ultra-generic
-- define a simple set of concrete types (for instance to price vanilla options with black scholes or price FRAs with rate curves)
 - setup testing
 
 # Ideas

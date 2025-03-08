@@ -41,7 +41,7 @@ end
         T = p.payoff.time,
         d1 = (log(S / K) + (r + 0.5 * σ^2) * T) / (σ * sqrt(T)),
         d2 = d1 - σ * sqrt(T)
-    S * cdf(Normal(), d1) - K * exp(-r * T) * cdf(Normal(), d2)
+    return S * cdf(Normal(), d1) - K * exp(-r * T) * cdf(Normal(), d2)
     end
 
 market_inputs = BlackScholesInputs(0.01, 1, 0.4)
