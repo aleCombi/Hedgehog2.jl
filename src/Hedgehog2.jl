@@ -20,10 +20,6 @@ struct BlackScholesInputs <: AbstractMarketInputs
     sigma
 end
 
-
-# # MODELS
-# the whole algorithm to price a specific derivative.
-# it should be a callable made up of all the ingredients: a payoff, market data, a pricing model
 abstract type AbstractPricingStrategy end
 
 using Distributions
@@ -37,6 +33,9 @@ end
 
 struct BlackScholesStrategy <: AbstractPricingStrategy end
 
+# # MODELS
+# the whole algorithm to price a specific derivative.
+# it should be a callable made up of all the ingredients: a payoff, market data, a pricing model
 function (pricer::Pricer{VanillaEuropeanCall, BlackScholesInputs, BlackScholesStrategy})() 
     S = pricer.marketInputs.spot
     K = pricer.payoff.strike
