@@ -1,0 +1,89 @@
+# Adding a New Pricer to Hedgehog2
+
+This is a set of examples of how you are expected to answer to feature requests.
+Remember that pricing is done creating methods of the function (pricer:Pricer)() based on the type parameters of pricer.
+You have to write the whole code, instead of the placeholder comment "# you are supposed to write the code here"
+---
+
+## Example 1: Implementing a New Pricing Strategy
+
+**Instruction:** Implement a Binomial Tree pricing strategy for `Hedgehog2`.
+
+**Code Snippet:**
+```julia
+struct BinomialTreeStrategy <: AbstractPricingStrategy
+    steps::Int
+end
+
+function (pricer::Pricer{P, M, BinomialTreeStrategy})() where {P <: AbstractPayoff, M <: AbstractMarketInputs}
+    # you are supposed to write the code here
+    return computed_price
+end
+```
+
+---
+
+## Example 2: Adding a Monte Carlo Pricing Strategy
+
+**Instruction:** Implement a Monte Carlo pricing strategy that supports stochastic volatility models.
+
+**Code Snippet:**
+```julia
+struct MonteCarloStrategy <: AbstractPricingStrategy
+    numPaths::Int
+    timeSteps::Int
+end
+
+function (pricer::Pricer{P, M, MonteCarloStrategy})() where {P <: AbstractPayoff, M <: AbstractMarketInputs}
+    # you are supposed to write the code here
+    return computed_price
+end
+```
+
+---
+
+## Example 3: Extending an Existing Strategy to Handle More Payoffs
+
+**Instruction:** Modify the Black-Scholes pricing strategy to support digital options in addition to European options.
+
+**Code Snippet:**
+```julia
+function (pricer::Pricer{DigitalOption, BlackScholesMarket, BlackScholesStrategy})()
+    # you are supposed to write the code here
+    return computed_price
+end
+```
+
+---
+
+## Example 4: Ensuring Compatibility with Multiple Market Inputs
+
+**Instruction:** Make `BinomialTreeStrategy` work with both Black-Scholes and Heston market inputs.
+
+**Code Snippet:**
+```julia
+function (pricer::Pricer{P, BlackScholesMarket, BinomialTreeStrategy})() where {P <: AbstractPayoff}
+    # you are supposed to write the code here
+    return computed_price
+end
+
+function (pricer::Pricer{P, HestonMarket, BinomialTreeStrategy})() where {P <: AbstractPayoff}
+    # you are supposed to write the code here
+    return computed_price
+end
+```
+
+---
+
+## Summary
+
+✅ **Key Takeaways:**
+
+- **Each pricing strategy is a separate struct** inheriting from `AbstractPricingStrategy`.
+- **Define how a strategy applies** by implementing `()` for `Pricer{P, M, S}`.
+- **Extend existing strategies** to support new payoffs or market inputs.
+- **Ensure flexibility** by allowing multiple implementations of a strategy.
+- **Always provide Julia code snippets** to illustrate requested functionality.
+
+🚀 **Next Steps:** Experiment with additional pricing strategies and optimize existing ones!
+
