@@ -51,6 +51,10 @@ end
 
 abstract type AbstractDeltaMethod end
 struct BlackScholesAnalyticalDelta <: AbstractDeltaMethod end
+struct DeltaCalculator{D<:AbstractDeltaMethod, P<:AbstractPayoff, I<:AbstractMarketInputs, S<:AbstractPricingStrategy}
+    pricer::Pricer{P, I, S}
+    deltaMethod::D
+end
 
 # Callable struct: Computes delta when called
 function (delta_calc::DeltaCalculator{BlackScholesAnalyticalDelta, VanillaEuropeanCall, BlackScholesInputs, BlackScholesStrategy})()
