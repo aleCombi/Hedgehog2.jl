@@ -24,29 +24,95 @@ end
 # # MODELS
 # the whole algorithm to price a specific derivative.
 # it should be a callable made up of all the ingredients: a payoff, market data, a pricing model
-abstract type AbstractDerivativePricer end
+abstract type AbstractPricingStrategy end
 
 using Distributions
 
-struct BlackScholesPricer
-    marketInputs::BlackScholesInputs
-    payoff::VanillaEuropeanCall
+struct Pricer{P <: AbstractPayoff, M <: AbstractMarketInputs, S<:AbstractPricingStrategy}
+    marketInputs::M
+    payoff::P
+    pricingStrategy::S
 end
 
-(p::BlackScholesPricer)() = 
-    let S = p.marketInputs.spot,
-        K = p.payoff.strike,
-        r = p.marketInputs.rate,
-        σ = p.marketInputs.sigma,
-        T = p.payoff.time,
-        d1 = (log(S / K) + (r + 0.5 * σ^2) * T) / (σ * sqrt(T)),
-        d2 = d1 - σ * sqrt(T)
-    return S * cdf(Normal(), d1) - K * exp(-r * T) * cdf(Normal(), d2)
-    end
+(pricer::Pricer)() = price(pricer.pricingStrategy, pricer.payoff, pricer.marketInputs)
 
+struct BlackScholesStrategy <: AbstractPricingStrategy end
+
+function price(::BlackScholesStrategy, payoff::VanillaEuropeanCall, market_inputs::BlackScholesInputs)
+    S = market_inputs.spot
+    K = payoff.strike
+    r = market_inputs.rate
+    σ = market_inputs.sigma
+    T = payoff.time
+    d1 = (log(S / K) + (r + 0.5 * σ^2) * T) / (σ * sqrt(T))
+    d2 = d1 - σ * sqrt(T)
+    return S * cdf(Normal(), d1) - K * exp(-r * T) * cdf(Normal(), d2)
+end
+
+abstract type AbstractDeltaMethod end
+struct BlackScholesAnalyticalDelta <: AbstractDeltaMethod end
+
+function compute_delta(
+    ::BlackScholesAnalyticalDelta, 
+    pricer::Pricer{VanillaEuropeanCall, BlackScholesInputs, BlackScholesStrategy}
+)
+    S = pricer.marketInputs.spot
+    K = pricer.payoff.strike
+    r = pricer.marketInputs.rate
+    σ = pricer.marketInputs.sigma
+    T = pricer.payoff.time
+    d1 = (log(S / K) + (r + 0.5 * σ^2) * T) / (σ * sqrt(T))
+    return cdf(Normal(), d1)  # Black-Scholes delta for calls
+end
+
+struct DeltaCalculator{M <: AbstractDeltaMethod, P <: AbstractPayoff, D <: AbstractMarketInputs, S <: AbstractPricingStrategy}
+    pricer::Pricer{P, D, S}
+    method::M
+end
+
+# Callable struct: Computes delta when called
+(delta_calc::DeltaCalculator)() = compute_delta(delta_calc.method, delta_calc.pricer)
+
+using ForwardDiff
+
+struct ADDelta <: AbstractDeltaMethod end
+
+using Accessors, ForwardDiff
+
+function compute_delta(::ADDelta, pricer::Pricer)
+    ForwardDiff.derivative(
+        S -> begin
+            new_pricer = @set pricer.marketInputs.spot = S
+            new_pricer()
+        end,
+        pricer.marketInputs.spot
+    )
+end
+
+
+using Accessors
+
+using BenchmarkTools, ForwardDiff, Distributions
+
+# Define market data and payoff
 market_inputs = BlackScholesInputs(0.01, 1, 0.4)
 payoff = VanillaEuropeanCall(1, 1)
-pricer = BlackScholesPricer(market_inputs, payoff)
-print(pricer())
+pricer = Pricer(market_inputs, payoff, BlackScholesStrategy())
+
+# Analytical Delta
+analytical_delta_calc = DeltaCalculator(pricer, BlackScholesAnalyticalDelta())
+println(analytical_delta_calc())
+
+# AD Delta
+ad_delta_calc = DeltaCalculator(pricer, ADDelta())
+println(ad_delta_calc())
+
+# Run benchmarks
+println("Benchmarking Analytical Delta:")
+@btime analytical_delta_calc()
+
+println("Benchmarking AD Delta:")
+@btime ad_delta_calc()
+
 
 end
