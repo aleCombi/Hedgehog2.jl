@@ -1,8 +1,27 @@
 function ai_with_library(library_path, query)
-    println("Sending query to Ollama: ", query)
+    println("Reading Julia library from: ", library_path)
+
+    # Recursively collect all `.jl` files in subdirectories
+    files = []
+    for (root, _, filenames) in walkdir(library_path)
+        append!(files, filter(f -> endswith(f, ".jl"), joinpath.(root, filenames)))
+    end
+
+    # Read file contents
+    file_contents = join([read(f, String) for f in files], "\n\n")
+
+    # Limit content size to avoid exceeding token limit
+    max_length = 10000  # Adjust based on model capability
+    truncated_contents = file_contents[1:min(end, max_length)]  # Trim if too long
+
+    # Construct AI prompt with code context
+    prompt = "Here is a Julia library (truncated if large):\n\n" * truncated_contents * 
+             "\n\nAnswer this question about it:\n" * query
+
+    println("Sending query to Ollama...")
 
     # Run Ollama and capture response
-    response = read(`ollama run mistral "$query"`, String)
+    response = read(`ollama run mistral "$prompt"`, String)
 
     # Debugging: Show AI response
     println("AI Response: ", response)

@@ -34,20 +34,20 @@ struct Pricer{P <: AbstractPayoff, M <: AbstractMarketInputs, S<:AbstractPricing
     pricingStrategy::S
 end
 
-(pricer::Pricer)() = price(pricer.pricingStrategy, pricer.payoff, pricer.marketInputs)
 
 struct BlackScholesStrategy <: AbstractPricingStrategy end
 
-function price(::BlackScholesStrategy, payoff::VanillaEuropeanCall, market_inputs::BlackScholesInputs)
-    S = market_inputs.spot
-    K = payoff.strike
-    r = market_inputs.rate
-    σ = market_inputs.sigma
-    T = payoff.time
+function (pricer::Pricer{VanillaEuropeanCall, BlackScholesInputs, BlackScholesStrategy})() 
+    S = pricer.marketInputs.spot
+    K = pricer.payoff.strike
+    r = pricer.marketInputs.rate
+    σ = pricer.marketInputs.sigma
+    T = pricer.payoff.time
     d1 = (log(S / K) + (r + 0.5 * σ^2) * T) / (σ * sqrt(T))
     d2 = d1 - σ * sqrt(T)
     return S * cdf(Normal(), d1) - K * exp(-r * T) * cdf(Normal(), d2)
 end
+
 
 abstract type AbstractDeltaMethod end
 struct BlackScholesAnalyticalDelta <: AbstractDeltaMethod end
@@ -98,7 +98,7 @@ using BenchmarkTools, ForwardDiff, Distributions
 market_inputs = BlackScholesInputs(0.01, 1, 0.4)
 payoff = VanillaEuropeanCall(1, 1)
 pricer = Pricer(market_inputs, payoff, BlackScholesStrategy())
-
+println(pricer())
 # Analytical Delta
 analytical_delta_calc = DeltaCalculator(pricer, BlackScholesAnalyticalDelta())
 println(analytical_delta_calc())
