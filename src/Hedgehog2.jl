@@ -52,31 +52,13 @@ end
 abstract type AbstractDeltaMethod end
 struct BlackScholesAnalyticalDelta <: AbstractDeltaMethod end
 
-function compute_delta(
-    ::BlackScholesAnalyticalDelta, 
-    pricer::Pricer{VanillaEuropeanCall, BlackScholesInputs, BlackScholesStrategy}
-)
+# Callable struct: Computes delta when called
+function (delta_calc::DeltaCalculator{BlackScholesAnalyticalDelta, VanillaEuropeanCall, BlackScholesInputs, BlackScholesStrategy})()
     S = pricer.marketInputs.spot
     K = pricer.payoff.strike
     r = pricer.marketInputs.rate
     σ = pricer.marketInputs.sigma
     T = pricer.payoff.time
-    d1 = (log(S / K) + (r + 0.5 * σ^2) * T) / (σ * sqrt(T))
-    return cdf(Normal(), d1)  # Black-Scholes delta for calls
-end
-
-struct DeltaCalculator{M <: AbstractDeltaMethod, P <: AbstractPayoff, D <: AbstractMarketInputs, S <: AbstractPricingStrategy}
-    pricer::Pricer{P, D, S}
-    method::M
-end
-
-# Callable struct: Computes delta when called
-function (delta_calc::DeltaCalculator{BlackScholesAnalyticalDelta, VanillaEuropeanCall, BlackScholesInputs, BlackScholesStrategy})()
-    S = delta_calc.pricer.marketInputs.spot
-    K = delta_calc.pricer.payoff.strike
-    r = delta_calc.pricer.marketInputs.rate
-    σ = delta_calc.pricer.marketInputs.sigma
-    T = delta_calc.pricer.payoff.time
     d1 = (log(S / K) + (r + 0.5 * σ^2) * T) / (σ * sqrt(T))
     return cdf(Normal(), d1)  # Black-Scholes delta for calls
 end
