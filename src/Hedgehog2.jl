@@ -58,11 +58,11 @@ end
 
 # Callable struct: Computes delta when called
 function (delta_calc::DeltaCalculator{BlackScholesAnalyticalDelta, VanillaEuropeanCall, BlackScholesInputs, BlackScholesStrategy})()
-    S = pricer.marketInputs.spot
-    K = pricer.payoff.strike
-    r = pricer.marketInputs.rate
-    σ = pricer.marketInputs.sigma
-    T = pricer.payoff.time
+    S = delta_calc.pricer.marketInputs.spot
+    K = delta_calc.pricer.payoff.strike
+    r = delta_calc.pricer.marketInputs.rate
+    σ = delta_calc.pricer.marketInputs.sigma
+    T = delta_calc.pricer.payoff.time
     d1 = (log(S / K) + (r + 0.5 * σ^2) * T) / (σ * sqrt(T))
     return cdf(Normal(), d1)  # Black-Scholes delta for calls
 end
@@ -74,6 +74,7 @@ struct ADDelta <: AbstractDeltaMethod end
 using Accessors, ForwardDiff
 
 function (delta_calc::DeltaCalculator{ADDelta, P, BlackScholesInputs, S})() where {P,S}
+    pricer = delta_calc.pricer
     return ForwardDiff.derivative(
         S -> begin
             new_pricer = @set pricer.marketInputs.spot = S
@@ -100,6 +101,9 @@ println(analytical_delta_calc())
 # AD Delta
 ad_delta_calc = DeltaCalculator(pricer, ADDelta())
 println(ad_delta_calc())
+
+println("Benchmarking pricer:")
+@btime pricer()
 
 # Run benchmarks
 println("Benchmarking Analytical Delta:")
