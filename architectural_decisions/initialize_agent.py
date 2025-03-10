@@ -1,61 +1,77 @@
 from langchain_community.vectorstores import Chroma
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_ollama import OllamaEmbeddings, ChatOllama
-from langchain.chains import ConversationalRetrievalChain
+from langchain.chains import RetrievalQA
 
-# Use Ollama's local embedding model
-embedding_model = OllamaEmbeddings(model="codellama")  # You can also try 'llama3' or other Ollama models
+# Load and prepare text documents
+def load_text_file(filepath):
+    with open(filepath, "r", encoding="utf-8") as f:
+        return f.read()
 
-# Load design decisions from a file
-with open(r"C:\repos\Hedgehog2.jl\architectural_decisions\design.md", "r") as f:
-    design_text = f.read()
-
-with open(r"C:\repos\Hedgehog2.jl\architectural_decisions\questions_answers.txt", "r") as f:
-    answers = f.read()
-
-with open(r"C:\repos\Hedgehog2.jl\src\Hedgehog2.jl", "r") as f:
-    code = f.read()
+design_text = load_text_file(r"C:\repos\Hedgehog2.jl\architectural_decisions\design.md")
+answers = load_text_file(r"C:\repos\Hedgehog2.jl\architectural_decisions\questions_answers.txt")
+code = load_text_file(r"C:\repos\Hedgehog2.jl\src\Hedgehog2.jl")
 
 # Split text into smaller chunks
 text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
-design_docs = text_splitter.split_text(design_text)
-code_docs = text_splitter.split_text(code)
-answers_docs = text_splitter.split_text(answers)
+design_docs = text_splitter.create_documents([design_text])
+answers_docs = text_splitter.create_documents([answers])
+code_docs = text_splitter.create_documents([code])
 
-# Store separately in ChromaDB
-vectorstore = Chroma.from_texts(code_docs + design_docs + answers_docs, embedding=embedding_model)
-retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
+# Use Ollama embeddings
+embedding_model = OllamaEmbeddings(model="codellama")
 
-print("✅ Design decisions stored in ChromaDB using Ollama embeddings!")
+# Create separate vector stores
+design_vectorstore = Chroma.from_documents(design_docs, embedding=embedding_model)
+answers_vectorstore = Chroma.from_documents(answers_docs, embedding=embedding_model)
+code_vectorstore = Chroma.from_documents(code_docs, embedding=embedding_model)
 
-# Load Ollama model for answering
-llm = ChatOllama(model="codellama")  # Or replace with your fine-tuned model
+# Create separate retrievers
+design_retriever = design_vectorstore.as_retriever(search_kwargs={"k": 3})
+answers_retriever = answers_vectorstore.as_retriever(search_kwargs={"k": 3})
+code_retriever = code_vectorstore.as_retriever(search_kwargs={"k": 3})
 
-# Set up the conversational retrieval chain
-qa_chain = ConversationalRetrievalChain.from_llm(llm, retriever=retriever)
+print("✅ Design, answers, and code indexed in ChromaDB!")
 
-# Example query
-query = "Modify the Black-Scholes pricing strategy to support put options in addition to call options."
-response = qa_chain.invoke({"question": query, "chat_history": []})
-chat_history = [(query, response["answer"])]
-print("You:", query)
-print("AI:", response["answer"])
+# Load LLM for answering
+llm_retrieval = ChatOllama(model="mistral")  # Fast model for retrieval Q&A
+llm_coding = ChatOllama(model="codellama:34b")  # Strong model for coding
 
+# Agents
+design_qa = RetrievalQA.from_chain_type(llm_retrieval, retriever=design_retriever)
+answers_qa = RetrievalQA.from_chain_type(llm_retrieval, retriever=answers_retriever)
+code_qa = RetrievalQA.from_chain_type(llm_retrieval, retriever=code_retriever)
+
+# Interactive session
 while True:
-    user_input = input("You: ")
+    user_input = input("\nYou: ")
 
-    # End conversation if user types 'end'
     if user_input.lower() == "end":
-        print("👋 Chat session ended. Goodbye!")
+        print("👋 Chat session ended.")
         break
 
-    # Generate response while maintaining chat history
-    response = qa_chain.invoke({"question": user_input, "chat_history": chat_history})
+    print("retrieving information to help the coding agent")
+    # Retrieve relevant information
+    design_response = design_qa.invoke(user_input)
+    answer_response = answers_qa.invoke(user_input)
+    code_response = code_qa.invoke(user_input)
 
-    # Print AI response
-    print("AI:", response["answer"])
+    # Generate improved response using all retrieved knowledge
+    final_prompt = f"""
+    User Query: {user_input}
+    
+    Relevant Design Decisions:
+    {design_response}
+    
+    Past Answers:
+    {answer_response}
+    
+    Relevant Code Snippets:
+    {code_response}
+    
+    Based on this, provide the best possible response.
+    """
+    print("waiting for the coding agent answer")
+    final_response = llm_coding.invoke(final_prompt)
 
-    # Update chat history
-    chat_history.append((user_input, response["answer"]))
-
-print("🧠 AI Response:", response["answer"])
+    print("\n🧠 AI Response:", final_response.content)
