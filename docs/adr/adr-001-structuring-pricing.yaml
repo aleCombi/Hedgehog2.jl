@@ -1,0 +1,44 @@
+adr_id: 001
+title: "Structuring Pricing with (Payoff, MarketInputs, PricingMethod)"
+status: Accepted
+date: 2025-03-11
+context: |
+  The pricing framework must support multiple payoffs, market data configurations, and pricing methods.
+  The design should allow flexible combinations while maintaining type safety and extensibility.
+
+  In financial modeling, pricing methods vary based on assumptions, input structures, and numerical techniques.
+  A modular system is needed so that new payoffs, market models, and pricing techniques can be added 
+  without modifying core logic.
+
+decision: |
+  - Pricing will be structured as a combination of:
+    - A `payoff` that subtypes `AbstractPayoff` (e.g., `VanillaEuropeanCall`)
+    - Market data (`marketInputs`) that subtypes `AbstractMarketInputs` (e.g., `BlackScholesInputs`)
+    - A `pricingMethod` that subtypes `AbstractPricingMethod` (e.g., `BlackScholesMethod`)
+  - These components will be stored in a `Pricer{P, M, S}` struct where:
+      - `P <: AbstractPayoff`
+      - `M <: AbstractMarketInputs`
+      - `S <: AbstractPricingMethod`
+  - Multiple dispatch will be used to define how pricing is performed for different `(payoff, marketInputs, pricingMethod)` combinations.
+
+consequences:
+  positive:
+    - "Highly modular: New payoffs, market models, and pricing methods can be added without modifying core structures."
+    - "Explicit dependencies: It is clear which inputs are required for each pricing approach."
+    - "Easy to swap pricing methodologies by changing `pricingMethod`."
+    - "Leverages Julia's multiple dispatch for efficient specialization."
+  negative:
+    - "Requires defining explicit struct types for each pricing method, market input, and payoff."
+    - "Less flexible than a function-based approach where any compatible struct could be passed."
+    - "Users cannot easily create ad-hoc pricing functions without integrating them into the type system."
+
+alternatives:
+  - name: "Unstructured function-based pricing"
+    pros: "Allows passing arbitrary payoffs, market data, and pricing methods without struct constraints."
+    cons: "Less type safety, more risk of runtime errors, and potential performance loss."
+
+  - name: "Store pricing logic inside the `AbstractPayoff` subtypes"
+    pros: "Simplifies structure since each payoff knows how to price itself."
+    cons: "Reduces flexibility—pricing depends on the payoff rather than being modular."
+
+references:

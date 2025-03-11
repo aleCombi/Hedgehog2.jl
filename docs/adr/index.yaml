@@ -1,0 +1,4 @@
+adr_index:
+  - "adr-001-structuring-pricing.yaml"
+  - "adr-002-pricer-callable-struct.yaml"
+  - "adr-003-greeks-calculation-design.yaml"
