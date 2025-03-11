@@ -72,10 +72,10 @@ class ADRAgent:
         return response["result"]
 
 
-# Main execution
+# Example execution
 if __name__ == "__main__":
     adr_agent = ADRAgent("./docs/adr", retrieval_model_name="codellama:34b", embedding_model_name="mistral")  # Replace with your ADR directory path and preferred model
-    feature_request1 = "Implement put options pricing using Black-Scholes analytical formulas"
+    feature_request1 = "Implement put options pricing using Black-Scholes analytical formulas. I am only interested in the price."
     feature_request2 = "Implement options pricing using Cox Ross Rubinstein Binomial Tree method."
     feature_request3 = "Implement options pricing using Heston Model."
     feature_request4 = "Implement interest rate forward pricing using discount curves."
