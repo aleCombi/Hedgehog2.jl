@@ -64,6 +64,7 @@ class ADRAgent:
         Feature Request: {feature_request}
         
         Respond with clear, step-by-step guidance based on existing design decisions.
+        The answer must be a numbered list.
         """
         response = self.design_qa.invoke(prompt)
         return response["result"]
@@ -71,7 +72,11 @@ class ADRAgent:
 # Main execution
 if __name__ == "__main__":
     adr_agent = ADRAgent("./docs/adr", model_name="mistral")  # Replace with your ADR directory path and preferred model
-    feature_request = "Implement put options pricing using Black-Scholes analytical formulas"
-    steps = adr_agent.generate_high_level_steps(feature_request)
+    feature_request1 = "Implement put options pricing using Black-Scholes analytical formulas"
+    feature_request2 = "Implement options pricing using Cox Ross Rubinstein Binomial Tree method."
+    feature_request3 = "Implement options pricing using Heston Model."
+    feature_request4 = "Implement interest rate forward pricing using discount curves."
+
+    steps = adr_agent.generate_high_level_steps(feature_request4)
     
     print(steps)
