@@ -3,7 +3,7 @@ title: "Greeks Calculation Design"
 status: Accepted
 date: 2025-03-11
 context: |
-  In ADR-002, we introduced `Pricer{P, M, S}` as a callable struct that computes a derivative’s price
+  In ADR-004, we introduced `Pricer{P, M, S}` as a callable struct that computes a derivative’s price
   using a combination of:
     - A `payoff` that subtypes `AbstractPayoff`
     - Market data (`marketInputs`) that subtypes `AbstractMarketInputs`
@@ -51,4 +51,4 @@ alternatives:
     cons: "Less modular, Greeks logic is scattered across functions."
 
 references:
-  - adr-002-pricer-callable-struct.yaml
+  - adr-004-pricer-callable-struct.yaml

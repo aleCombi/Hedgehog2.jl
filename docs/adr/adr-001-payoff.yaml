@@ -1,0 +1,26 @@
+adr_id: 001
+title: "Payoff Object Design"
+status: Accepted
+date: 2025-03-11
+context: |
+  The pricing framework must support multiple payoffs while maintaining type safety and modularity.
+  A `payoff` should represent the contract terms and intrinsic valuation function independently of market inputs or pricing models.
+
+decision: |
+  - Define a `payoff` type that subtypes `AbstractPayoff`.
+  - Each payoff should encapsulate contract details (e.g., strike, expiry) and provide an intrinsic value function.
+  - Payoff objects should not contain market assumptions or pricing logic.
+
+consequences:
+  positive:
+    - "Encapsulates contract-specific logic separately from pricing and market assumptions."
+    - "Allows defining new payoffs without modifying existing pricing structures."
+  negative:
+    - "Requires defining explicit struct types for each new payoff format."
+
+alternatives:
+  - name: "Store pricing logic inside the `AbstractPayoff` subtypes"
+    pros: "Simplifies structure since each payoff knows how to price itself."
+    cons: "Reduces flexibility—pricing depends on the payoff rather than being modular."
+
+references:
