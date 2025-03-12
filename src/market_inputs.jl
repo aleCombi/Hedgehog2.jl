@@ -9,8 +9,10 @@ abstract type AbstractMarketInputs end
 - `sigma`: The volatility of the underlying asset.
 
 This struct encapsulates the necessary inputs for pricing derivatives under the Black-Scholes model.
+It is assumed that the volatility is annual.
 """
 struct BlackScholesInputs <: AbstractMarketInputs
+    today
     rate
     spot
     sigma

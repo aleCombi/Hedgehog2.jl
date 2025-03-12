@@ -44,7 +44,7 @@ function (delta_calc::DeltaCalculator{BlackScholesAnalyticalDelta, VanillaEurope
     K = delta_calc.pricer.payoff.strike
     r = delta_calc.pricer.marketInputs.rate
     σ = delta_calc.pricer.marketInputs.sigma
-    T = delta_calc.pricer.payoff.time
+    T = delta_calc.pricer.payoff.expiry
     d1 = (log(S / K) + (r + 0.5 * σ^2) * T) / (σ * sqrt(T))
     return cdf(Normal(), d1)  # Black-Scholes delta for calls
 end

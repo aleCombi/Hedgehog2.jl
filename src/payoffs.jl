@@ -5,13 +5,13 @@ abstract type AbstractPayoff end
 
 # Fields
 - `strike`: The strike price of the option.
-- `time`: The time to maturity of the option.
+- `expiry`: The time to maturity of the option.
 
 This struct represents a European call option, which provides a payoff of `max(spot - strike, 0.0)`.
 """
 struct VanillaEuropeanCall <: AbstractPayoff
     strike
-    time
+    expiry
 end
 
 """Computes the payoff of a vanilla European call option given a spot price.
@@ -24,5 +24,5 @@ end
 - The payoff value, calculated as `max(spot - payoff.strike, 0.0)`.
 """
 function (payoff::VanillaEuropeanCall)(spot)
-    return max(spot - payoff.strike, 0.0)
+    return max.(spot .- payoff.strike, 0.0)
 end
