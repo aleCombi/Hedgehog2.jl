@@ -16,6 +16,6 @@ It is assumed that the volatility is annual.
 struct BlackScholesInputs <: AbstractMarketInputs
     referenceDate
     rate
-    spot
+    forward
     sigma
 end

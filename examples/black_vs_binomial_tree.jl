@@ -1,20 +1,19 @@
 using Revise, Hedgehog2, BenchmarkTools, Dates
 
-reference_date = Date(2020, 1, 1)
-rate = 0.2
-forward = 1
-spot = exp(-rate*Dates.value(expiry - reference_date)/365) * forward
-sigma = 0.4
-
 # define payoff
 strike = 1.2
 expiry = Date(2021, 1, 1)
 call_put = Hedgehog2.Put()
-american_payoff = VanillaOption(strike, expiry, Hedgehog2.American(), call_put)
-euro_payoff = VanillaOption(strike, expiry, Hedgehog2.European(), call_put)
+underlying = Hedgehog2.Forward()
+american_payoff = VanillaOption(strike, expiry, Hedgehog2.American(), call_put, underlying)
+euro_payoff = VanillaOption(strike, expiry, Hedgehog2.European(), call_put, underlying)
 
 # define market inputs
-market_inputs = BlackScholesInputs(reference_date, rate, spot, sigma)
+reference_date = Date(2020, 1, 1)
+rate = 0.2
+forward = 1
+sigma = 0.4
+market_inputs = BlackScholesInputs(reference_date, rate, forward, sigma)
 
 # create analytical black scholes pricer
 bs_method = BlackScholesMethod()

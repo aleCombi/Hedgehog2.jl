@@ -62,15 +62,15 @@ price = S * Φ(d1) - K * exp(-r * T) * Φ(d2)
 where `Φ` is the CDF of the standard normal distribution.
 """
 function compute_price(payoff::VanillaOption{European}, marketInputs::BlackScholesInputs, ::BlackScholesMethod)
-  S = marketInputs.spot
+  F = marketInputs.forward
   K = payoff.strike
   r = marketInputs.rate
   σ = marketInputs.sigma
   cp = payoff.call_put()
   T = Dates.value.(payoff.expiry .- marketInputs.referenceDate) ./ 365 # we might want to specify daycount conventions to ensure consistency
-  d1 = (log(S / K) + (r + 0.5 * σ^2) * T) / (σ * sqrt(T))
+  d1 = (log(F / K) + 0.5 * σ^2 * T) / (σ * sqrt(T))
   d2 = d1 - σ * sqrt(T)
-  return cp * (S * cdf(Normal(), cp * d1) - K * exp(-r * T) * cdf(Normal(), cp * d2))
+  return exp(-r*T) * cp * (F * cdf(Normal(), cp * d1) - K * cdf(Normal(), cp * d2))
 end
 
 """The Cox-Ross-Rubinstein binomial tree pricing method.
@@ -82,8 +82,8 @@ struct CoxRossRubinsteinMethod <: AbstractPricingMethod
 end
 
 # this should be specified by the tree choices, configurations of the pricing method
-function binomial_tree_up_probability(up_step, down_step, rate, time_step, ::CoxRossRubinsteinMethod)
-  return (exp(rate * time_step) - down_step) / (up_step - down_step) 
+function binomial_tree_up_probability(up_step, down_step, ::CoxRossRubinsteinMethod)
+  return (1 - down_step) / (up_step - down_step) 
 end
 
 function binomial_tree_step_sizes(sigma, time_step, ::CoxRossRubinsteinMethod)
@@ -91,29 +91,38 @@ function binomial_tree_step_sizes(sigma, time_step, ::CoxRossRubinsteinMethod)
   return up_step, 1 / up_step
 end
 
-function binomial_tree_spot(time_step, spot, up_step, down_step, ::CoxRossRubinsteinMethod)
-  spot * up_step .^ (-time_step:2:time_step)
+function binomial_tree_forward(time_step, forward, up_step, down_step, ::CoxRossRubinsteinMethod)
+  forward * up_step .^ (-time_step:2:time_step)
 end
 
-function binomial_tree_value(step, discounted_continuation, spots_at_i, payoff, ::European)
+function binomial_tree_value(step, discounted_continuation, underlying_at_i, payoff, ::European)
   return discounted_continuation
 end
 
-function binomial_tree_value(step, discounted_continuation, spots_at_i, payoff, ::American)
-  return max.(discounted_continuation, payoff(spots_at_i(step)))
+function binomial_tree_value(step, discounted_continuation, underlying_at_i, payoff, ::American)
+  return max.(discounted_continuation, payoff(underlying_at_i(step)))
+end
+
+function binomial_tree_underlying(time_step, forward, rate, delta_time, ::Spot)
+  return exp(-rate*time_step*delta_time) * forward
+end
+
+function binomial_tree_underlying(_, forward, _, _, ::Forward)
+  return forward
 end
 
 function compute_price(payoff::P, market_inputs::BlackScholesInputs, method::CoxRossRubinsteinMethod) where P <: AbstractPayoff
   ΔT = Dates.value.(payoff.expiry .- market_inputs.referenceDate) ./ 365 / method.steps # we might want to specify daycount conventions to ensure consistency
   up_step, down_step = binomial_tree_step_sizes(market_inputs.sigma, ΔT, method)
-  spots_at_i(i) = binomial_tree_spot(i, market_inputs.spot, up_step, down_step, method)
-  p = binomial_tree_up_probability(up_step, down_step, market_inputs.rate, ΔT, method)
-  value = payoff(spots_at_i(method.steps))
+  forward_at_i(i) = binomial_tree_forward(i, market_inputs.forward, up_step, down_step, method)
+  underlying_at_i(i) = binomial_tree_underlying(i, forward_at_i(i), market_inputs.rate, ΔT, payoff.underlying)
+  p = binomial_tree_up_probability(up_step, down_step, method)
+  value = payoff(forward_at_i(method.steps))
 
   for step in (method.steps-1):-1:0
     continuation = p * value[2:end] + (1 - p) * value[1:end-1]
     df = exp(-market_inputs.rate * ΔT)
-    value = binomial_tree_value(step, df * continuation, spots_at_i, payoff, payoff.exercise_style)
+    value = binomial_tree_value(step, df * continuation, underlying_at_i, payoff, payoff.exercise_style)
   end
 
   return value[1]

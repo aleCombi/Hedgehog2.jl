@@ -8,6 +8,11 @@ struct American <: AbstractExerciseStyle end
 """An abstract type representing a financial payoff, such as a vanilla European option, an Asian option, or a forward."""
 abstract type AbstractPayoff end
 
+abstract type Underlying end
+
+struct Spot <: Underlying end
+struct Forward <: Underlying end
+
 """A vanilla European call option payoff.
 
 # Fields
@@ -16,11 +21,12 @@ abstract type AbstractPayoff end
 
 This struct represents a European call option, which provides a payoff of `max(spot - strike, 0.0)`.
 """
-struct VanillaOption{E,C} <: AbstractPayoff where E<:AbstractExerciseStyle
+struct VanillaOption{E,C,U} <: AbstractPayoff where E<:AbstractExerciseStyle
     strike
     expiry
     exercise_style::E
     call_put::C
+    underlying::U
 end
 
 abstract type AbstractCallPut end
