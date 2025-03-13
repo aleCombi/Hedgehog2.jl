@@ -86,12 +86,11 @@ function price(payoff::P, market_inputs::BlackScholesInputs, method::CoxRossRubi
 
   p = up_probability
   value = payoff(spots_at_i(method.steps))
-
-  for step in method.steps-1:-1:0
+  print(spots_at_i(method.steps))
+  for step in (method.steps-1):-1:0
     continuation = p * value[2:end] + (1 - p) * value[1:end-1]
     df = exp(-market_inputs.rate * ΔT)
     value = df * continuation
-
   end
 
   return value

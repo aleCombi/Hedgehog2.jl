@@ -3,12 +3,16 @@ using BenchmarkTools
 
 """Example code with benchmarks"""
 # Define market data and payoff
-market_inputs = h.BlackScholesInputs(0, 0.4, 1, 0.4)
+today=0
+rate=0
+spot=1
+sigma=0.4
+market_inputs = h.BlackScholesInputs(today, rate, spot, sigma)
 payoff = h.VanillaEuropeanCall(1, 1)
 analytical_pricer = h.Pricer(payoff, market_inputs, h.BlackScholesMethod())
-price = h.price(payoff, market_inputs, h.BlackScholesMethod())
+bs_price = h.price(payoff, market_inputs, h.BlackScholesMethod())
 
-crr = h.CoxRossRubinsteinMethod(2000)
+crr = h.CoxRossRubinsteinMethod(800)
 crr_pricer = h.Pricer(payoff, market_inputs, crr)
 println("Cox Ross Rubinstein:")
 println(crr_pricer())
