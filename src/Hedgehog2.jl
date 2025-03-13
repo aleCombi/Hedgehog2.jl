@@ -1,9 +1,9 @@
 module Hedgehog2
 
-using BenchmarkTools, ForwardDiff, Distributions, Accessors
+using BenchmarkTools, ForwardDiff, Distributions, Accessors, Dates
 
 if false 
-    include("../examples/example.jl")
+    include("../examples/includer.jl")
 end
 
 include("payoffs.jl")

@@ -1,2 +1,5 @@
 [deps]
+BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
+Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 Hedgehog2 = "7f16798b-0e18-40de-98af-932948254698"
+Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"

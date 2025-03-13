@@ -1,3 +1,5 @@
+export AbstractDeltaMethod, BlackScholesAnalyticalDelta, DeltaCalculator, ADDelta
+
 """A method for delta calculation."""
 abstract type AbstractDeltaMethod end
 
@@ -39,7 +41,7 @@ delta = Φ(d1)
 ```
 where `Φ` is the CDF of the standard normal distribution.
 """
-function (delta_calc::DeltaCalculator{BlackScholesAnalyticalDelta, VanillaEuropeanCall, BlackScholesInputs, BlackScholesMethod})()
+function (delta_calc::DeltaCalculator{BlackScholesAnalyticalDelta, VanillaOption{European}, BlackScholesInputs, BlackScholesMethod})()
     S = delta_calc.pricer.marketInputs.spot
     K = delta_calc.pricer.payoff.strike
     r = delta_calc.pricer.marketInputs.rate

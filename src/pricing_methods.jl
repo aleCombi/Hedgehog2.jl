@@ -1,3 +1,5 @@
+export AbstractPricingMethod, BlackScholesMethod, Pricer, compute_price, CoxRossRubinsteinMethod
+
 """An abstract type representing a pricing method."""
 abstract type AbstractPricingMethod end
 
@@ -39,13 +41,13 @@ end
 
 """
 function (pricer::Pricer{A,B,C})() where {A<:AbstractPayoff,B<:AbstractMarketInputs,C<:AbstractPricingMethod}
-  return price(pricer.payoff, pricer.marketInputs, pricer.pricingMethod)
+  return compute_price(pricer.payoff, pricer.marketInputs, pricer.pricingMethod)
 end
 
 """Computes the price of a vanilla European call option using the Black-Scholes model.
 
 # Arguments
-- `pricer::Pricer{VanillaEuropeanCall, BlackScholesInputs, BlackScholesMethod}`: 
+- `pricer::Pricer{VanillaCall, BlackScholesInputs, BlackScholesMethod}`: 
   A `Pricer` configured for Black-Scholes pricing of a vanilla European call.
 
 # Returns
@@ -59,15 +61,16 @@ price = S * Φ(d1) - K * exp(-r * T) * Φ(d2)
 ```
 where `Φ` is the CDF of the standard normal distribution.
 """
-function price(payoff::VanillaEuropeanCall, marketInputs::BlackScholesInputs, method::BlackScholesMethod)
-    S = marketInputs.spot
-    K = payoff.strike
-    r = marketInputs.rate
-    σ = marketInputs.sigma
-    T = payoff.expiry
-    d1 = (log(S / K) + (r + 0.5 * σ^2) * T) / (σ * sqrt(T))
-    d2 = d1 - σ * sqrt(T)
-    return S * cdf(Normal(), d1) - K * exp(-r * T) * cdf(Normal(), d2)
+function compute_price(payoff::VanillaOption{European}, marketInputs::BlackScholesInputs, ::BlackScholesMethod)
+  S = marketInputs.spot
+  K = payoff.strike
+  r = marketInputs.rate
+  σ = marketInputs.sigma
+  cp = payoff.call_put()
+  T = Dates.value.(payoff.expiry .- marketInputs.referenceDate) ./ 365 # we might want to specify daycount conventions to ensure consistency
+  d1 = (log(S / K) + (r + 0.5 * σ^2) * T) / (σ * sqrt(T))
+  d2 = d1 - σ * sqrt(T)
+  return cp * (S * cdf(Normal(), cp * d1) - K * exp(-r * T) * cdf(Normal(), cp * d2))
 end
 
 """The Cox-Ross-Rubinstein binomial tree pricing method.
@@ -78,21 +81,41 @@ struct CoxRossRubinsteinMethod <: AbstractPricingMethod
   steps
 end
 
-function price(payoff::P, market_inputs::BlackScholesInputs, method::CoxRossRubinsteinMethod) where P <: AbstractPayoff
-  ΔT = (payoff.expiry - market_inputs.today) / method.steps
-  step_size = exp(market_inputs.sigma * sqrt(ΔT))
-  up_probability = 1 / (1 + step_size) # this should be specified by the tree choices, configurations of the
-  spots_at_i = i -> step_size .^ (-i:2:i)
+# this should be specified by the tree choices, configurations of the pricing method
+function binomial_tree_up_probability(up_step, down_step, rate, time_step, ::CoxRossRubinsteinMethod)
+  return (exp(rate * time_step) - down_step) / (up_step - down_step) 
+end
 
-  p = up_probability
+function binomial_tree_step_sizes(sigma, time_step, ::CoxRossRubinsteinMethod)
+  up_step = exp(sigma * sqrt(time_step))
+  return up_step, 1 / up_step
+end
+
+function binomial_tree_spot(time_step, spot, up_step, down_step, ::CoxRossRubinsteinMethod)
+  spot * up_step .^ (-time_step:2:time_step)
+end
+
+function binomial_tree_value(step, discounted_continuation, spots_at_i, payoff, ::European)
+  return discounted_continuation
+end
+
+function binomial_tree_value(step, discounted_continuation, spots_at_i, payoff, ::American)
+  return max.(discounted_continuation, payoff(spots_at_i(step)))
+end
+
+function compute_price(payoff::P, market_inputs::BlackScholesInputs, method::CoxRossRubinsteinMethod) where P <: AbstractPayoff
+  ΔT = Dates.value.(payoff.expiry .- market_inputs.referenceDate) ./ 365 / method.steps # we might want to specify daycount conventions to ensure consistency
+  up_step, down_step = binomial_tree_step_sizes(market_inputs.sigma, ΔT, method)
+  spots_at_i(i) = binomial_tree_spot(i, market_inputs.spot, up_step, down_step, method)
+  p = binomial_tree_up_probability(up_step, down_step, market_inputs.rate, ΔT, method)
   value = payoff(spots_at_i(method.steps))
-  print(spots_at_i(method.steps))
+
   for step in (method.steps-1):-1:0
     continuation = p * value[2:end] + (1 - p) * value[1:end-1]
     df = exp(-market_inputs.rate * ΔT)
-    value = df * continuation
+    value = binomial_tree_value(step, df * continuation, spots_at_i, payoff, payoff.exercise_style)
   end
 
-  return value
+  return value[1]
 
 end

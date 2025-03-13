@@ -1,3 +1,5 @@
+export BlackScholesInputs, AbstractMarketInputs
+
 """An abstract type representing market data inputs required for pricers."""
 abstract type AbstractMarketInputs end
 
@@ -12,7 +14,7 @@ This struct encapsulates the necessary inputs for pricing derivatives under the 
 It is assumed that the volatility is annual.
 """
 struct BlackScholesInputs <: AbstractMarketInputs
-    today
+    referenceDate
     rate
     spot
     sigma
