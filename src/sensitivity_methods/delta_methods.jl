@@ -20,9 +20,13 @@ struct BlackScholesAnalyticalDelta <: AbstractDeltaMethod end
 
 A `DeltaCalculator` is a callable struct that computes delta using the specified method.
 """
-struct DeltaCalculator{D<:AbstractDeltaMethod, P<:AbstractPayoff, I<:AbstractMarketInputs, S<:AbstractPricingMethod}
+struct DeltaCalculator{P<:AbstractPayoff, I<:AbstractMarketInputs, S<:AbstractPricingMethod, D<:AbstractDeltaMethod}
     pricer::Pricer{P, I, S}
     deltaMethod::D
+end
+
+function (delta_calc::DeltaCalculator{A, B, C, D})() where {A<:AbstractPayoff, B<:AbstractMarketInputs, C<:AbstractPricingMethod, D<:AbstractDeltaMethod}
+    return compute_delta(delta_calc.pricer, delta_calc.deltaMethod)
 end
 
 """Computes delta analytically for a vanilla European call option using the Black-Scholes model.
@@ -41,14 +45,14 @@ delta = Φ(d1)
 ```
 where `Φ` is the CDF of the standard normal distribution.
 """
-function (delta_calc::DeltaCalculator{BlackScholesAnalyticalDelta, VanillaOption{European}, BlackScholesInputs, BlackScholesMethod})()
-    S = delta_calc.pricer.marketInputs.spot
-    K = delta_calc.pricer.payoff.strike
-    r = delta_calc.pricer.marketInputs.rate
-    σ = delta_calc.pricer.marketInputs.sigma
-    T = delta_calc.pricer.payoff.expiry
-    d1 = (log(S / K) + (r + 0.5 * σ^2) * T) / (σ * sqrt(T))
-    return cdf(Normal(), d1)  # Black-Scholes delta for calls
+function compute_delta(pricer::Pricer{VanillaOption{European, CallPut, Style}, BlackScholesInputs, BlackScholesMethod}, ::BlackScholesAnalyticalDelta) where {CallPut,Style}
+    F = pricer.marketInputs.forward
+    K = pricer.payoff.strike
+    r = pricer.marketInputs.rate
+    σ = pricer.marketInputs.sigma
+    T = Dates.value.(pricer.payoff.expiry .- pricer.marketInputs.referenceDate) ./ 365 # we might want to specify daycount conventions to ensure consistency
+    d1 = (log(F / K) + 0.5 * σ^2 * T) / (σ * sqrt(T))
+    return cdf(Normal(), d1)
 end
 
 """A method for computing delta using automatic differentiation (AD)."""
@@ -65,13 +69,12 @@ struct ADDelta <: AbstractDeltaMethod end
 
 This method uses `ForwardDiff.derivative` to compute the delta by differentiating the option price with respect to the spot price.
 """
-function (delta_calc::DeltaCalculator{ADDelta, P, BlackScholesInputs, S})() where {P,S}
-    pricer = delta_calc.pricer
+function compute_delta(pricer::Pricer{Payoff, BlackScholesInputs, Method}, ::ADDelta) where {Payoff <: AbstractPayoff, Method <: AbstractPricingMethod}
     return ForwardDiff.derivative(
-        S -> begin
-            new_pricer = @set pricer.marketInputs.spot = S
+        forward -> begin
+            new_pricer = @set pricer.marketInputs.forward = forward
             new_pricer()
         end,
-        pricer.marketInputs.spot
+        pricer.marketInputs.forward
     )
 end
