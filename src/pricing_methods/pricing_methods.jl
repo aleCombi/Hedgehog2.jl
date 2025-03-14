@@ -1,27 +1,34 @@
+# Exported Types and Functions
 export AbstractPricingMethod, BlackScholesMethod, Pricer, compute_price, CoxRossRubinsteinMethod
 
-"""An abstract type representing a pricing method."""
+"""
+An abstract type representing a pricing method.
+
+All pricing methods, such as Black-Scholes or binomial trees, should inherit from this type.
+"""
 abstract type AbstractPricingMethod end
 
-"""The Black-Scholes pricing method.
+"""
+The Black-Scholes pricing method.
 
-This struct represents the Black-Scholes pricing model for option pricing.
+This struct represents the Black-Scholes pricing model for option pricing, which assumes a lognormal distribution for the underlying asset and continuous hedging.
 """
 struct BlackScholesMethod <: AbstractPricingMethod end
 
-"""A pricer that calculates the price of a derivative using a given payoff, market data, and a pricing model.
+"""
+A pricer that calculates the price of a derivative using a given payoff, market data, and a pricing model.
 
 # Type Parameters
-- `P <: AbstractPayoff`: The type of payoff being priced.
-- `M <: AbstractMarketInputs`: The type of market data inputs required for pricing.
-- `S <: AbstractPricingMethod`: The pricing method used.
+- `P`: The type of payoff being priced (must be a subtype of `AbstractPayoff`).
+- `M`: The type of market data inputs required for pricing (must be a subtype of `AbstractMarketInputs`).
+- `S`: The pricing method used (must be a subtype of `AbstractPricingMethod`).
 
 # Fields
-- `marketInputs::M`: The market data inputs used for pricing.
-- `payoff::P`: The derivative payoff.
-- `pricingMethod::S`: The pricing model used for valuation.
+- `payoff`: The derivative payoff.
+- `marketInputs`: The market data inputs used for pricing.
+- `pricingMethod`: The pricing model used for valuation.
 
-A `Pricer` is a callable struct that computes the price of the derivative using the specified pricing method.
+A `Pricer` is a callable struct that computes the price of the derivative using the specified pricing method when invoked.
 """
 struct Pricer{P <: AbstractPayoff, M <: AbstractMarketInputs, S <: AbstractPricingMethod}
   payoff::P  
@@ -30,15 +37,15 @@ struct Pricer{P <: AbstractPayoff, M <: AbstractMarketInputs, S <: AbstractPrici
 end
 
 """
-  Computes the price based on a Pricer input object.
+Computes the price of a derivative using a `Pricer` object.
 
-  # Arguments
-- `pricer::Pricer{A, B, C}`: 
-  A `Pricer`, specifying a payoff, a market inputs and a method.
+# Arguments
+- `pricer`: A `Pricer` containing the payoff, market inputs, and pricing method.
 
 # Returns
-- The computed price of the derivative.
+- The computed price of the derivative based on the specified pricing model.
 
+This function allows a `Pricer` instance to be called directly as a function, forwarding the computation to `compute_price`.
 """
 function (pricer::Pricer{A,B,C})() where {A<:AbstractPayoff,B<:AbstractMarketInputs,C<:AbstractPricingMethod}
   return compute_price(pricer.payoff, pricer.marketInputs, pricer.pricingMethod)
