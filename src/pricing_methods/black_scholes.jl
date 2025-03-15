@@ -36,7 +36,7 @@ where:
 - The time to expiry `T` is computed as the difference between the option's expiry date and the reference date, assuming a 365-day year.
 - The function supports both call and put options through the `cp` factor, ensuring a unified formula.
 """
-function compute_price(payoff::VanillaOption{European}, marketInputs::BlackScholesInputs, ::BlackScholesMethod)
+function compute_price(payoff::VanillaOption{European, A, B}, marketInputs::BlackScholesInputs, ::BlackScholesMethod) where {A,B}
     F = marketInputs.forward
     K = payoff.strike
     r = marketInputs.rate

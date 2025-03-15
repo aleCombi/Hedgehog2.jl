@@ -1,7 +1,8 @@
-using Hedgehog2
-using Test
+using Hedgehog2, Test, Dates, Distributions
 
-@testset "Hedgehog2.jl" begin
-    # Write your tests here.
+if false
+    include("..src/Hedgehog2.jl")
 end
+
+include("black_scholes.jl")
     
