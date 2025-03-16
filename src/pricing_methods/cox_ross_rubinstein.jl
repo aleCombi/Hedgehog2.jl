@@ -1,5 +1,7 @@
 # Cox-Ross-Rubinstein Binomial Tree Pricing Implementation
 
+export CoxRossRubinsteinMethod
+
 """
 The Cox-Ross-Rubinstein binomial tree pricing method.
 

@@ -1,5 +1,14 @@
 # Black-Scholes pricing function for European vanilla options
 
+export BlackScholesMethod
+
+"""
+The Black-Scholes pricing method.
+
+This struct represents the Black-Scholes pricing model for option pricing, which assumes a lognormal distribution for the underlying asset and continuous hedging.
+"""
+struct BlackScholesMethod <: AbstractPricingMethod end
+
 """
 Computes the price of a vanilla European call or put option using the Black-Scholes model.
 

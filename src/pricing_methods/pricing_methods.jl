@@ -1,5 +1,5 @@
 # Exported Types and Functions
-export AbstractPricingMethod, BlackScholesMethod, Pricer, compute_price, CoxRossRubinsteinMethod
+export AbstractPricingMethod, Pricer, compute_price
 
 """
 An abstract type representing a pricing method.
@@ -7,13 +7,6 @@ An abstract type representing a pricing method.
 All pricing methods, such as Black-Scholes or binomial trees, should inherit from this type.
 """
 abstract type AbstractPricingMethod end
-
-"""
-The Black-Scholes pricing method.
-
-This struct represents the Black-Scholes pricing model for option pricing, which assumes a lognormal distribution for the underlying asset and continuous hedging.
-"""
-struct BlackScholesMethod <: AbstractPricingMethod end
 
 """
 A pricer that calculates the price of a derivative using a given payoff, market data, and a pricing model.
