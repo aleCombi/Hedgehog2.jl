@@ -10,6 +10,7 @@ Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 DifferentialEquations = "0c46a032-eb83-5123-abaf-570d42b7fbaa"
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
+QuadGK = "1fd47b50-473d-5c70-9696-f719f8f3bcdc"
 
 [compat]
 Accessors = "0.1.42"
@@ -18,6 +19,7 @@ Dates = "1.11.0"
 DifferentialEquations = "7.16.0"
 Distributions = "0.25.117"
 ForwardDiff = "0.10.38"
+QuadGK = "2.11.2"
 julia = "1.11"
 
 [extras]

@@ -6,7 +6,7 @@ struct BSMontecarlo <: MontecarloMethod
     trajectories
 end
 
-# we could make an ExactMontecarlo, dispath to get the noise problem and always make just one step.
+# we could make an ExactMontecarlo, dispath to get the noise problem and always make just one step. Uses antithetic variates.
 function compute_price(payoff::VanillaOption{European, C, Spot}, market_inputs::BlackScholesInputs, method::BSMontecarlo) where {C}
     T = Dates.value.(payoff.expiry .- market_inputs.referenceDate) ./ 365  # Assuming 365-day convention
     
