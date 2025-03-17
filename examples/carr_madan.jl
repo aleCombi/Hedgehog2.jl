@@ -17,7 +17,7 @@ payoff = VanillaOption(strike, expiry, Hedgehog2.European(), Hedgehog2.Call(), H
 # Define carr madan method
 boundary = 32
 α = 1
-method = Hedgehog2.CarrMadanBS(α, boundary)
+method = Hedgehog2.CarrMadan(α, boundary; market_inputs=market_inputs)
 
 # Define pricer
 carr_madan_pricer = Pricer(payoff, market_inputs, method)
