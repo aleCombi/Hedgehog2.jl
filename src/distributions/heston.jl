@@ -30,13 +30,12 @@ end
 
 Samples `log(S_T)` using the exact Broadie-Kaya method.
 """
-function rand(rng::AbstractRNG, d::HestonDistribution)
+function rand(rng, d::HestonDistribution)
     κ, θ, σ, ρ, V0, T, S0, r = d.κ, d.θ, d.σ, d.ρ, d.V0, d.T, d.S0, d.r
-
     # 1. Sample V_T using the noncentral chi-squared distribution
-    ν = (4κθ) / σ^2
+    ν = (4κ * θ) / σ^2
     ψ = (4κ * exp(-κ * T) * V0) / (σ^2 * (1 - exp(-κ * T)))
-    V_T = (σ^2 * (1 - exp(-κ * T)) / (4κ)) * rand(rng, NoncentralChisq(ν, ψ))
+    V_T = (σ^2 * (1 - exp(-κ * T)) / (4κ)) * Distributions.rand(rng, NoncentralChisq(ν, ψ))
 
     # 2. Sample log(S_T) given V_T
     μ_XT = log(S0) + (r - 0.5 * V0) * T + (1 - exp(-κ * T)) * (θ - V0) / (2κ)
@@ -44,7 +43,7 @@ function rand(rng::AbstractRNG, d::HestonDistribution)
     
     log_S_T = μ_XT + sqrt(var_XT) * randn(rng)  # Sample from Normal(μ_XT, sqrt(var_XT))
 
-    return log_S_T
+    return exp(log_S_T)
 end
 
 """

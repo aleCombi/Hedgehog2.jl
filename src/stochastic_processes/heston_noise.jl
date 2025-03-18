@@ -17,7 +17,5 @@ function HestonNoise(t0, heston_dist::HestonDistribution, Z0=nothing)
         return rand(rng, heston_dist)  # Calls exact Heston sampler
     end
 
-    return NoiseProcess(t0, log_S0, Z0, Heston_dist, nothing)
+    return NoiseProcess{false}(t0, log_S0, Z0, Heston_dist, (dW, W, W0, Wh, q, h, u, p, t, rng) -> 1)
 end
-
-

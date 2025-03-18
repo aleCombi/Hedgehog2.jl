@@ -22,5 +22,5 @@ function compute_price(payoff::VanillaOption{European, C, Spot}, market_inputs::
     final_payoffs = (payoff.(last.(solution.u)) + payoff.(last.(antithetic_solution.u))) * 0.5
     mean_payoff = mean(final_payoffs)
     var_payoff = var(final_payoffs)
-    return mean_payoff, var_payoff
+    return mean_payoff
 end

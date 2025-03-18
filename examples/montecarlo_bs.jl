@@ -15,7 +15,7 @@ strike = 1.2
 payoff = VanillaOption(strike, expiry, Hedgehog2.European(), Hedgehog2.Call(), Hedgehog2.Spot())
 
 # Define montecarlo methods
-trajectories = 100000000
+trajectories = 10000
 method = Hedgehog2.BSMontecarlo(trajectories)
 
 # Define pricer
