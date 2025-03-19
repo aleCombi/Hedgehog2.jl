@@ -1,4 +1,4 @@
-using Distributions, Random
+using Distributions, Random, SpecialFunctions, Roots
 
 """
     HestonDistribution(S0, V0, κ, θ, σ, ρ, r, T)
@@ -30,21 +30,98 @@ end
 
 Samples `log(S_T)` using the exact Broadie-Kaya method.
 """
-function rand(rng, d::HestonDistribution)
-    κ, θ, σ, ρ, V0, T, S0, r = d.κ, d.θ, d.σ, d.ρ, d.V0, d.T, d.S0, d.r
-    # 1. Sample V_T using the noncentral chi-squared distribution
-    ν = (4κ * θ) / σ^2
-    ψ = (4κ * exp(-κ * T) * V0) / (σ^2 * (1 - exp(-κ * T)))
-    V_T = (σ^2 * (1 - exp(-κ * T)) / (4κ)) * Distributions.rand(rng, NoncentralChisq(ν, ψ))
+function sample_V_T(rng::AbstractRNG, d::HestonDistribution)
+    κ, θ, σ, V0, T = d.κ, d.θ, d.σ, d.V0, d.T
 
-    # 2. Sample log(S_T) given V_T
-    μ_XT = log(S0) + (r - 0.5 * V0) * T + (1 - exp(-κ * T)) * (θ - V0) / (2κ)
-    var_XT = (ρ^2 * V0 * (1 - exp(-κ * T))^2) / (2κ) + (1 - ρ^2) * (V0 * T + θ * (T - (1 - exp(-κ * T)) / κ))
-    
-    log_S_T = μ_XT + sqrt(var_XT) * randn(rng)  # Sample from Normal(μ_XT, sqrt(var_XT))
+    ν = 4κ*θ / σ^2  # Degrees of freedom
+    ψ = 4κ * exp(-κ * T) * V0 / (σ^2 * (1 - exp(-κ * T)))  # Noncentrality parameter
+    c = σ^2 * (1 - exp(-κ * T)) / (4κ)  # Scaling factor
+
+    V_T = c * Distributions.rand(rng, NoncentralChisq(ν, ψ))
+    return V_T
+end
+
+function sample_integral_V(VT, rng, dist::HestonDistribution)
+    Φ(u) = integral_var_char(u, VT, dist)
+    integrand(x) = u -> sin(u * x) / u * real(Φ(u))
+    F(x) = 2 / π * quadgk(integrand(x), 0, Inf)[1] # specify like in paper (trapz)
+    lower_bound = 0.0
+    upper_bound = 1000
+    # Generate samples
+    unif = Uniform(0,1)  # Define uniform distribution
+    u = Distributions.rand(rng, unif)
+    return inverse_cdf_rootfinding(F, u, lower_bound, upper_bound)
+end
+
+function inverse_cdf_rootfinding(cdf_func, u, y_min, y_max)
+    return find_zero(y -> cdf_func(y) - u, (y_min, y_max); atol=1E-2, maxiters=5)  # Solve F(y) = u like in paper (newton 2nd order)
+end
+
+using SpecialFunctions
+
+""" Adjusts the argument of z to lie in (-π, π] by shifting it appropriately. """
+function adjust_argument(z)
+    θ = angle(z)  # Compute current argument
+    m = round(Int, θ / π)  # Find the nearest integer multiple of π
+    z_adjusted = z * exp(-im * m * π)  # Shift argument back into (-π, π]
+    return z_adjusted
+end
+
+""" Compute the modified Bessel function I_{-ν}(z) with argument correction. """
+function besseli_corrected(nu, z)
+    z_adj = adjust_argument(z)  # Ensure argument is in (-π, π]
+    return besseli(nu, z_adj)  # Compute Bessel function with corrected input
+end
+
+function integral_var_char(a, VT, dist::HestonDistribution)
+    κ, θ, σ, ρ, V0, T, S0, r = dist.κ, dist.θ, dist.σ, dist.ρ, dist.V0, dist.T, dist.S0, dist.r
+    γ(a) = √(κ^2 - 2 * σ^2 * a * im)
+    d = 4 * θ * κ / σ^2
+
+    ζ(x) = (1 - exp(- x * T)) / x
+    first_term = exp(-0.5 * (γ(a) - κ) * T) * ζ(κ) / ζ(γ(a))
+
+    η(x) = x * (1 + exp(- x * T)) / (1 - exp(- x * T))
+    second_term = exp((V0 + VT) / σ^2 * ( η(κ) - η(γ(a)) ))
+
+    ν(x) = √(V0 * VT) * 4 * x * exp(-0.5 * x * T) / σ^2 / (1 - exp(- x * T))
+    numerator = besseli_corrected(0.5*d - 1, ν(γ(a)))
+    denominator = besseli_corrected(0.5*d - 1, ν(κ))
+    third_term = numerator / denominator
+
+    return first_term * second_term * third_term
+end
+
+""" Sample log(S_T) given V_T and integral_V. """
+function sample_log_S_T(V_T, integral_V, rng::AbstractRNG, d::HestonDistribution)
+    κ, θ, σ, ρ, V0, T, S0, r = d.κ, d.θ, d.σ, d.ρ, d.V0, d.T, d.S0, d.r
+
+    # Compute conditional mean
+    mu = log(S0) + r*T - 0.5*integral_V + (ρ/σ)*(V_T - V0 - κ*θ*T + κ*integral_V)
+
+    # Compute conditional variance
+    sigma2 = (1 - ρ^2) * integral_V
+
+    # Sample log(S_T)
+    log_S_T = mu + sqrt(sigma2) * randn(rng)
+
+    return log_S_T
+end
+
+""" Full sampling process for S_T """
+function rand(rng::AbstractRNG, d::HestonDistribution)
+    # Step 1: Sample V_T
+    V_T = sample_V_T(rng, d)
+
+    # Step 2: Sample ∫ V_t dt
+    integral_V = sample_integral_V(V_T, rng, d)
+
+    # Step 3: Sample log(S_T)
+    log_S_T = sample_log_S_T(V_T, integral_V, rng, d)
 
     return exp(log_S_T)
 end
+
 
 """
     characteristic_function(d::HestonDistribution, u)

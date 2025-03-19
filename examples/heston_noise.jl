@@ -19,7 +19,7 @@ heston_noise = Hedgehog2.HestonNoise(0.0, heston_dist)
 # Define `NoiseProblem`
 problem = NoiseProblem(heston_noise, (0.0, T))
 
-trajectories = 10000
+trajectories = 10
 # Solve with multiple trajectories
 solution_h = solve(EnsembleProblem(problem), dt=T, trajectories=trajectories)
 
@@ -28,10 +28,10 @@ tspan = (0.0, 1.0)  # Simulation for 1 year
 process = HestonProcess(r, κ, θ, σ, ρ)  # Heston parameters
 prob = SDEProblem(get_sde_function(process), u0, tspan, process)
 ensemble_problem = EnsembleProblem(prob)
-solution_h2 = solve(ensemble_problem, dt=T, trajectories=trajectories)
+solution_h2 = solve(ensemble_problem, dt=T/1000.0, trajectories=trajectories)
 
 final_prices_2 = [sol.u[end][1] for sol in solution_h2]  # Extract S_T for each trajectory
 final_prices = [sol.u[end] for sol in solution_h]  # Transform log-prices to prices
 
-println(mean(final_prices_2.^3))
-println(mean(final_prices.^3))
+println(mean(final_prices_2))
+println(mean(final_prices))
