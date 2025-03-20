@@ -33,20 +33,25 @@ Samples `log(S_T)` using the exact Broadie-Kaya method.
 function sample_V_T(rng::AbstractRNG, d::HestonDistribution)
     κ, θ, σ, V0, T = d.κ, d.θ, d.σ, d.V0, d.T
 
-    ν = 4κ*θ / σ^2  # Degrees of freedom
-    ψ = 4κ * exp(-κ * T) * V0 / (σ^2 * (1 - exp(-κ * T)))  # Noncentrality parameter
-    c = σ^2 * (1 - exp(-κ * T)) / (4κ)  # Scaling factor
+    d = 4*κ*θ / σ^2  # Degrees of freedom
+    λ = 4*κ * exp(-κ * T) * V0 / (σ^2 * (1 - exp(-κ * T)))  # Noncentrality parameter
+    c = σ^2 * (1 - exp(-κ * T)) / (4*κ)  # Scaling factor
 
-    V_T = c * Distributions.rand(rng, NoncentralChisq(ν, ψ))
+    V_T = c * Distributions.rand(rng, NoncentralChisq(d, λ))
     return V_T
 end
 
-function sample_integral_V(VT, rng, dist::HestonDistribution)
+function integral_V_cdf(VT, rng, dist::HestonDistribution)
     Φ(u) = integral_var_char(u, VT, dist)
     integrand(x) = u -> sin(u * x) / u * real(Φ(u))
-    F(x) = 2 / π * quadgk(integrand(x), 0, Inf)[1] # specify like in paper (trapz)
+    F(x) = 2 / π * quadgk(integrand(x), 0, 100; maxevals=10000)[1] # specify like in paper (trapz)
+    return F
+end
+
+function sample_integral_V(VT, rng, dist::HestonDistribution)
+    F = integral_V_cdf(VT, rng, dist)
     lower_bound = 0.0
-    upper_bound = 1000
+    upper_bound = 1
     # Generate samples
     unif = Uniform(0,1)  # Define uniform distribution
     u = Distributions.rand(rng, unif)
@@ -54,7 +59,12 @@ function sample_integral_V(VT, rng, dist::HestonDistribution)
 end
 
 function inverse_cdf_rootfinding(cdf_func, u, y_min, y_max)
-    return find_zero(y -> cdf_func(y) - u, (y_min, y_max); atol=1E-2, maxiters=5)  # Solve F(y) = u like in paper (newton 2nd order)
+    func = y -> cdf_func(y) - u
+    if (func(y_min)*func(y_max) < 0)
+        return find_zero(y -> cdf_func(y) - u, (y_min, y_max); atol=1E-5, maxiters=100)  # Solve F(y) = u like in paper (newton 2nd order)
+    else
+        return find_zero(y -> cdf_func(y) - u, y_min; atol=1E-5, maxiters=100)
+    end
 end
 
 using SpecialFunctions
@@ -64,19 +74,20 @@ function adjust_argument(z)
     θ = angle(z)  # Compute current argument
     m = round(Int, θ / π)  # Find the nearest integer multiple of π
     z_adjusted = z * exp(-im * m * π)  # Shift argument back into (-π, π]
-    return z_adjusted
+    return z_adjusted, m
 end
 
 """ Compute the modified Bessel function I_{-ν}(z) with argument correction. """
 function besseli_corrected(nu, z)
-    z_adj = adjust_argument(z)  # Ensure argument is in (-π, π]
-    return besseli(nu, z_adj)  # Compute Bessel function with corrected input
+    z_adj, m = adjust_argument(z)  # Ensure argument is in (-π, π]
+    # println("adjusted besseli: ",m, " value ", nu, " val: ", z_adj)
+    return exp(im * m * π * nu) * besseli(nu, z_adj)  # Compute Bessel function with corrected input
 end
 
 function integral_var_char(a, VT, dist::HestonDistribution)
-    κ, θ, σ, ρ, V0, T, S0, r = dist.κ, dist.θ, dist.σ, dist.ρ, dist.V0, dist.T, dist.S0, dist.r
+    κ, θ, σ, V0, T = dist.κ, dist.θ, dist.σ, dist.V0, dist.T
     γ(a) = √(κ^2 - 2 * σ^2 * a * im)
-    d = 4 * θ * κ / σ^2
+    d = 4*κ*θ / σ^2  # Degrees of freedom
 
     ζ(x) = (1 - exp(- x * T)) / x
     first_term = exp(-0.5 * (γ(a) - κ) * T) * ζ(κ) / ζ(γ(a))
@@ -85,6 +96,10 @@ function integral_var_char(a, VT, dist::HestonDistribution)
     second_term = exp((V0 + VT) / σ^2 * ( η(κ) - η(γ(a)) ))
 
     ν(x) = √(V0 * VT) * 4 * x * exp(-0.5 * x * T) / σ^2 / (1 - exp(- x * T))
+
+    # println("kappa ", ν( κ))
+    # println("gamma: ",γ(a))
+    # println("a ",a)
     numerator = besseli_corrected(0.5*d - 1, ν(γ(a)))
     denominator = besseli_corrected(0.5*d - 1, ν(κ))
     third_term = numerator / denominator
