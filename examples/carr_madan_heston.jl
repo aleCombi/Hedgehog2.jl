@@ -15,7 +15,7 @@ V0 = 0.010201    # Initial variance
 r = 0.0319      # Risk-free rate
 T = 1.0       # Time to maturity
 market_inputs = Hedgehog2.HestonInputs(reference_date, r, S0, V0, κ, θ, σ, ρ, r)
-bs_market_inputs = BlackScholesInputs(reference_date, r, exp(rate)*S0, sqrt(V0))
+bs_market_inputs = BlackScholesInputs(reference_date, r, S0, sqrt(V0))
 # Define payoff
 expiry = reference_date + Day(365)
 strike = 100
