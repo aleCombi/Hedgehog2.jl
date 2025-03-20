@@ -19,3 +19,26 @@ struct BlackScholesInputs <: AbstractMarketInputs
     forward
     sigma
 end
+
+function log_distribution(m::BlackScholesInputs)
+    r, σ = m.rate, m.sigma
+    d(t) = Normal((r - σ^2 / 2)t, σ√t)  
+    return d
+end
+
+struct HestonInputs <: AbstractMarketInputs
+    referenceDate
+    rate
+    S0
+    V0
+    κ
+    θ
+    σ
+    ρ
+    r
+end
+
+function log_distribution(m::HestonInputs)
+    d(t) = HestonDistribution(m.S0, m.V0, m.κ, m.θ, m.σ, m.ρ, m.rate, t)
+    return d
+end

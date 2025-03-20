@@ -44,7 +44,7 @@ end
 function integral_V_cdf(VT, rng, dist::HestonDistribution)
     Φ(u) = integral_var_char(u, VT, dist)
     integrand(x) = u -> sin(u * x) / u * real(Φ(u))
-    F(x) = 2 / π * quadgk(integrand(x), 0, 80; maxevals=100)[1] # specify like in paper (trapz)
+    F(x) = 2 / π * quadgk(integrand(x), 0, 100; maxevals=100)[1] # specify like in paper (trapz)
     return F
 end
 

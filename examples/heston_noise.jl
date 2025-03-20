@@ -10,6 +10,16 @@ V0 = 0.010201    # Initial variance
 r = 0.0319      # Risk-free rate
 T = 1.0       # Time to maturity
 
+# Define carr madan method
+boundary = 32
+α = 1
+method = Hedgehog2.CarrMadan(α, boundary)
+
+# Define pricer
+carr_madan_pricer = Pricer(payoff, market_inputs, method)
+println(carr_madan_pricer())
+
+
 # Create the exact sampling Heston distribution
 heston_dist = Hedgehog2.HestonDistribution(S0, V0, κ, θ, σ, ρ, r, T)
 
