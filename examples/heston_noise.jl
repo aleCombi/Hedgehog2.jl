@@ -25,20 +25,16 @@ payoff = VanillaOption(strike, expiry, Hedgehog2.European(), Hedgehog2.Call(), H
 carr_madan_pricer = Pricer(payoff, market_inputs, method)
 println(carr_madan_pricer())
 
-# Create the exact sampling Heston distribution
-heston_dist = Hedgehog2.log_distribution(market_inputs)(1)
-
 # Construct the Heston Noise Process
 heston_noise = Hedgehog2.HestonNoise(0.0, heston_dist)
 
 # Define `NoiseProblem`
+trajectories = 1000
 problem = NoiseProblem(heston_noise, (0.0, T))
-trajectories = 10000
+ensemble_problem = EnsembleProblem(problem)
+@time solution = solve(ensemble_problem; dt=T, trajectories=trajectories)
+final_payoffs = payoff.(last.(solution.u))
 
-rng = Xoshiro()
-@time final_prices_exact = [Hedgehog2.rand(rng, heston_dist) for x in 1:trajectories]
-histogram(x, bins=30, normalize=true, title="Histogram of data") |> display
-
-price = mean(max.(final_prices_exact.- strike, 0))
-variance = var(final_prices_exact)
+price = mean(final_payoffs)
+variance = var(final_payoffs)
 println("Exact: ", price, " variance: ",variance, " error ")

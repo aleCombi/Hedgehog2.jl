@@ -5,19 +5,32 @@ function cdf_function(ϕ)
     return F
 end
 
-function inverse_cdf(cdf_func, u, y_min, y_max)
+function inverse_cdf(cdf_func, u, initial_guess)
     func = y -> cdf_func(y) - u
-    if (func(y_min)*func(y_max) < 0)
-        return find_zero(y -> cdf_func(y) - u, (y_min, y_max); atol=1E-5, maxiters=100)  # Solve F(y) = u like in paper (newton 2nd order)
-    else
-        return find_zero(y -> cdf_func(y) - u, y_min; atol=1E-5, maxiters=100)
+    try
+        return find_zero(func, initial_guess, Order2(); atol=1E-5, maxiters=100)
+    catch
+        return find_zero(func, (0, 1); atol=1E-5, maxiters=100)
     end
 end
 
 function sample_from_cdf(rng, cdf)
     u = Distributions.rand(rng, Uniform(0,1))
-    res = inverse_cdf(cdf, u, 0, 1)
+    res = inverse_cdf(cdf, u, 0)
     return res
 end
 
-sample_from_cf(rng, ϕ) = sample_from_cdf(rng, cdf_function(ϕ))
+function sample_from_cf(rng, ϕ) 
+    u = Distributions.rand(rng, Uniform(0,1))
+    h = 1E-4
+    derivative = (ϕ(h) - ϕ(0)) / h
+    second_derivative = (ϕ(h) + ϕ(-h) - 2* ϕ(0)) / h^2
+    mean = real(-im*derivative)
+    variance = real(- second_derivative - mean^2)
+    normal_sample = mean + quantile(Normal(0,1), u) * variance
+    initial_guess = normal_sample > 0 ? normal_sample : mean * 0.01
+
+    cdf = cdf_function(ϕ)
+    sample = inverse_cdf(cdf, u, initial_guess)
+    return sample
+end

@@ -26,6 +26,8 @@ function log_distribution(m::BlackScholesInputs)
     return d
 end
 
+price_process(m::BlackScholesInputs) = GeometricBrownianMotionProcess(m.rate, m.sigma, 0.0, 1.0)
+
 # in distribution.jl t is Real, hence we need to redefine it.
 cf(d::Normal, t) = exp(im * t * d.μ - d.σ^2 / 2 * t^2)
 
