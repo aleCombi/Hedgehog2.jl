@@ -35,7 +35,6 @@ struct HestonInputs <: AbstractMarketInputs
     θ
     σ
     ρ
-    r
 end
 
 function log_distribution(m::HestonInputs)

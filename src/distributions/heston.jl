@@ -34,8 +34,8 @@ function sample_V_T(rng::AbstractRNG, d::HestonDistribution)
     κ, θ, σ, V0, T = d.κ, d.θ, d.σ, d.V0, d.T
 
     d = 4*κ*θ / σ^2  # Degrees of freedom
-    λ = 4*κ * exp(-κ * T) * V0 / (σ^2 * (1 - exp(-κ * T)))  # Noncentrality parameter
-    c = σ^2 * (1 - exp(-κ * T)) / (4*κ)  # Scaling factor
+    λ = 4*κ * exp(-κ * T) * V0 / (σ^2 * (- expm1(-κ * T)))  # Noncentrality parameter
+    c = σ^2 * (- expm1(-κ * T)) / (4*κ)  # Scaling factor
 
     V_T = c * Distributions.rand(rng, NoncentralChisq(d, λ))
     return V_T
@@ -44,7 +44,8 @@ end
 function integral_V_cdf(VT, rng, dist::HestonDistribution)
     Φ(u) = integral_var_char(u, VT, dist)
     integrand(x) = u -> sin(u * x) / u * real(Φ(u))
-    F(x) = 2 / π * quadgk(integrand(x), 0, 100; maxevals=100)[1] # specify like in paper (trapz)
+    integral_value(x) = quadgk(integrand(x), 0, 200; maxevals=100)[1]
+    F(x) = 2 / π * integral_value(x) # specify like in paper (trapz)
     return F
 end
 
@@ -90,17 +91,14 @@ function integral_var_char(a, VT, dist::HestonDistribution)
     γ(a) = √(κ^2 - 2 * σ^2 * a * im)
     d = 4*κ*θ / σ^2  # Degrees of freedom
 
-    ζ(x) = (1 - exp(- x * T)) / x
+    ζ(x) = (- expm1(- x * T)) / x
     first_term = exp(-0.5 * (γ(a) - κ) * T) * ζ(κ) / ζ(γ(a))
 
-    η(x) = x * (1 + exp(- x * T)) / (1 - exp(- x * T))
+    η(x) = x * (1 + exp(- x * T)) / (- expm1(- x * T))
     second_term = exp((V0 + VT) / σ^2 * ( η(κ) - η(γ(a)) ))
 
-    ν(x) = √(V0 * VT) * 4 * x * exp(-0.5 * x * T) / σ^2 / (1 - exp(- x * T))
+    ν(x) = √(V0 * VT) * 4 * x * exp(-0.5 * x * T) / σ^2 / (- expm1(- x * T))
 
-    # println("kappa ", ν( κ))
-    # println("gamma: ",γ(a))
-    # println("a ",a)
     numerator = besseli_corrected(0.5*d - 1, ν(γ(a)))
     denominator = besseli_corrected(0.5*d - 1, ν(κ))
     third_term = numerator / denominator
@@ -122,6 +120,10 @@ function sample_log_S_T(V_T, integral_V, rng::AbstractRNG, d::HestonDistribution
     log_S_T = mu + sqrt(sigma2) * randn(rng)
 
     return log_S_T
+end
+
+function randHest(rng, d)
+    return rand(rng, d)
 end
 
 """ Full sampling process for S_T """
