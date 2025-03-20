@@ -16,13 +16,13 @@ It is assumed that the volatility is annual.
 struct BlackScholesInputs <: AbstractMarketInputs
     referenceDate
     rate
-    forward
+    spot
     sigma
 end
 
 function log_distribution(m::BlackScholesInputs)
-    r, σ = m.rate, m.sigma
-    d(t) = Normal((r - σ^2 / 2)t, σ√t)  
+    r, σ, S0 = m.rate, m.sigma, m.spot
+    d(t) = Normal(log(S0) + (r - σ^2 / 2)t, σ√t)  
     return d
 end
 

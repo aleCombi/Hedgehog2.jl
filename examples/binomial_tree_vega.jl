@@ -9,9 +9,10 @@ american_payoff = VanillaOption(strike, expiry, Hedgehog2.American(), call_put, 
 # define market inputs
 reference_date = Date(2017, 6, 29)
 rate = 0.013047467783283154
-forward = 5.6525
+T = Dates.values(expiry - reference_date) / 365
+spot = 5.6525 * exp(-rate*T)
 sigma = 0.1689900715
-market_inputs = BlackScholesInputs(reference_date, rate, forward, sigma)
+market_inputs = BlackScholesInputs(reference_date, rate, spot, sigma)
 
 # create Cox Ross Rubinstein pricer
 steps = 800

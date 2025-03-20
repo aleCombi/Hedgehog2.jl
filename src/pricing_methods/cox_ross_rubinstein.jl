@@ -108,9 +108,11 @@ Computes the price of a vanilla option using the Cox-Ross-Rubinstein binomial tr
 """
 function compute_price(payoff, market_inputs, method::CoxRossRubinsteinMethod)
     steps = method.steps
-    ΔT = Dates.value.(payoff.expiry - market_inputs.referenceDate) / 365 / steps  # Assuming ACT/365 day count
+    T = Dates.value.(payoff.expiry - market_inputs.referenceDate) / 365
+    forward = market_inputs.spot * exp(market_inputs.rate * T)
+    ΔT = T / steps  # Assuming ACT/365 day count
     u = exp(market_inputs.sigma * sqrt(ΔT))  # Up-move factor
-    forward_at_i(i) = market_inputs.forward * u .^ (-i:2:i)
+    forward_at_i(i) = forward * u .^ (-i:2:i)
     underlying_at_i(i) = binomial_tree_underlying(i, forward_at_i(i), market_inputs.rate, ΔT, payoff.underlying)
 
     # Up probability in forward measure

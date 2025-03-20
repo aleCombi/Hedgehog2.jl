@@ -7,7 +7,7 @@ struct CarrMadan <: AbstractPricingMethod
 end
 
 # in distribution.jl t is Real, hence we need to redefine it.
-cf(d::Normal, t) = exp(im * t * d.μ- d.σ^2 / 2 * t^2)
+cf(d::Normal, t) = exp(im * t * d.μ - d.σ^2 / 2 * t^2)
 
 function compute_price(payoff::VanillaOption{European, Call, Spot}, market_inputs::I, method::CarrMadan) where I <: AbstractMarketInputs
     damp = exp(- method.α * log(payoff.strike)) / 2π

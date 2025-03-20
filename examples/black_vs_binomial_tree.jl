@@ -11,9 +11,9 @@ euro_payoff = VanillaOption(strike, expiry, Hedgehog2.European(), call_put, unde
 # define market inputs
 reference_date = Date(2020, 1, 1)
 rate = 0.2
-forward = 1
+spot = 1
 sigma = 0.4
-market_inputs = BlackScholesInputs(reference_date, rate, forward, sigma)
+market_inputs = BlackScholesInputs(reference_date, rate, spot, sigma)
 
 # create analytical black scholes pricer
 bs_method = BlackScholesMethod()
