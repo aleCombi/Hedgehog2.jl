@@ -44,18 +44,18 @@ end
 function integral_V_cdf(VT, rng, dist::HestonDistribution)
     Φ(u) = integral_var_char(u, VT, dist)
     integrand(x) = u -> sin(u * x) / u * real(Φ(u))
-    F(x) = 2 / π * quadgk(integrand(x), 0, 100; maxevals=10000)[1] # specify like in paper (trapz)
+    F(x) = 2 / π * quadgk(integrand(x), 0, 80; maxevals=100)[1] # specify like in paper (trapz)
     return F
 end
 
 function sample_integral_V(VT, rng, dist::HestonDistribution)
     F = integral_V_cdf(VT, rng, dist)
-    lower_bound = 0.0
-    upper_bound = 1
+
     # Generate samples
     unif = Uniform(0,1)  # Define uniform distribution
     u = Distributions.rand(rng, unif)
-    return inverse_cdf_rootfinding(F, u, lower_bound, upper_bound)
+    res = inverse_cdf_rootfinding(F, u, 0, 1)
+    return res
 end
 
 function inverse_cdf_rootfinding(cdf_func, u, y_min, y_max)
@@ -79,6 +79,7 @@ end
 
 """ Compute the modified Bessel function I_{-ν}(z) with argument correction. """
 function besseli_corrected(nu, z)
+    return besseli(nu, z) #TODO: check if adjustment is included
     z_adj, m = adjust_argument(z)  # Ensure argument is in (-π, π]
     # println("adjusted besseli: ",m, " value ", nu, " val: ", z_adj)
     return exp(im * m * π * nu) * besseli(nu, z_adj)  # Compute Bessel function with corrected input

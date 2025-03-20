@@ -21,7 +21,7 @@ problem = NoiseProblem(heston_noise, (0.0, T))
 
 trajectories = 1000
 # Solve with multiple trajectories
-solution_exact = solve(EnsembleProblem(problem), dt=T, trajectories=trajectories)
+@time solution_exact = solve(EnsembleProblem(problem), dt=T, trajectories=trajectories)
 
 u0 = [S0, V0]  # Initial (Stock Price, Variance)
 tspan = (0.0, 1.0)  # Simulation for 1 year
