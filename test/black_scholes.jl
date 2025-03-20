@@ -3,13 +3,12 @@
     expiry_date = Date(2024, 12, 31)
     σ = 0.2
     d1 = 0.5 * σ
-    forward = 100
     r = 0.05
     spot = forward * exp(-r)
     strike = forward
 
     # Test case 1: European Call Option
-    market_inputs = BlackScholesInputs(reference_date, r, forward, σ)
+    market_inputs = BlackScholesInputs(reference_date, r, spot, σ)
     payoff_call = VanillaOption(strike, expiry_date, Hedgehog2.European(), Hedgehog2.Call(), Hedgehog2.Spot())
     computed_price_call = Pricer(payoff_call, market_inputs, BlackScholesMethod())()
 
