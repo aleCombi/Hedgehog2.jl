@@ -26,6 +26,9 @@ function log_distribution(m::BlackScholesInputs)
     return d
 end
 
+# in distribution.jl t is Real, hence we need to redefine it.
+cf(d::Normal, t) = exp(im * t * d.μ - d.σ^2 / 2 * t^2)
+
 struct HestonInputs <: AbstractMarketInputs
     referenceDate
     rate
@@ -37,7 +40,4 @@ struct HestonInputs <: AbstractMarketInputs
     ρ
 end
 
-function log_distribution(m::HestonInputs)
-    d(t) = HestonDistribution(m.S0, m.V0, m.κ, m.θ, m.σ, m.ρ, m.rate, t)
-    return d
-end
+log_distribution(m::HestonInputs) = t -> HestonDistribution(m.S0, m.V0, m.κ, m.θ, m.σ, m.ρ, m.rate, t)

@@ -20,6 +20,7 @@ include("sensitivity_methods/delta_methods.jl")
 include("stochastic_processes/stochastic_processes.jl")
 
 include("distributions/heston.jl")
+include("distributions/sampling.jl")
 include("stochastic_processes/heston_noise.jl")
 
 

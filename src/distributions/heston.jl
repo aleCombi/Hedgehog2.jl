@@ -25,11 +25,7 @@ struct HestonDistribution <: ContinuousUnivariateDistribution
     T
 end
 
-"""
-    rand(rng::AbstractRNG, d::HestonDistribution)
-
-Samples `log(S_T)` using the exact Broadie-Kaya method.
-"""
+# sample Variance at T
 function sample_V_T(rng::AbstractRNG, d::HestonDistribution)
     κ, θ, σ, V0, T = d.κ, d.θ, d.σ, d.V0, d.T
 
@@ -41,55 +37,18 @@ function sample_V_T(rng::AbstractRNG, d::HestonDistribution)
     return V_T
 end
 
-function integral_V_cdf(VT, rng, dist::HestonDistribution)
-    Φ(u) = integral_var_char(u, VT, dist)
-    integrand(x) = u -> sin(u * x) / u * real(Φ(u))
-    integral_value(x) = quadgk(integrand(x), 0, 200; maxevals=100)[1]
-    F(x) = 2 / π * integral_value(x) # specify like in paper (trapz)
-    return F
-end
-
 function sample_integral_V(VT, rng, dist::HestonDistribution)
-    F = integral_V_cdf(VT, rng, dist)
-
-    # Generate samples
-    unif = Uniform(0,1)  # Define uniform distribution
-    u = Distributions.rand(rng, unif)
-    res = inverse_cdf_rootfinding(F, u, 0, 1)
-    return res
-end
-
-function inverse_cdf_rootfinding(cdf_func, u, y_min, y_max)
-    func = y -> cdf_func(y) - u
-    if (func(y_min)*func(y_max) < 0)
-        return find_zero(y -> cdf_func(y) - u, (y_min, y_max); atol=1E-5, maxiters=100)  # Solve F(y) = u like in paper (newton 2nd order)
-    else
-        return find_zero(y -> cdf_func(y) - u, y_min; atol=1E-5, maxiters=100)
-    end
+    ϕ(u) = integral_var_chf(u, VT, dist)
+    return sample_from_cf(rng, ϕ)
 end
 
 using SpecialFunctions
 
-""" Adjusts the argument of z to lie in (-π, π] by shifting it appropriately. """
-function adjust_argument(z)
-    θ = angle(z)  # Compute current argument
-    m = round(Int, θ / π)  # Find the nearest integer multiple of π
-    z_adjusted = z * exp(-im * m * π)  # Shift argument back into (-π, π]
-    return z_adjusted, m
-end
-
-""" Compute the modified Bessel function I_{-ν}(z) with argument correction. """
-function besseli_corrected(nu, z)
-    return besseli(nu, z) #TODO: check if adjustment is included
-    z_adj, m = adjust_argument(z)  # Ensure argument is in (-π, π]
-    # println("adjusted besseli: ",m, " value ", nu, " val: ", z_adj)
-    return exp(im * m * π * nu) * besseli(nu, z_adj)  # Compute Bessel function with corrected input
-end
-
-function integral_var_char(a, VT, dist::HestonDistribution)
+# characteristic function of ∫ V_t between 0 and T, conditional V_T. Check Broadie-Kaya or Lech-Osterlee 
+function integral_var_chf(a, VT, dist::HestonDistribution)
     κ, θ, σ, V0, T = dist.κ, dist.θ, dist.σ, dist.V0, dist.T
     γ(a) = √(κ^2 - 2 * σ^2 * a * im)
-    d = 4*κ*θ / σ^2  # Degrees of freedom
+    d = 4*κ*θ / σ^2
 
     ζ(x) = (- expm1(- x * T)) / x
     first_term = exp(-0.5 * (γ(a) - κ) * T) * ζ(κ) / ζ(γ(a))
@@ -99,8 +58,8 @@ function integral_var_char(a, VT, dist::HestonDistribution)
 
     ν(x) = √(V0 * VT) * 4 * x * exp(-0.5 * x * T) / σ^2 / (- expm1(- x * T))
 
-    numerator = besseli_corrected(0.5*d - 1, ν(γ(a)))
-    denominator = besseli_corrected(0.5*d - 1, ν(κ))
+    numerator = besseli(0.5*d - 1, ν(γ(a)))
+    denominator = besseli(0.5*d - 1, ν(κ))
     third_term = numerator / denominator
 
     return first_term * second_term * third_term
@@ -122,16 +81,12 @@ function sample_log_S_T(V_T, integral_V, rng::AbstractRNG, d::HestonDistribution
     return log_S_T
 end
 
-function randHest(rng, d)
-    return rand(rng, d)
-end
-
 """ Full sampling process for S_T """
 function rand(rng::AbstractRNG, d::HestonDistribution)
     # Step 1: Sample V_T
     V_T = sample_V_T(rng, d)
 
-    # Step 2: Sample ∫ V_t dt
+    # Step 2: Sample ∫ V_t dt, conditional V0 and VT
     integral_V = sample_integral_V(V_T, rng, d)
 
     # Step 3: Sample log(S_T)
@@ -139,7 +94,6 @@ function rand(rng::AbstractRNG, d::HestonDistribution)
 
     return exp(log_S_T)
 end
-
 
 """
     characteristic_function(d::HestonDistribution, u)
