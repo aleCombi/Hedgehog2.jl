@@ -1,6 +1,6 @@
 # sample a distribution knowing its characteristic function ϕ. ϵ is the error tolerance. 
 # n is the choice of how many standard deviations to use in h derivation (check Broadie Kaya)
-function sample_from_cf(rng, ϕ; ϵ=1E-3, n=7) 
+function sample_from_cf(rng, ϕ; n=7, kwargs...) 
     # sample a uniform on [0,1]
     u = Distributions.rand(rng, Uniform(0,1))
 
@@ -12,8 +12,8 @@ function sample_from_cf(rng, ϕ; ϵ=1E-3, n=7)
     max_guess = mean + 11*sqrt(σ²)
     # Fourier inversion to find the cdf, following Broadie Kaya 
     h = π / (mean + n * √variance)
-    cdf = x -> cdf_from_cf(ϕ, x, h, ϵ)
-    sample = inverse_cdf(cdf, u, initial_guess, max_guess; atol=ϵ)
+    cdf = x -> cdf_from_cf(ϕ, x, h; kwargs...)
+    sample = inverse_cdf(cdf, u, initial_guess, max_guess; kwargs...)
     return sample
 end
 
@@ -36,7 +36,7 @@ end
 # Calculate cdf, integrating the cf, like in Broadie Kaya.
 # h is the discretization step, ϕ the chararacteristic function, ϵ the error tolerance, x the cdf argument.
 # TODO: this could be done with SampleIntegration using Integration.jl, might improve the elegance and performance.
-function cdf_from_cf(ϕ, x, h, ϵ)
+function cdf_from_cf(ϕ, x, h; ϵ=1E-4)
     if x < 0
         return 0
     end
@@ -57,24 +57,23 @@ function cdf_from_cf(ϕ, x, h, ϵ)
 end
 
 # invert a cdf, trying with second order newton (secant), otherwise using bisection-style method
-function inverse_cdf(cdf_func, u, initial_guess, max_guess; atol=1E-5, maxiters=10)
+function inverse_cdf(cdf_func, u, initial_guess, max_guess; atol=1E-4, maxiter_newton=10, maxiter_bisection=100, kwargs...)
     func = y -> cdf_func(y) - u
     try
-        sol = find_zero(func, initial_guess, Order2(); atol=atol, maxiters=maxiters)
+        sol = find_zero(func, initial_guess, Order2(); atol=atol, maxeval=maxiter_newton)
         if (sol < 0 || abs(func(sol)) > atol)
             error("error in newton at $u.")
         end
-        #println(abs(func(sol)))
         return sol
     catch
         if (func(0)*func(max_guess) > 0)
-            println(u," ", 0, " ", max_guess, " ", func(max_guess))
+            @warn "Using a fall-back value $max_guess to invert the cdf at $u"
             return max_guess #fall-back value, when u∼1
         end
-        sol = find_zero(func, (0, max_guess); atol=atol, maxiters=10*maxiters)
+        sol = find_zero(func, (0, max_guess); xtol=atol, maxeval=maxiter_bisection)
         sol_val = abs(func(sol))
         if sol_val > atol
-            println("At $u, $sol_val")
+            @warn "Inverse CDF has precision $sol_val at $u."
         end
         return sol
     end

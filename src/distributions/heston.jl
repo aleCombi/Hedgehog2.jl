@@ -40,9 +40,9 @@ end
 using SpecialFunctions
 
 # Precompute and return characteristic function ϕ(a) for sampling
-function sample_integral_V(VT, rng, dist::HestonDistribution)
+function sample_integral_V(VT, rng, dist::HestonDistribution; kwargs...)
     ϕ = build_integral_var_cf(VT, dist)
-    return sample_from_cf(rng, ϕ)
+    return sample_from_cf(rng, ϕ; kwargs...)
 end
 
 function build_integral_var_cf(VT, dist::HestonDistribution)
@@ -87,12 +87,12 @@ function sample_log_S_T(V_T, integral_V, rng::AbstractRNG, d::HestonDistribution
 end
 
 """ Full sampling process for S_T """
-function rand(rng::AbstractRNG, d::HestonDistribution)
+function rand(rng::AbstractRNG, d::HestonDistribution; kwargs...)
     # Step 1: Sample V_T
     V_T = sample_V_T(rng, d)
 
     # Step 2: Sample ∫ V_t dt, conditional V0 and VT
-    integral_V = sample_integral_V(V_T, rng, d)
+    integral_V = sample_integral_V(V_T, rng, d; kwargs...)
 
     # Step 3: Sample log(S_T)
     log_S_T = sample_log_S_T(V_T, integral_V, rng, d)

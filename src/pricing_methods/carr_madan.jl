@@ -3,16 +3,19 @@ using QuadGK, Dates, Distributions
 struct CarrMadan <: AbstractPricingMethod
     α 
     bound
+    distribution
     kwargs #quadgk keyword arguments
 end
 
+log_distribution(m::CarrMadan) = m.distribution
+
 # Constructor with default empty kwargs
-CarrMadan(α, bound; kwargs...) = CarrMadan(α, bound, Dict(kwargs...))
+CarrMadan(α, bound, distribution; kwargs...) = CarrMadan(α, bound, distribution, Dict(kwargs...))
 
 function compute_price(payoff::VanillaOption{European, Call, Spot}, market_inputs::I, method::CarrMadan) where I <: AbstractMarketInputs
     damp = exp(- method.α * log(payoff.strike)) / 2π
     T = Dates.value(payoff.expiry - market_inputs.referenceDate) / 365
-    ϕ(u) = cf(log_distribution(market_inputs)(T), u)
+    ϕ(u) = cf(method.distribution(market_inputs)(T), u)
     integrand(v) = call_transform(market_inputs.rate, T, ϕ, v, method) * exp(- im * v * log(payoff.strike))
     integral, _ = quadgk(integrand, -method.bound, method.bound; method.kwargs...)
     return real(damp * integral)

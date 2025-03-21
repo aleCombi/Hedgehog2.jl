@@ -16,17 +16,18 @@ market_inputs = Hedgehog2.HestonInputs(reference_date, r, S0, V0, κ, θ, σ, ρ
 expiry = reference_date + Day(365)
 strike = S0 # ATM call
 payoff = VanillaOption(strike, expiry, Hedgehog2.European(), Hedgehog2.Call(), Hedgehog2.Spot())
-
+ 
 # Define Carr-Madan pricer as benchmark
 boundary = 32
 α = 1
-method = Hedgehog2.CarrMadan(α, boundary)
+distribution = Hedgehog2.HestonPriceDistribution()
+method = Hedgehog2.CarrMadan(α, boundary, distribution)
 carr_madan_pricer = Pricer(payoff, market_inputs, method)
 carr_madan_price = carr_madan_pricer()
 
 # Construct the Heston Noise Process
 # TODO: this should be embedded in the Montecarlo pricer
-heston_dist = Hedgehog2.log_distribution(market_inputs)
+heston_dist = distribution(market_inputs)
 heston_noise = Hedgehog2.HestonNoise(0.0, heston_dist(T))
 
 # Define `NoiseProblem`
@@ -36,81 +37,67 @@ problem = NoiseProblem(heston_noise, (0.0, T))
 ensemble_problem = EnsembleProblem(problem)
 rng = Xoshiro()
 
-heston_dist = Hedgehog2.log_distribution(market_inputs)
+using Statistics, Plots, PrettyTables
 
+# Your simulation function
 function simulated_prices(N)
-    @time values = [Hedgehog2.rand(rng, heston_dist(T)) for i in 1:N]
+    values = [Hedgehog2.rand(rng, heston_dist(T)) for i in 1:N]
     final_payoffs = exp(-r) .* payoff.(values)
     price = mean(final_payoffs)
-    variance = var(final_payoffs)
-    return price, variance
-end
-# @time solution = solve(ensemble_problem; dt=T, trajectories=trajectories)
-# final_payoffs = exp(-r) .* payoff.(last.(solution.u))
-
-# TODO: this should be embedded in the Montecarlo pricer
-
-# println("Trajectories: ", trajectories)
-# println("Montecarlo price: ", price)
-# println("Carr-Madan price: ", carr_madan_price)
-# println("Montecarlo variance: ", variance)
-
-# # calculating bias and rms_error to compare with Broadie-Kaya paper results
-# bias = price - carr_madan_price
-# rms_error = √(bias^2 + variance)
-# println("Bias: ", bias)
-# println("RMS error: ", rms_error)
-
-using Random, Statistics, Plots
-
-function run_rms_test(N; true_price)
-    price, payoff_var = simulated_prices(N)
-    bias = price - true_price
-    variance_of_estimator = payoff_var / N
-    rms_error = sqrt(bias^2 + variance_of_estimator)
-    return rms_error, bias, variance_of_estimator
+    payoff_variance = var(final_payoffs)
+    return price, payoff_variance
 end
 
-using Statistics, Plots
-
-# One RMS estimate per N
 function run_rms_test(N; true_price)
-    global rng = MersenneTwister(123 + N)  # Different seed per N
+    global rng = MersenneTwister(123 + N)
     price, payoff_var = simulated_prices(N)
     bias = price - true_price
     estimator_var = payoff_var / N
     rms_error = sqrt(bias^2 + estimator_var)
-    return rms_error, bias, estimator_var
+    return price, bias, estimator_var, rms_error
 end
 
-# Path counts to test
-Ns = [1_000, 2_000, 5_000, 10_000, 20_000, 50_000, 100_000]
+# Parameters
+Ns = [10_000, 40_000, 160_000, 640_000, 2_560_000, 10_240_000]# , 20_000, 50_000, 100_000]
+true_price = carr_madan_price # Replace with your analytic price
 
-# Replace with actual Heston price from analytic formula
-true_price = carr_madan_price
+# Collect results
+results = zeros(Float64, length(Ns), 5)  # [N, Price, Bias, Var/N, RMS]
 
-# Storage
-rms_errors = Float64[]
-biases = Float64[]
-variances = Float64[]
+# Header
+println(rpad("N", 10),
+        rpad("Price", 15),
+        rpad("Bias", 15),
+        rpad("Variance/N", 20),
+        rpad("RMS Error", 15),
+        "Time (s)")
+println("="^85)
 
-for N in Ns
-    println("Running for N = $N")
-    rms, bias, var = run_rms_test(N; true_price=true_price)
-    push!(rms_errors, rms)
-    push!(biases, bias)
-    push!(variances, var)
+for (i, N) in enumerate(Ns)
+    t = @elapsed begin
+        price, bias, varN, rms = run_rms_test(N; true_price=true_price)
+        results[i, :] = [N, price, bias, varN, rms]
+    end
+
+    line = rpad(string(N), 10) *
+           rpad(string(round(price, digits=6)), 15) *
+           rpad(string(round(bias, digits=6)), 15) *
+           rpad(string(round(varN, sigdigits=3)), 20) *
+           rpad(string(round(rms, sigdigits=3)), 15) *
+           string(round(t, digits=2))
+    println(line)
 end
+
 
 # Plot
-plot(Ns, rms_errors;
+plot(
+    Ns, results[:, 5];
     xscale = :log10, yscale = :log10,
     label = "RMS Error",
     lw = 2, marker = :circle,
     xlabel = "Number of Paths (log)",
     ylabel = "Error (log)",
-    title = "RMS Convergence (Broadie-Kaya Style)")
-
-plot!(Ns, sqrt.(variances); label = "√Variance", lw = 2, marker = :diamond)
-plot!(Ns, abs.(biases); label = "|Bias|", lw = 2, marker = :x)
-
+    title = "RMS Convergence (Broadie-Kaya Style)"
+)
+plot!(Ns, sqrt.(results[:, 4]); label = "√Variance", lw = 2, marker = :diamond)
+plot!(Ns, abs.(results[:, 3]); label = "|Bias|", lw = 2, marker = :x)

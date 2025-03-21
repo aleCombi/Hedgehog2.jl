@@ -70,7 +70,7 @@ delta = Φ(d1) - 1
 ```
 where `Φ` is the cumulative distribution function (CDF) of the standard normal distribution.
 """
-function compute_delta(pricer::Pricer{VanillaOption{European, CallPut, Style}, BlackScholesInputs, BlackScholesMethod}, ::BlackScholesAnalyticalDelta) where {CallPut,Style}
+function compute_delta(pricer::Pricer{VanillaOption{European, CallPut, Style}, BlackScholesInputs, BlackScholesAnalytic}, ::BlackScholesAnalyticalDelta) where {CallPut,Style}
     F = pricer.marketInputs.forward
     K = pricer.payoff.strike
     r = pricer.marketInputs.rate

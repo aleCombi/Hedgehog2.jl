@@ -22,6 +22,7 @@ include("stochastic_processes/stochastic_processes.jl")
 include("distributions/heston.jl")
 include("distributions/sample_from_cf.jl")
 include("stochastic_processes/heston_noise.jl")
+include("distributions/price_distributions.jl")
 
 
 end

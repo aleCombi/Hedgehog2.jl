@@ -1,13 +1,15 @@
 # Black-Scholes pricing function for European vanilla options
 
-export BlackScholesMethod
+export BlackScholesAnalytic
 
 """
 The Black-Scholes pricing method.
 
 This struct represents the Black-Scholes pricing model for option pricing, which assumes a lognormal distribution for the underlying asset and continuous hedging.
 """
-struct BlackScholesMethod <: AbstractPricingMethod end
+struct BlackScholesAnalytic <: AbstractPricingMethod end
+
+log_distribution(::BlackScholesAnalytic) = BlackScholesPriceDistribution()
 
 """
 Computes the price of a vanilla European call or put option using the Black-Scholes model.
@@ -45,7 +47,7 @@ where:
 - The time to expiry `T` is computed as the difference between the option's expiry date and the reference date, assuming a 365-day year.
 - The function supports both call and put options through the `cp` factor, ensuring a unified formula.
 """
-function compute_price(payoff::VanillaOption{European, A, B}, marketInputs::BlackScholesInputs, ::BlackScholesMethod) where {A,B}
+function compute_price(payoff::VanillaOption{European, A, B}, marketInputs::BlackScholesInputs, ::BlackScholesAnalytic) where {A,B}
     K = payoff.strike
     r = marketInputs.rate
     σ = marketInputs.sigma
