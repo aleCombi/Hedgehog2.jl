@@ -3,7 +3,7 @@
 
 using Markdown
 using InteractiveUtils
-
+using Accessors
 # This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
 macro bind(def, element)
     #! format: off

@@ -6,14 +6,13 @@ using Distributions, DifferentialEquations, Random, StaticArrays
 Constructs a `NoiseProcess` for exact Heston model sampling.
 
 - `t0`: Initial time
-- `heston_dist`: A `HestonDistribution` object containing model parameters.
+- `heston_dist`: A function from time to `HestonDistribution` object containing model parameters.
 """
-function HestonNoise(t0, heston_dist::HestonDistribution, Z0=nothing; kwargs...)
-    log_S0 = log(heston_dist.S0)  # Work in log-space
-    u0 = SVector(log_S0, heston_dist.V0)  # Use SVector for efficiency
-    # Correct function signature for WHITE_NOISE_DIST
+#TODO: not entirely correct, as it works only in the one-step simulation scenario. Otherwise it would need to be 2D
+function HestonNoise(t0, heston_dist, Z0=nothing; kwargs...)
+    log_S0 = log(heston_dist(t0).S0)  # Work in log-space
     @inline function Heston_dist(DW, W, dt, u, p, t, rng) #dist
-        heston_dist_at_t = @set heston_dist.T = t
+        heston_dist_at_t = heston_dist(dt)
         return @fastmath rand(rng, heston_dist_at_t; kwargs...)  # Calls exact Heston sampler
     end
 

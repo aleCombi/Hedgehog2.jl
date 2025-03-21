@@ -1,3 +1,5 @@
+using Hedgehog2, Accessors, Dates
+
 begin
 	# define payoff
 strike = 5
