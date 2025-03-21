@@ -17,7 +17,6 @@ include("pricing_methods/montecarlo.jl")
 include("pricing_methods/carr_madan.jl")
 
 include("sensitivity_methods/delta_methods.jl")
-include("stochastic_processes/stochastic_processes.jl")
 
 include("distributions/heston.jl")
 include("distributions/sample_from_cf.jl")
