@@ -53,20 +53,20 @@ function build_integral_var_cf(VT, dist::HestonDistribution)
     ζκ = (-expm1(-κ * T)) / κ
     ηκ = κ * (1 + exp(-κ * T)) / (-expm1(-κ * T))
     νκ = √(V0 * VT) * 4 * κ * exp(-0.5 * κ * T) / σ^2 / (-expm1(-κ * T))
-    Iκ = besseli(0.5*d - 1, νκ)
+    logIκ = log(besseli(0.5*d - 1, νκ))
 
     return function ϕ(a)
         γ = sqrt(κ^2 - 2 * σ^2 * a * im)
-        ζγ = (-expm1(-γ * T)) / γ
-        ηγ = γ * (1 + exp(-γ * T)) / (-expm1(-γ * T))
-        νγ = √(V0 * VT) * 4 * γ * exp(-0.5 * γ * T) / σ^2 / (-expm1(-γ * T))
-        Iγ = besseli(0.5*d - 1, νγ)
-
+        ζγ = (1 - exp(-γ * T)) / γ
+        ηγ = γ * (1 + exp(-γ * T)) / (1 - exp(-γ * T))
+        νγ = √(V0 * VT) * 4 * γ * exp(-0.5 * γ * T) / σ^2 / (1 - exp(-γ * T))
+        
         first_term = exp(-0.5 * (γ - κ) * T) * (ζκ / ζγ)
         second_term = exp((V0 + VT) / σ^2 * (ηκ - ηγ))
-        third_term = Iγ / Iκ
+        logIγ = log(besseli(0.5*d - 1, νγ))
+        bessel_ratio = exp(logIγ - logIκ)
 
-        return first_term * second_term * third_term
+        return first_term * second_term * bessel_ratio
     end
 end
 

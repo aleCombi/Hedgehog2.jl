@@ -36,7 +36,7 @@ end
 # Calculate cdf, integrating the cf, like in Broadie Kaya.
 # h is the discretization step, ϕ the chararacteristic function, ϵ the error tolerance, x the cdf argument.
 # TODO: this could be done with SampleIntegration using Integration.jl, might improve the elegance and performance.
-function cdf_from_cf(ϕ, x, h; ϵ=1E-4, kwargs...)
+function cdf_from_cf(ϕ, x, h; cf_tol=1E-4, kwargs...)
     if x < 0
         return 0
     end
@@ -48,7 +48,7 @@ function cdf_from_cf(ϕ, x, h; ϵ=1E-4, kwargs...)
         φ = ϕ(h * j)
         term = prefactor * sin(h * j * x) / j * real(φ)
         result += term
-        if abs(φ) / j < π * ϵ / 2
+        if abs(φ) / j < π * cf_tol / 2
             break
         end
     end

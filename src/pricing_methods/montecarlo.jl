@@ -22,7 +22,8 @@ function compute_price(payoff::VanillaOption{European, C, Spot}, market_inputs::
     solution = solve(EnsembleProblem(problem); dt=T, trajectories = method.trajectories) # its an exact simulation, hence we use just one step
     final_payoffs = payoff.(last.(solution.u))
     mean_payoff = mean(final_payoffs)
-    return mean_payoff
+    println(sqrt(var(final_payoffs) / length(final_payoffs)))
+    return exp(-market_inputs.rate*T) * mean_payoff
 end
 
 struct MontecarloDiscrete
