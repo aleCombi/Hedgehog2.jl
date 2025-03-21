@@ -18,3 +18,8 @@ struct HestonDynamics <: PriceDynamics end
 function price_process(m::HestonInputs, dynamics::HestonDynamics, method::MontecarloExact)
     return HestonNoise(0, dynamics(m), Z0=nothing; method.kwargs...)
 end
+
+function sde_problem(payoff::P, m::HestonInputs, ::HestonDynamics, method::MontecarloDiscrete) where P <: AbstractPayoff
+    return HestonProblem(m.rate, m.κ, m.Θ, m.σ, m.ρ, u0, tspan=(0, T); method.kwargs...)
+end
+

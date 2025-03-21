@@ -12,7 +12,7 @@ Constructs a `NoiseProcess` for exact Heston model sampling.
 function HestonNoise(t0, heston_dist, Z0=nothing; kwargs...)
     log_S0 = log(heston_dist(t0).S0)  # Work in log-space
     @inline function Heston_dist(DW, W, dt, u, p, t, rng) #dist
-        heston_dist_at_t = heston_dist(dt)
+        heston_dist_at_t = heston_dist(dt)   
         return @fastmath rand(rng, heston_dist_at_t; kwargs...)  # Calls exact Heston sampler
     end
 

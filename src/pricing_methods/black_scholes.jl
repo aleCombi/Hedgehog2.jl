@@ -9,7 +9,7 @@ This struct represents the Black-Scholes pricing model for option pricing, which
 """
 struct BlackScholesAnalytic <: AbstractPricingMethod end
 
-log_distribution(::BlackScholesAnalytic) = LognormalDynamics()
+log_dynamics(::BlackScholesAnalytic) = LognormalDynamics()
 
 """
 Computes the price of a vanilla European call or put option using the Black-Scholes model.

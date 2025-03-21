@@ -7,7 +7,7 @@ struct CarrMadan <: AbstractPricingMethod
     kwargs #quadgk keyword arguments
 end
 
-log_distribution(m::CarrMadan) = m.distribution
+log_dynamics(m::CarrMadan) = m.distribution
 
 # Constructor with default empty kwargs
 CarrMadan(α, bound, distribution; kwargs...) = CarrMadan(α, bound, distribution, Dict(kwargs...))
