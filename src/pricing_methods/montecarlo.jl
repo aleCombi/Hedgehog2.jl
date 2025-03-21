@@ -17,7 +17,7 @@ log_distribution(m::MontecarloExact) = m.distribution
 function compute_price(payoff::VanillaOption{European, C, Spot}, market_inputs::I, method::M) where {C, I <: AbstractMarketInputs, M<:MontecarloMethod}
     T = Dates.value.(payoff.expiry .- market_inputs.referenceDate) ./ 365  # Assuming 365-day convention
     distribution = log_distribution(method)
-    noise = distribution(market_inputs)
+    noise = price_process(market_inputs, distribution, method)
     problem = NoiseProblem(noise, (0, T))
     solution = solve(EnsembleProblem(problem); dt=T, trajectories = method.trajectories) # its an exact simulation, hence we use just one step
     final_payoffs = payoff.(last.(solution.u))

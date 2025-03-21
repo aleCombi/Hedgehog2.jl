@@ -16,13 +16,13 @@ payoff = VanillaOption(strike, expiry, Hedgehog2.European(), Hedgehog2.Call(), H
 
 # Define montecarlo methods
 trajectories = 10000
-method = Hedgehog2.BSMontecarlo(trajectories)
+method = Hedgehog2.MontecarloExact(trajectories, Hedgehog2.BlackScholesPriceDistribution())
 
 # Define pricer
 mc_pricer = Pricer(payoff, market_inputs, method)
 
 # Define analytical pricer
-analytical_pricer = Pricer(payoff, market_inputs, BlackScholesMethod())
+analytical_pricer = Pricer(payoff, market_inputs, BlackScholesAnalytic())
 
 println(analytical_pricer())
 println(mc_pricer())
