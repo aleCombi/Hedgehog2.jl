@@ -37,32 +37,37 @@ function sample_V_T(rng::AbstractRNG, d::HestonDistribution)
     return V_T
 end
 
+using SpecialFunctions
+
+# Precompute and return characteristic function ϕ(a) for sampling
 function sample_integral_V(VT, rng, dist::HestonDistribution)
-    ϕ(u) = integral_var_chf(u, VT, dist)
+    ϕ = build_integral_var_cf(VT, dist)
     return sample_from_cf(rng, ϕ)
 end
 
-using SpecialFunctions
-
-# characteristic function of ∫ V_t between 0 and T, conditional V_T. Check Broadie-Kaya or Lech-Osterlee 
-function integral_var_chf(a, VT, dist::HestonDistribution)
+function build_integral_var_cf(VT, dist::HestonDistribution)
     κ, θ, σ, V0, T = dist.κ, dist.θ, dist.σ, dist.V0, dist.T
-    γ(a) = √(κ^2 - 2 * σ^2 * a * im)
-    d = 4*κ*θ / σ^2
+    d = 4 * κ * θ / σ^2
 
-    ζ(x) = (- expm1(- x * T)) / x
-    first_term = exp(-0.5 * (γ(a) - κ) * T) * ζ(κ) / ζ(γ(a))
+    # Precompute zeta and eta with κ
+    ζκ = (-expm1(-κ * T)) / κ
+    ηκ = κ * (1 + exp(-κ * T)) / (-expm1(-κ * T))
+    νκ = √(V0 * VT) * 4 * κ * exp(-0.5 * κ * T) / σ^2 / (-expm1(-κ * T))
+    Iκ = besseli(0.5*d - 1, νκ)
 
-    η(x) = x * (1 + exp(- x * T)) / (- expm1(- x * T))
-    second_term = exp((V0 + VT) / σ^2 * ( η(κ) - η(γ(a)) ))
+    return function ϕ(a)
+        γ = sqrt(κ^2 - 2 * σ^2 * a * im)
+        ζγ = (-expm1(-γ * T)) / γ
+        ηγ = γ * (1 + exp(-γ * T)) / (-expm1(-γ * T))
+        νγ = √(V0 * VT) * 4 * γ * exp(-0.5 * γ * T) / σ^2 / (-expm1(-γ * T))
+        Iγ = besseli(0.5*d - 1, νγ)
 
-    ν(x) = √(V0 * VT) * 4 * x * exp(-0.5 * x * T) / σ^2 / (- expm1(- x * T))
+        first_term = exp(-0.5 * (γ - κ) * T) * (ζκ / ζγ)
+        second_term = exp((V0 + VT) / σ^2 * (ηκ - ηγ))
+        third_term = Iγ / Iκ
 
-    numerator = besseli(0.5*d - 1, ν(γ(a)))
-    denominator = besseli(0.5*d - 1, ν(κ))
-    third_term = numerator / denominator
-
-    return first_term * second_term * third_term
+        return first_term * second_term * third_term
+    end
 end
 
 """ Sample log(S_T) given V_T and integral_V. """
