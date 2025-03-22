@@ -31,7 +31,7 @@ function compute_price(
     n = length(log_asset)
 
     log_diff = @. log_asset - log_asset'
-    F = transition_density(method.dynamics, market_inputs, log_diff, dt)
+    F = transition_density(method.dynamics, market_inputs, log_diff, dt)'
 
     # Spot grid and payoff at maturity
     spot_grid = market_inputs.spot .* exp.(log_asset)
@@ -48,6 +48,5 @@ function compute_price(
         V = max.(continuation, exercise)
     end
 
-    idx = findfirst(x -> isapprox(x, 0.0; atol=1e-10), log_asset)
-    return V[idx]
+    return V[div(length(V), 2) + 1]
 end
