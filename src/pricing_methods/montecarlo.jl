@@ -1,10 +1,11 @@
 struct Montecarlo <: AbstractPricingMethod
     trajectories
     dynamics
+    dt
     kwargs
 end
 
-Montecarlo(trajectories, distribution; kwargs...) = Montecarlo(trajectories, distribution, Dict(kwargs...))
+Montecarlo(trajectories, distribution, dt; kwargs...) = Montecarlo(trajectories, distribution, dt, Dict(kwargs...))
 
 # log price distribution must be specified
 log_dynamics(m::Montecarlo) = m.dynamics
@@ -14,8 +15,8 @@ function compute_price(payoff::VanillaOption{European, C, Spot}, market_inputs::
     T = Dates.value.(payoff.expiry .- market_inputs.referenceDate) ./ 365  # Assuming 365-day convention
     distribution = log_dynamics(method)
     problem = sde_problem(market_inputs, distribution, method, (0,T))
-    solution = solve(EnsembleProblem(problem); dt=T, trajectories = method.trajectories) # its an exact simulation, hence we use just one step
-    final_payoffs = payoff.(last.(solution.u))
+    solution = montecarlo_solution(problem, method.dynamics, method)
+    final_payoffs = payoff.(solution)
     mean_payoff = mean(final_payoffs)
     println(sqrt(var(final_payoffs) / length(final_payoffs)))
     return exp(-market_inputs.rate*T) * mean_payoff
