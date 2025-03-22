@@ -16,7 +16,7 @@ payoff = VanillaOption(strike, expiry, Hedgehog2.European(), Hedgehog2.Call(), H
 
 # Define montecarlo methods
 trajectories = 10000
-method = Hedgehog2.MontecarloExact(trajectories, Hedgehog2.LognormalDynamics())
+method = Hedgehog2.Montecarlo(trajectories, Hedgehog2.LognormalDynamics())
 
 # Define pricer
 mc_pricer = Pricer(payoff, market_inputs, method)

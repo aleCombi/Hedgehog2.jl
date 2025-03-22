@@ -1,6 +1,6 @@
 # sample a distribution knowing its characteristic function ϕ. ϵ is the error tolerance. 
 # n is the choice of how many standard deviations to use in h derivation (check Broadie Kaya)
-function sample_from_cf(rng, ϕ; n=7, kwargs...) 
+function sample_from_cf(rng, ϕ; n=5, kwargs...) 
     # sample a uniform on [0,1]
     u = Distributions.rand(rng, Uniform(0,1))
 
@@ -19,15 +19,17 @@ end
 
 # calculate moments using the characteristic function
 # Estimate mean and variance from characteristic function ϕ
-function moments_from_cf(ϕ; h=1e-4)
-    ϕp = ϕ(h)
-    ϕ0 = ϕ(0)
-    ϕm = ϕ(-h)
+function moments_from_cf(ϕ_iter::HestonCFIterator; h=1e-4)
+    θ_prev = nothing
 
-    first_derivative = (ϕp - ϕm) / (2h)
+    ϕp, θ_prev = evaluate_chf(ϕ_iter, h, θ_prev)
+    ϕ0, θ_prev = evaluate_chf(ϕ_iter, 0.0, θ_prev)
+    ϕm, _      = evaluate_chf(ϕ_iter, -h, θ_prev)
+
+    first_derivative  = (ϕp - ϕm) / (2h)
     second_derivative = (ϕp - 2ϕ0 + ϕm) / h^2
 
-    mean = real(-im * first_derivative)
+    mean     = real(-im * first_derivative)
     variance = real(-second_derivative - mean^2)
 
     return mean, variance
@@ -36,25 +38,29 @@ end
 # Calculate cdf, integrating the cf, like in Broadie Kaya.
 # h is the discretization step, ϕ the chararacteristic function, ϵ the error tolerance, x the cdf argument.
 # TODO: this could be done with SampleIntegration using Integration.jl, might improve the elegance and performance.
-function cdf_from_cf(ϕ, x, h; cf_tol=1E-4, kwargs...)
+function cdf_from_cf(ϕ_iter::HestonCFIterator, x, h; cf_tol=1e-4, kwargs...)
     if x < 0
-        return 0
+        return 0.0
     end
 
     result = h * x / π
     prefactor = 2 / π
+    θ_prev = nothing
 
-    for j in 1:10^9  # safeguard limit
-        φ = ϕ(h * j)
-        term = prefactor * sin(h * j * x) / j * real(φ)
+    for j in 1:10^9
+        a = h * j
+        ϕ_val, θ_prev = evaluate_chf(ϕ_iter, a, θ_prev)
+        term = prefactor * sin(a * x) / j * real(ϕ_val)
         result += term
-        if abs(φ) / j < π * cf_tol / 2
+
+        if abs(ϕ_val) / j < π * cf_tol / 2
             break
         end
     end
 
     return result
 end
+
 
 # invert a cdf, trying with second order newton (secant), otherwise using bisection-style method
 function inverse_cdf(cdf_func, u, initial_guess, max_guess; atol=1E-4, maxiter_newton=10, maxiter_bisection=100, kwargs...)

@@ -35,10 +35,10 @@ method = Hedgehog2.CarrMadan(α, boundary, dynamics)
 carr_madan_pricer = Pricer(payoff, market_inputs, method)
 carr_madan_price = carr_madan_pricer()
 
-# Construct the Heston Noise Process
+# Construct the Heston Noise Processs
 trajectories = 10000
 #higher tolerance in the CDF inversion
-montecarlo_method = Hedgehog2.MontecarloExact(trajectories, dynamics; atol=1E-4, cf_tol=1E-4) 
+montecarlo_method = Hedgehog2.Montecarlo(trajectories, dynamics; atol=1E-4, cf_tol=1E-4) 
 mc_pricer = Pricer(payoff, market_inputs, montecarlo_method)
 
 println(carr_madan_price)

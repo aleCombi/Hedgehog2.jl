@@ -20,7 +20,7 @@ payoff = VanillaOption(strike, expiry, Hedgehog2.European(), Hedgehog2.Call(), H
 # Define Carr-Madan pricer as benchmark
 boundary = 32
 α = 1
-distribution = Hedgehog2.HestonPriceDistribution()
+distribution = Hedgehog2.HestonDynamics()
 method = Hedgehog2.CarrMadan(α, boundary, distribution)
 carr_madan_pricer = Pricer(payoff, market_inputs, method)
 carr_madan_price = carr_madan_pricer()

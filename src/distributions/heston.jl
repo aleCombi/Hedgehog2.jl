@@ -41,33 +41,94 @@ using SpecialFunctions
 
 # Precompute and return characteristic function ϕ(a) for sampling
 function sample_integral_V(VT, rng, dist::HestonDistribution; kwargs...)
-    ϕ = build_integral_var_cf(VT, dist)
+    ϕ = HestonCFIterator(VT, dist)
     return sample_from_cf(rng, ϕ; kwargs...)
 end
 
-function build_integral_var_cf(VT, dist::HestonDistribution)
+struct HestonCFIterator
+    VT::Float64
+    dist::HestonDistribution
+    logIκ::ComplexF64
+    ζκ::ComplexF64
+    ηκ::ComplexF64
+    ν::Float64
+end
+
+function HestonCFIterator(VT, dist::HestonDistribution)
     κ, θ, σ, V0, T = dist.κ, dist.θ, dist.σ, dist.V0, dist.T
     d = 4 * κ * θ / σ^2
+    ν = 0.5 * d - 1
 
-    # Precompute zeta and eta with κ
     ζκ = (-expm1(-κ * T)) / κ
     ηκ = κ * (1 + exp(-κ * T)) / (-expm1(-κ * T))
     νκ = √(V0 * VT) * 4 * κ * exp(-0.5 * κ * T) / σ^2 / (-expm1(-κ * T))
-    logIκ = log(besseli(0.5*d - 1, νκ))
+    logIκ = log(besseli(ν, νκ))
 
-    return function ϕ(a)
-        γ = sqrt(κ^2 - 2 * σ^2 * a * im)
-        ζγ = (1 - exp(-γ * T)) / γ
-        ηγ = γ * (1 + exp(-γ * T)) / (1 - exp(-γ * T))
-        νγ = √(V0 * VT) * 4 * γ * exp(-0.5 * γ * T) / σ^2 / (1 - exp(-γ * T))
-        
-        first_term = exp(-0.5 * (γ - κ) * T) * (ζκ / ζγ)
-        second_term = exp((V0 + VT) / σ^2 * (ηκ - ηγ))
-        logIγ = log(besseli(0.5*d - 1, νγ))
-        bessel_ratio = exp(logIγ - logIκ)
+    return HestonCFIterator(VT, dist, logIκ, ζκ, ηκ, ν)
+end
 
-        return first_term * second_term * bessel_ratio
+
+"""
+    evaluate_chf(iter::HestonCFIterator, a::Real, θ_prev::Union{Nothing,Float64})
+
+Evaluates the characteristic function at `a`, using previous angle `θ_prev` for unwrapping.
+Returns a tuple `(ϕ, θ_unwrapped)` to be passed to the next step.
+"""
+function evaluate_chf(iter::HestonCFIterator, a::Real, θ_prev::Union{Nothing, Float64})
+    κ, θ, σ, V0, T = iter.dist.κ, iter.dist.θ, iter.dist.σ, iter.dist.V0, iter.dist.T
+    ν = iter.ν
+    ζκ, ηκ, logIκ = iter.ζκ, iter.ηκ, iter.logIκ
+    VT = iter.VT
+
+    γ = sqrt(κ^2 - 2 * σ^2 * a * im)
+    ζγ = (1 - exp(-γ * T)) / γ
+    ηγ = γ * (1 + exp(-γ * T)) / (1 - exp(-γ * T))
+    νγ = √(V0 * VT) * 4 * γ * exp(-0.5 * γ * T) / σ^2 / (1 - exp(-γ * T))
+
+    first_term = exp(-0.5 * (γ - κ) * T) * (ζκ / ζγ)
+    second_term = exp((V0 + VT) / σ^2 * (ηκ - ηγ))
+
+    θ = angle(νγ)
+    θ_unwrapped = if θ_prev === nothing
+        θ
+    else
+        δ = θ - θ_prev
+        δ -= 2π * round(δ / (2π))
+        θ_prev + δ
     end
+
+    νγ_unwrapped = abs(νγ) * cis(θ_unwrapped)
+    logIγ = log(besseli(ν, νγ_unwrapped)) + im * ν * (θ_unwrapped - θ)
+    bessel_ratio = exp(logIγ - logIκ)
+
+    ϕ = first_term * second_term * bessel_ratio
+    return ϕ, θ_unwrapped
+end
+
+
+"""
+    log_besseli_corrected(ν, z, θ_ref)
+
+Corrects besseli using argument unwrapping across branch cuts.
+"""
+function log_besseli_corrected(ν, z::Complex, θ_ref::Ref{Float64})
+    θ = angle(z)
+    if isnan(θ_ref[])
+        θ_ref[] = θ  # initialize
+    end
+
+    # unwrap angle relative to previous
+    δ = θ - θ_ref[]
+    if δ > π
+        δ -= 2π
+    elseif δ < -π
+        δ += 2π
+    end
+    θ_unwrapped = θ_ref[] + δ
+    θ_ref[] = θ_unwrapped
+
+    z_unwrapped = abs(z) * cis(θ_unwrapped)
+    return log(besseli(ν, z_unwrapped)) + im * ν * (θ_unwrapped - θ)
 end
 
 """ Sample log(S_T) given V_T and integral_V. """
