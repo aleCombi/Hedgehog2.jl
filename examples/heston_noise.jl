@@ -27,8 +27,7 @@ carr_madan_price = carr_madan_pricer()
 
 # Construct the Heston Noise Process
 # TODO: this should be embedded in the Montecarlo pricer
-heston_dist = distribution(market_inputs)
-heston_noise = Hedgehog2.HestonNoise(0.0, heston_dist(T))
+heston_noise = Hedgehog2.HestonNoise(0, dynamics(market_inputs), Z0=nothing)
 
 # Define `NoiseProblem`
 # TODO: this should be embedded in the Montecarlo pricer
