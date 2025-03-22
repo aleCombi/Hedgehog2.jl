@@ -12,18 +12,18 @@ market_inputs = BlackScholesInputs(reference_date, rate, spot, sigma)
 # Define payoff
 expiry = reference_date + Day(365)
 strike = 150
-payoff = VanillaOption(strike, expiry, Hedgehog2.European(), Hedgehog2.Call(), Hedgehog2.Spot())
+payoff = VanillaOption(strike, expiry, European(), Call(), Spot())
 
 # Define carr madan method
 boundary = 32
 α = 1
-method = Hedgehog2.CarrMadan(α, boundary)
+method = Hedgehog2.CarrMadan(α, boundary, LognormalDynamics())
 
 # Define pricer
 carr_madan_pricer = Pricer(payoff, market_inputs, method)
 
 # Define analytical pricer
-analytical_pricer = Pricer(payoff, market_inputs, BlackScholesMethod())
+analytical_pricer = Pricer(payoff, market_inputs, BlackScholesAnalytic())
 
 println(analytical_pricer())
 println(carr_madan_pricer())

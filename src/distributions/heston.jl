@@ -1,5 +1,43 @@
 using Distributions, Random, SpecialFunctions, Roots
 
+using Distributions, DifferentialEquations, Random, StaticArrays
+
+function HestonProblem(μ, κ, Θ, σ, ρ, u0, tspan; seed = UInt64(0), kwargs...)
+    f = function (u, p, t)
+        adj_var = sqrt(max(u[2], 0))
+        return @. [μ * u[1], κ * (Θ - u[2])]
+    end
+    g = function (u, p, t)
+        adj_var = sqrt(max(u[2], 0))
+        return @. [adj_var * u[1], σ * adj_var]
+    end
+    Γ = [1 ρ; ρ 1]  # ensure this is Float64
+
+    noise = CorrelatedWienerProcess(Γ, tspan[1], zeros(2))
+
+    sde_f = SDEFunction(f, g)
+    return SDEProblem(sde_f, u0, (tspan[1], tspan[2]), noise=noise, seed=seed, kwargs...)
+end
+
+"""
+    HestonProcess(t0, heston_dist)
+
+Constructs a `NoiseProcess` for exact Heston model sampling.
+
+- `t0`: Initial time
+- `heston_dist`: A function from time to `HestonDistribution` object containing model parameters.
+"""
+#TODO: not entirely correct, as it works only in the one-step simulation scenario. Otherwise it would need to be 2D
+function HestonNoise(t0, heston_dist, Z0=nothing; kwargs...)
+    log_S0 = log(heston_dist(t0).S0)  # Work in log-space
+    @inline function Heston_dist(DW, W, dt, u, p, t, rng) #dist
+        heston_dist_at_t = heston_dist(dt)   
+        return @fastmath rand(rng, heston_dist_at_t; kwargs...)  # Calls exact Heston sampler
+    end
+
+    return NoiseProcess{false}(t0, log_S0, Z0, Heston_dist, (dW, W, W0, Wh, q, h, u, p, t, rng) -> 1)
+end
+
 """
     HestonDistribution(S0, V0, κ, θ, σ, ρ, r, T)
 
