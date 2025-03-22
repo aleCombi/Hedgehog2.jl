@@ -5,7 +5,7 @@ using Revise, Hedgehog2, BenchmarkTools, Dates
 # Define market inputs
 reference_date = Date(2020, 1, 1)
 rate=0
-spot=1
+spot=12.0
 sigma=0.4
 market_inputs = BlackScholesInputs(reference_date, rate, spot, sigma)
 
@@ -16,7 +16,7 @@ payoff = VanillaOption(strike, expiry, Hedgehog2.European(), Hedgehog2.Call(), H
 
 # Define montecarlo methods
 trajectories = 10000
-method = Hedgehog2.MontecarloExact(trajectories, Hedgehog2.BlackScholesPriceDistribution())
+method = Hedgehog2.MontecarloExact(trajectories, Hedgehog2.LognormalDynamics())
 
 # Define pricer
 mc_pricer = Pricer(payoff, market_inputs, method)

@@ -7,19 +7,17 @@ function (black_scholes_distribution::LognormalDynamics)(m::BlackScholesInputs)
     return d
 end
 
-function price_process(m::BlackScholesInputs, ::LognormalDynamics, ::M) where M<:AbstractPricingMethod
-    return GeometricBrownianMotionProcess(m.rate, m.sigma, 0.0, 1.0)
+function sde_problem(m::BlackScholesInputs, ::LognormalDynamics, ::M, tspan) where M<:AbstractPricingMethod
+    noise = GeometricBrownianMotionProcess(m.rate, m.sigma, 0.0, m.spot)
+    return NoiseProblem(noise, tspan)
 end
 
 struct HestonDynamics <: PriceDynamics end
 
 (h::HestonDynamics)(m::HestonInputs) = t -> HestonDistribution(m.S0, m.V0, m.κ, m.θ, m.σ, m.ρ, m.rate, t)
 
-function price_process(m::HestonInputs, dynamics::HestonDynamics, method::MontecarloExact)
-    return HestonNoise(0, dynamics(m), Z0=nothing; method.kwargs...)
-end
-
-function sde_problem(payoff::P, m::HestonInputs, ::HestonDynamics, method::MontecarloDiscrete) where P <: AbstractPayoff
-    return HestonProblem(m.rate, m.κ, m.Θ, m.σ, m.ρ, u0, tspan=(0, T); method.kwargs...)
+function sde_problem(m::HestonInputs, dynamics::HestonDynamics, method::MontecarloExact, tspan)
+    noise = HestonNoise(0, dynamics(m), Z0=nothing; method.kwargs...)
+    return NoiseProblem(noise, tspan)
 end
 
