@@ -1,4 +1,4 @@
-export BlackScholesInputs, AbstractMarketInputs
+export BlackScholesInputs, AbstractMarketInputs, HestonInputs
 
 """An abstract type representing market data inputs required for pricers."""
 abstract type AbstractMarketInputs end

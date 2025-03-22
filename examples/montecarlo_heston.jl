@@ -1,45 +1,60 @@
-using Revise, Hedgehog2, Distributions, DifferentialEquations, Random, Plots, Dates
+using Revise
+using Hedgehog2
+using Distributions
+using DifferentialEquations
+using Random
+using Plots
+using Dates
 
-reference_date = Date(2020,1,1)
-# Define Heston model parameters like in Broadie-Kaya
-# S0 = 1.0   # Initial stock price
-# V0 = 0.010201  # Initial variance
-# κ = 6.21      # Mean reversion speed
-# θ = 0.019      # Long-run variance
-# σ = 0.61   # Volatility of variance
-# ρ = -0.7     # Correlation
-# r = 0.0319     # Risk-free rate
-# T = 1.0       # Time to maturity
+println("=== Heston: Carr-Madan vs Euler–Maruyama vs Broadie–Kaya ===")
 
-S0 = 1.0   # Initial stock price
-V0 = 0.09  # Initial variance
-κ = 2.0      # Mean reversion speed
-θ = 0.09      # Long-run variance
-σ = 1.00   # Volatility of variance
-ρ = -0.3     # Correlation
-r = 0.05     # Risk-free rate
-T = 5.0       # Time to maturity
+# --- Market Inputs ---
+reference_date = Date(2020, 1, 1)
 
-market_inputs = Hedgehog2.HestonInputs(reference_date, r, S0, V0, κ, θ, σ, ρ)
+S0 = 1.0
+V0 = 0.010201
+κ = 6.21
+θ = 0.019
+σ = 0.61
+ρ = -0.7
+r = 0.0319
 
-# Define option payoff
-expiry = reference_date + Day(5*365)
-strike = S0 # ATM call
-payoff = VanillaOption(strike, expiry, Hedgehog2.European(), Hedgehog2.Put(), Hedgehog2.Spot())
- 
-# Define Carr-Madan pricer as benchmark
-boundary = 32
-α = 1
-dynamics = Hedgehog2.HestonDynamics()
-method = Hedgehog2.CarrMadan(α, boundary, dynamics)
-carr_madan_pricer = Pricer(payoff, market_inputs, method)
-carr_madan_price = carr_madan_pricer()
+market_inputs = HestonInputs(reference_date, r, S0, V0, κ, θ, σ, ρ)
 
-# Construct the Heston Noise Processs
-trajectories = 10000
-#higher tolerance in the CDF inversion
-montecarlo_method = Hedgehog2.Montecarlo(trajectories, dynamics; atol=1E-4, cf_tol=1E-4) 
-mc_pricer = Pricer(payoff, market_inputs, montecarlo_method)
+# --- Payoff ---
+expiry = reference_date + Year(5)
+strike = S0  # ATM put
+payoff = VanillaOption(strike, expiry, European(), Call(), Spot())
 
-println(carr_madan_price)
-@time println(mc_pricer())
+# --- Dynamics ---
+dynamics = HestonDynamics()
+
+# --- Carr-Madan Method ---
+α = 1.0
+boundary = 32.0
+carr_madan_method = CarrMadan(α, boundary, dynamics)
+carr_madan_pricer = Pricer(payoff, market_inputs, carr_madan_method)
+
+# --- Monte Carlo Parameters ---
+trajectories = 10_000
+steps = 500  # Euler-Maruyama discretization
+
+# --- Monte Carlo (Euler–Maruyama) ---
+euler_strategy = EulerMaruyama(trajectories, steps)
+euler_method = MonteCarlo(dynamics, euler_strategy)
+euler_pricer = Pricer(payoff, market_inputs, euler_method)
+
+# --- Monte Carlo (Broadie–Kaya) ---
+bk_strategy = HestonBroadieKaya(trajectories)
+bk_method = MonteCarlo(dynamics, bk_strategy)
+bk_pricer = Pricer(payoff, market_inputs, bk_method)
+
+# --- Run and Print Results ---
+println("\nCarr-Madan price:")
+@time println(carr_madan_pricer())
+
+println("\nEuler–Maruyama price:")
+@time println(euler_pricer())
+
+println("\nBroadie–Kaya price:")
+@time println(bk_pricer())

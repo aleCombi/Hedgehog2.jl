@@ -1,23 +1,97 @@
-struct Montecarlo <: AbstractPricingMethod
+abstract type PriceDynamics end
+struct LognormalDynamics <: PriceDynamics end
+struct HestonDynamics <: PriceDynamics end
+
+export MonteCarlo, HestonBroadieKaya, EulerMaruyama, BlackScholesExact, LognormalDynamics, HestonDynamics
+
+abstract type SimulationStrategy end
+struct HestonBroadieKaya <: SimulationStrategy
     trajectories
-    dynamics
-    dt
-    kwargs
+    steps
+    kwargs::NamedTuple
 end
 
-Montecarlo(trajectories, distribution, dt; kwargs...) = Montecarlo(trajectories, distribution, dt, Dict(kwargs...))
+HestonBroadieKaya(trajectories; kwargs...) = HestonBroadieKaya(trajectories, 1, (; kwargs...))
 
-# log price distribution must be specified
-log_dynamics(m::Montecarlo) = m.dynamics
+struct EulerMaruyama <: SimulationStrategy 
+    trajectories
+    steps
+end
 
-# we could make an ExactMontecarlo, dispath to get the noise problem and always make just one step. Uses antithetic variates.
-function compute_price(payoff::VanillaOption{European, C, Spot}, market_inputs::I, method::Montecarlo) where {C, I <: AbstractMarketInputs}
-    T = Dates.value.(payoff.expiry .- market_inputs.referenceDate) ./ 365  # Assuming 365-day convention
-    distribution = log_dynamics(method)
-    problem = sde_problem(market_inputs, distribution, method, (0.0,T))
-    solution = montecarlo_solution(problem, method.dynamics, method)
-    final_payoffs = payoff.(solution)
-    mean_payoff = mean(final_payoffs)
-    println(sqrt(var(final_payoffs) / length(final_payoffs)))
-    return exp(-market_inputs.rate*T) * mean_payoff
+struct BlackScholesExact <: SimulationStrategy
+    trajectories
+    steps
+end
+
+BlackScholesExact(trajectories) = BlackScholesExact(trajectories, 1)
+
+function sde_problem(::LognormalDynamics, ::BlackScholesExact, market_inputs::BlackScholesInputs, tspan)
+    noise = GeometricBrownianMotionProcess(market_inputs.rate, market_inputs.sigma, 0.0, market_inputs.spot)
+    return NoiseProblem(noise, tspan)
+end
+
+function marginal_law(::LognormalDynamics, m::BlackScholesInputs, t)
+    return Normal(log(m.spot) + (m.rate - m.sigma^2 / 2)t, m.sigma * √t)  
+end
+
+function sde_problem(::HestonDynamics, ::EulerMaruyama, m::HestonInputs, tspan)
+    return HestonProblem(m.rate, m.κ, m.θ, m.σ, m.ρ, [m.S0, m.V0], tspan)
+end
+
+function marginal_law(::HestonDynamics, m::HestonInputs, t)
+    return HestonDistribution(m.S0, m.V0, m.κ, m.θ, m.σ, m.ρ, m.rate, t)
+end
+
+function sde_problem(d::HestonDynamics, strategy::HestonBroadieKaya, m::HestonInputs, tspan)
+    marginal_laws = t -> marginal_law(d, m, t)
+    noise = HestonNoise(0.0, marginal_laws, Z0=nothing; strategy.kwargs...)
+    return NoiseProblem(noise, tspan)
+end
+
+function montecarlo_solution(problem, strategy::S) where {S <: SimulationStrategy}
+    solution = solve(EnsembleProblem(problem), EM(); dt=problem.tspan[end] / strategy.steps, trajectories = strategy.trajectories)
+    return solution
+end
+
+function HestonProblem(μ, κ, Θ, σ, ρ, u0, tspan; seed = UInt64(0), kwargs...)
+    f = function (u, p, t)
+        return @. [μ * u[1], κ * (Θ - u[2])]
+    end
+    g = function (u, p, t)
+        adj_var = sqrt(max(u[2], 0))
+        return @. [adj_var * u[1], σ * adj_var]
+    end
+    Γ = [1 ρ; ρ 1]  # ensure this is Float64
+
+    noise = CorrelatedWienerProcess(Γ, tspan[1], zeros(Float64, 2))
+
+    sde_f = SDEFunction(f, g)
+    return SDEProblem(sde_f, u0, (tspan[1], tspan[2]), noise=noise, seed=seed, kwargs...)
+end
+
+
+# any method defining an SDEProblem and requiring a solver from DifferentialEquation.jl
+struct MonteCarlo{P<:PriceDynamics, S<:SimulationStrategy} <: AbstractPricingMethod
+    dynamics::P
+    strategy::S
+end
+
+get_terminal_value(path) = last(path) isa Number ? last(path) : last(path)[1]
+
+function simulate_paths(method::MonteCarlo, market_inputs::I, T) where {I <: AbstractMarketInputs}
+    return montecarlo_solution(
+        sde_problem(method.dynamics, method.strategy, market_inputs, (0.0, T)),
+        method.strategy
+    )
+end
+
+simulate_terminal_prices(method, inputs, T) =
+    get_terminal_value.(simulate_paths(method, inputs, T).u)
+
+function compute_price(payoff::VanillaOption{European, C, Spot}, market_inputs::I, method::MonteCarlo) where {C, I <: AbstractMarketInputs}
+    T = Dates.value(payoff.expiry - market_inputs.referenceDate) / 365
+    prices = simulate_terminal_prices(method, market_inputs, T)
+    payoffs = payoff.(prices)
+    # println("Standard error: ", sqrt(var(payoffs) / length(payoffs)))
+    return exp(-market_inputs.rate * T) * mean(payoffs)
 end

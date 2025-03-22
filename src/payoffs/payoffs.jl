@@ -1,4 +1,4 @@
-export VanillaOption, AbstractPayoff
+export VanillaOption, AbstractPayoff, European, Spot, Forward, Call, Put
 
 abstract type AbstractExerciseStyle end
 

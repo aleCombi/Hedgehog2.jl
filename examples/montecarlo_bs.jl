@@ -1,28 +1,39 @@
-using Revise, Hedgehog2, BenchmarkTools, Dates
+using Revise
+using Hedgehog2
+using BenchmarkTools
+using Dates
 
-"""Example code with benchmarks"""
+println("=== European Call Option under Black-Scholes ===")
 
-# Define market inputs
+# -- Market Inputs
 reference_date = Date(2020, 1, 1)
-rate=0
-spot=12.0
-sigma=0.4
+expiry         = Date(2021, 1, 1)
+spot           = 12.0
+sigma          = 0.4
+rate           = 0.0
+
 market_inputs = BlackScholesInputs(reference_date, rate, spot, sigma)
 
-# Define payoff
-expiry = Date(2021, 1, 1)
+# -- Payoff
 strike = 1.2
-payoff = VanillaOption(strike, expiry, Hedgehog2.European(), Hedgehog2.Call(), Hedgehog2.Spot())
+payoff = VanillaOption(strike, expiry, European(), Call(), Spot())
 
-# Define montecarlo methods
-trajectories = 10000
-method = Hedgehog2.Montecarlo(trajectories, Hedgehog2.LognormalDynamics())
+# -- Monte Carlo Pricer
+trajectories = 10_000
+strategy = Hedgehog2.BlackScholesExact(trajectories)
+dynamics = Hedgehog2.LognormalDynamics()
+method_mc = Hedgehog2.MonteCarlo(dynamics, strategy)
+mc_pricer = Pricer(payoff, market_inputs, method_mc)
 
-# Define pricer
-mc_pricer = Pricer(payoff, market_inputs, method)
+# -- Analytic Pricer
+method_analytic = BlackScholesAnalytic()
+analytic_pricer = Pricer(payoff, market_inputs, method_analytic)
 
-# Define analytical pricer
-analytical_pricer = Pricer(payoff, market_inputs, BlackScholesAnalytic())
+# -- Run both and show results
+println("Analytic price:  ", analytic_pricer())
+println("Monte Carlo price:", mc_pricer())
 
-println(analytical_pricer())
-println(mc_pricer())
+# -- Benchmark
+println("\n--- Benchmarking ---")
+@btime $analytic_pricer()
+@btime $mc_pricer()

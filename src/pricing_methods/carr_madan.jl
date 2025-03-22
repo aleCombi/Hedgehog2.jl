@@ -1,9 +1,11 @@
 using QuadGK, Dates, Distributions
 
+export CarrMadan 
+
 struct CarrMadan <: AbstractPricingMethod
     α 
     bound
-    distribution
+    dynamics
     kwargs #quadgk keyword arguments
 end
 
@@ -15,7 +17,8 @@ CarrMadan(α, bound, distribution; kwargs...) = CarrMadan(α, bound, distributio
 function compute_price(payoff::VanillaOption{European, C, Spot}, market_inputs::I, method::CarrMadan) where {C,I <: AbstractMarketInputs}
     damp = exp(- method.α * log(payoff.strike)) / 2π
     T = Dates.value(payoff.expiry - market_inputs.referenceDate) / 365
-    ϕ(u) = cf(method.distribution(market_inputs)(T), u)
+    terminal_law = marginal_law(method.dynamics, market_inputs, T)
+    ϕ(u) = cf(terminal_law, u)
     integrand(v) = call_transform(market_inputs.rate, T, ϕ, v, method) * exp(- im * v * log(payoff.strike))
     integral, _ = quadgk(integrand, -method.bound, method.bound; method.kwargs...)
     call_price = real(damp * integral)
