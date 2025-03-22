@@ -27,8 +27,6 @@ struct CoxRossRubinsteinMethod <: AbstractPricingMethod
     steps::Int
 end
 
-log_dynamics(::CoxRossRubinsteinMethod) = LognormalDynamics()
-
 """
 Returns the value at a given node in the binomial tree for a European option.
 

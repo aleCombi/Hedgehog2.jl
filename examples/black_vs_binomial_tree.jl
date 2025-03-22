@@ -3,10 +3,9 @@ using Revise, Hedgehog2, BenchmarkTools, Dates
 # define payoff
 strike = 1.2
 expiry = Date(2021, 1, 1)
-call_put = Hedgehog2.Put()
 underlying = Hedgehog2.Forward()
-american_payoff = VanillaOption(strike, expiry, Hedgehog2.American(), call_put, underlying)
-euro_payoff = VanillaOption(strike, expiry, Hedgehog2.European(), call_put, underlying)
+american_payoff = VanillaOption(strike, expiry, Hedgehog2.American(), Put(), underlying)
+euro_payoff = VanillaOption(strike, expiry, European(), Put(), underlying)
 
 # define market inputs
 reference_date = Date(2020, 1, 1)
@@ -16,7 +15,7 @@ sigma = 0.4
 market_inputs = BlackScholesInputs(reference_date, rate, spot, sigma)
 
 # create analytical black scholes pricer
-bs_method = BlackScholesMethod()
+bs_method = BlackScholesAnalytic()
 analytical_pricer = Pricer(euro_payoff, market_inputs, bs_method)
 
 # create Cox Ross Rubinstein pricer
