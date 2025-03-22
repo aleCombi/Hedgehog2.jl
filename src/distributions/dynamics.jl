@@ -49,10 +49,10 @@ function HestonProblem(μ, κ, Θ, σ, ρ, u0::AbstractVector{<:AbstractFloat}, 
         adj_var = sqrt(max(u[2], 0))
         return @. [adj_var * u[1], σ * adj_var]
     end
-    Γ = [1.0 ρ; ρ 1.0]  # ensure this is Float64
+    Γ = [1 ρ; ρ 1]  # ensure this is Float64
 
-    noise = CorrelatedWienerProcess(Γ, Float64(tspan[1]), zeros(Float64, 2))
+    noise = CorrelatedWienerProcess(Γ, tspan[1], zeros(Float64, 2))
 
     sde_f = SDEFunction(f, g)
-    return SDEProblem(sde_f, u0, (Float64(tspan[1]), Float64(tspan[2])), noise=noise, seed=seed, kwargs...)
+    return SDEProblem(sde_f, u0, (tspan[1], tspan[2]), noise=noise, seed=seed, kwargs...)
 end

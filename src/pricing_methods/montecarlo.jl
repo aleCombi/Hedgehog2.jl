@@ -14,7 +14,7 @@ log_dynamics(m::Montecarlo) = m.dynamics
 function compute_price(payoff::VanillaOption{European, C, Spot}, market_inputs::I, method::Montecarlo) where {C, I <: AbstractMarketInputs}
     T = Dates.value.(payoff.expiry .- market_inputs.referenceDate) ./ 365  # Assuming 365-day convention
     distribution = log_dynamics(method)
-    problem = sde_problem(market_inputs, distribution, method, (0,T))
+    problem = sde_problem(market_inputs, distribution, method, (0.0,T))
     solution = montecarlo_solution(problem, method.dynamics, method)
     final_payoffs = payoff.(solution)
     mean_payoff = mean(final_payoffs)
