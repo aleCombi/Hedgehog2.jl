@@ -1,6 +1,6 @@
 adr_id: 003
 title: "Greeks Calculation Design"
-status: Accepted
+status: Draft
 date: 2025-03-11
 context: |
   In ADR-004, we introduced `Pricer{P, M, S}` as a callable struct that computes a derivative’s price

@@ -4,3 +4,4 @@ adr_index:
   - "adr-003-pricing-methods.yaml"
   - "adr-004-pricer-callable-struct.yaml"
   - "adr-005-greeks-calculation-design.yaml"
+  - "adr-006-sciml_integration.yaml"
