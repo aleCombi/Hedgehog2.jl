@@ -54,6 +54,11 @@ function compute_price(payoff::VanillaOption{European, A, B}, marketInputs::Blac
     cp = payoff.call_put()
     T = Dates.value.(payoff.expiry .- marketInputs.referenceDate) ./ 365  # Assuming 365-day convention
     F = marketInputs.spot*exp(r*T)
+
+    if σ == 0
+      return exp(-r*T) * payoff(marketInputs.spot*exp(r*T))
+    end
+
     d1 = (log(F / K) + 0.5 * σ^2 * T) / (σ * sqrt(T))
     d2 = d1 - σ * sqrt(T)
     return exp(-r*T) * cp * (F * cdf(Normal(), cp * d1) - K * cdf(Normal(), cp * d2))
