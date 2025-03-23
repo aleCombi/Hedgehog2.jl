@@ -8,7 +8,7 @@
 - [x] Least Squares Monte Carlo (LSM)
 - [x] Carr–Madan method (FFT)
 - [x] Pricer structure with method, marketinputs, payoff
-
+- [ ] Test suite with unit tests and basic price agreements
 
 ## PHASE 2 — Market Inputs & Calibration (2–3 weeks)
 
