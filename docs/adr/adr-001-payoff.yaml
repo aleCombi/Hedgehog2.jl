@@ -8,7 +8,7 @@ context: |
 
 decision: |
   - Define a `payoff` type that subtypes `AbstractPayoff`.
-  - Each payoff should encapsulate contract details (e.g., strike, expiry) and provide an intrinsic value function.
+  - Each payoff should encapsulate contract details (e.g., strike, expiry, underlying) and provide an intrinsic value function.
   - Payoff objects should not contain market assumptions or pricing logic.
 
 consequences:

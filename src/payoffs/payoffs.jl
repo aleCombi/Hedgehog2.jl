@@ -13,6 +13,13 @@ abstract type Underlying end
 struct Spot <: Underlying end
 struct Forward <: Underlying end
 
+abstract type AbstractCallPut end
+struct Put <: AbstractCallPut end
+struct Call <: AbstractCallPut end
+
+(call_put::Call)() = 1.0
+(call_put::Put)() = -1.0
+
 """A vanilla European call option payoff.
 
 # Fields
@@ -21,20 +28,13 @@ struct Forward <: Underlying end
 
 This struct represents a European call option, which provides a payoff of `max(spot - strike, 0.0)`.
 """
-struct VanillaOption{E,C,U} <: AbstractPayoff where E<:AbstractExerciseStyle
+struct VanillaOption{E,C,U} <: AbstractPayoff where {E<:AbstractExerciseStyle, C <: AbstractCallPut, U<: Underlying}
     strike
     expiry
     exercise_style::E
     call_put::C
     underlying::U
 end
-
-abstract type AbstractCallPut end
-struct Put <: AbstractCallPut end
-struct Call <: AbstractCallPut end
-
-(call_put::Call)() = 1.0
-(call_put::Put)() = -1.0
 
 """Computes the payoff of a vanilla European call option given a spot price.
 
@@ -47,4 +47,12 @@ struct Call <: AbstractCallPut end
 """
 function (payoff::VanillaOption)(spot)
     return max.(payoff.call_put() .* (spot .- payoff.strike), 0.0)
+end
+
+function parity_transform(call_price, opt::VanillaOption{E, Call, U}, S, T) where {E, U}
+    return call_price
+end
+
+function parity_transform(call_price, opt::VanillaOption{E, Put, U}, S, T) where {E, U}
+    return call_price - S + opt.strike * exp(-opt.expiry)
 end

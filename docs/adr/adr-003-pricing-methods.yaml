@@ -23,3 +23,5 @@ alternatives:
     cons: "Mixes concerns and reduces flexibility when changing pricing approaches."
 
 references:
+  - adr-001-payoff.yaml
+  - adr-002-market-inputs.yaml

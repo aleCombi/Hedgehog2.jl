@@ -22,17 +22,9 @@ function compute_price(payoff::VanillaOption{European, C, Spot}, market_inputs::
     integrand(v) = call_transform(market_inputs.rate, T, ϕ, v, method) * exp(- im * v * log(payoff.strike))
     integral, _ = quadgk(integrand, -method.bound, method.bound; method.kwargs...)
     call_price = real(damp * integral)
-    
-    if C <: Call
-        return call_price
-    elseif C <: Put
-        # Put-call parity
-        return call_price - market_inputs.S0 + payoff.strike * exp(-market_inputs.rate * T)
-    else
-        error("Unsupported option type: $T")
-    end
+    price = parity_transform(call_price, payoff, market_inputs.spot, T) # apply call put parity if necessary.
+    return price
 end
-
 
 function call_transform(rate, time, ϕ, v, method::CarrMadan)
     numerator = exp(- rate * time) * ϕ(v - (method.α + 1)im)
