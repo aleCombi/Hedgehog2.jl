@@ -17,7 +17,7 @@ sigma = 0.1689900715
 market_inputs = BlackScholesInputs(reference_date, rate, spot, sigma)
 
 # create Cox Ross Rubinstein pricer
-steps = 800
+steps = 80
 crr = CoxRossRubinsteinMethod(steps)
 crr_american_pricer = Pricer(american_payoff, market_inputs, crr)
 

@@ -1,3 +1,5 @@
-using Hedgehog2, Test, Dates, Distributions
+using Revise, Hedgehog2, Test, Dates, Distributions
 
 include("black_scholes.jl")
+include("binomial_tree.jl")
+include("carr_madan.jl")

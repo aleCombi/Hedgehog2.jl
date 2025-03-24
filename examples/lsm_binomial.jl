@@ -1,7 +1,7 @@
-using Revise, Hedgehog2, BenchmarkTools, Dates
+using Revise, Hedgehog2, BenchmarkTools, Dates, Random, SciMLBase
 
 # define payoff
-strike = 1.2
+strike = 1.0
 expiry = Date(2021, 1, 1)
 american_payoff = VanillaOption(strike, expiry, Hedgehog2.American(), Call(), Spot())
 
@@ -13,16 +13,19 @@ sigma = 0.4
 market_inputs = BlackScholesInputs(reference_date, rate, spot, sigma)
 
 # create Cox Ross Rubinstein pricer
-steps = 800
+steps = 80
 crr = CoxRossRubinsteinMethod(steps)
 crr_american_pricer = Pricer(american_payoff, market_inputs, crr)
 
 # LSM pricer
 dynamics = LognormalDynamics()
-trajectories = 10000
+trajectories = 1
 steps = 100
-strategy = BlackScholesExact(trajectories, steps)
-degree = 5
+using StableRNGs
+rng = StableRNG(42)  # drop-in replacement for MersenneTwister
+
+strategy = BlackScholesExact(trajectories, steps; rng=rng, ensemblealg=EnsembleSerial())
+degree = 3
 lsm = LSM(dynamics, strategy, degree)
 lsm_american_pricer = Pricer(american_payoff, market_inputs, lsm)
 

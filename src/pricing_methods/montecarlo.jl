@@ -13,17 +13,21 @@ end
 
 HestonBroadieKaya(trajectories; kwargs...) = HestonBroadieKaya(trajectories, 1, (; kwargs...))
 
-struct EulerMaruyama <: SimulationStrategy 
+struct EulerMaruyama <: SimulationStrategy
     trajectories
     steps
+    kwargs::NamedTuple
 end
 
 struct BlackScholesExact <: SimulationStrategy
     trajectories
     steps
+    kwargs::NamedTuple
 end
 
-BlackScholesExact(trajectories) = BlackScholesExact(trajectories, 1)
+EulerMaruyama(trajectories, steps; kwargs...) = EulerMaruyama(trajectories, steps, (; kwargs...))
+
+BlackScholesExact(trajectories, steps=1; kwargs...) = BlackScholesExact(trajectories, steps, (; kwargs...))
 
 function sde_problem(::LognormalDynamics, ::BlackScholesExact, market_inputs::BlackScholesInputs, tspan)
     noise = GeometricBrownianMotionProcess(market_inputs.rate, market_inputs.sigma, 0.0, market_inputs.spot)
@@ -49,8 +53,15 @@ function sde_problem(d::HestonDynamics, strategy::HestonBroadieKaya, m::HestonIn
 end
 
 function montecarlo_solution(problem, strategy::S) where {S <: SimulationStrategy}
-    solution = solve(EnsembleProblem(problem), EM(); dt=problem.tspan[end] / strategy.steps, trajectories = strategy.trajectories)
-    return solution
+    println(strategy.kwargs)
+    kwargs = strategy.kwargs
+    return solve(
+        EnsembleProblem(problem),
+        EM();
+        dt = problem.tspan[end] / strategy.steps,
+        trajectories = strategy.trajectories,
+        kwargs...
+    )
 end
 
 # any method defining an SDEProblem and requiring a solver from DifferentialEquation.jl

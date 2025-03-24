@@ -6,9 +6,11 @@ struct LSM <: AbstractPricingMethod
     degree::Int  # degree of polynomial basis
 end
 
-LSM(dynamics::PriceDynamics, strategy::SimulationStrategy, degree::Int) =
-    LSM(MonteCarlo(dynamics, strategy), degree)
-    
+function LSM(dynamics::PriceDynamics, strategy::SimulationStrategy, degree::Int; kwargs...)
+    mc = MonteCarlo(dynamics, strategy; kwargs...)
+    return LSM(mc, degree)
+end
+
 function extract_spot_grid(sol)
     # Each path is a Vector of state vectors; we extract first component at each time step
     return hcat([getindex.(s.u, 1) for s in sol.u]...)  # size: (nsteps, npaths)
