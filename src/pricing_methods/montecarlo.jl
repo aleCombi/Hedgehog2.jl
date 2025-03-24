@@ -29,9 +29,10 @@ EulerMaruyama(trajectories, steps; kwargs...) = EulerMaruyama(trajectories, step
 
 BlackScholesExact(trajectories, steps=1; kwargs...) = BlackScholesExact(trajectories, steps, (; kwargs...))
 
-function sde_problem(::LognormalDynamics, ::BlackScholesExact, market_inputs::BlackScholesInputs, tspan)
+function sde_problem(::LognormalDynamics, s::BlackScholesExact, market_inputs::BlackScholesInputs, tspan)
     noise = GeometricBrownianMotionProcess(market_inputs.rate, market_inputs.sigma, 0.0, market_inputs.spot)
-    return NoiseProblem(noise, tspan)
+    kwargs = s.kwargs
+    return NoiseProblem(noise, tspan; kwargs...)
 end
 
 function marginal_law(::LognormalDynamics, m::BlackScholesInputs, t)
@@ -53,14 +54,11 @@ function sde_problem(d::HestonDynamics, strategy::HestonBroadieKaya, m::HestonIn
 end
 
 function montecarlo_solution(problem, strategy::S) where {S <: SimulationStrategy}
-    println(strategy.kwargs)
-    kwargs = strategy.kwargs
     return solve(
         EnsembleProblem(problem),
         EM();
         dt = problem.tspan[end] / strategy.steps,
-        trajectories = strategy.trajectories,
-        kwargs...
+        trajectories = strategy.trajectories
     )
 end
 
