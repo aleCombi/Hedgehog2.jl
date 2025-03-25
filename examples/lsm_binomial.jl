@@ -19,12 +19,10 @@ crr_american_pricer = Pricer(american_payoff, market_inputs, crr)
 
 # LSM pricer
 dynamics = LognormalDynamics()
-trajectories = 1
+trajectories = 1000
 steps = 100
-using StableRNGs
-rng = StableRNG(42)  # drop-in replacement for MersenneTwister
 
-strategy = BlackScholesExact(trajectories, steps; rng=rng, ensemblealg=EnsembleSerial())
+strategy = BlackScholesExact(trajectories, steps)
 degree = 3
 lsm = LSM(dynamics, strategy, degree)
 lsm_american_pricer = Pricer(american_payoff, market_inputs, lsm)
