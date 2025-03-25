@@ -26,7 +26,7 @@ cf(d::Normal, t) = exp(im * t * d.μ - d.σ^2 / 2 * t^2)
 struct HestonInputs <: AbstractMarketInputs
     referenceDate
     rate
-    S0
+    spot
     V0
     κ
     θ

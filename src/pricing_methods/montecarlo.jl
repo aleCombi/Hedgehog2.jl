@@ -40,16 +40,15 @@ function marginal_law(::LognormalDynamics, m::BlackScholesInputs, t)
 end
 
 function sde_problem(::HestonDynamics, ::EulerMaruyama, m::HestonInputs, tspan)
-    return HestonProblem(m.rate, m.κ, m.θ, m.σ, m.ρ, [m.S0, m.V0], tspan)
+    return HestonProblem(m.rate, m.κ, m.θ, m.σ, m.ρ, [m.spot, m.V0], tspan)
 end
 
 function marginal_law(::HestonDynamics, m::HestonInputs, t)
-    return HestonDistribution(m.S0, m.V0, m.κ, m.θ, m.σ, m.ρ, m.rate, t)
+    return HestonDistribution(m.spot, m.V0, m.κ, m.θ, m.σ, m.ρ, m.rate, t)
 end
 
-function sde_problem(d::HestonDynamics, strategy::HestonBroadieKaya, m::HestonInputs, tspan)
-    marginal_laws = t -> marginal_law(d, m, t)
-    noise = HestonNoise(0.0, marginal_laws, Z0=nothing; strategy.kwargs...)
+function sde_problem(::HestonDynamics, strategy::HestonBroadieKaya, m::HestonInputs, tspan)
+    noise = HestonNoise(m.rate, m.κ, m.θ, m.σ, m.ρ, 0.0, [log(m.spot), m.V0], Z0=nothing; strategy.kwargs...)
     return NoiseProblem(noise, tspan)
 end
 
@@ -68,7 +67,13 @@ struct MonteCarlo{P<:PriceDynamics, S<:SimulationStrategy} <: AbstractPricingMet
     strategy::S
 end
 
-get_terminal_value(path) = last(path) isa Number ? last(path) : last(path)[1]
+function get_terminal_value(path, ::HestonDynamics, strategy::HestonBroadieKaya)
+    return exp(last(path)[1])
+end
+
+function get_terminal_value(path, ::D, strategy::K) where {D <:PriceDynamics, K<:SimulationStrategy}
+    return last(path) isa Number ? last(path) : last(path)[1]
+end
 
 function simulate_paths(method::MonteCarlo, market_inputs::I, T) where {I <: AbstractMarketInputs}
     return montecarlo_solution(
@@ -77,12 +82,10 @@ function simulate_paths(method::MonteCarlo, market_inputs::I, T) where {I <: Abs
     )
 end
 
-simulate_terminal_prices(method, inputs, T) =
-    get_terminal_value.(simulate_paths(method, inputs, T).u)
-
 function compute_price(payoff::VanillaOption{European, C, Spot}, market_inputs::I, method::MonteCarlo) where {C, I <: AbstractMarketInputs}
     T = Dates.value(payoff.expiry - market_inputs.referenceDate) / 365
-    prices = simulate_terminal_prices(method, market_inputs, T)
+    paths = simulate_paths(method, market_inputs, T).u
+    prices = [get_terminal_value(p, method.dynamics, method.strategy) for p in paths]
     payoffs = payoff.(prices)
     # println("Standard error: ", sqrt(var(payoffs) / length(payoffs)))
     return exp(-market_inputs.rate * T) * mean(payoffs)

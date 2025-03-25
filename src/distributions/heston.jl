@@ -4,8 +4,8 @@ using Distributions, DifferentialEquations, Random, StaticArrays
 
 function HestonProblem(μ, κ, Θ, σ, ρ, u0, tspan; seed = UInt64(0), kwargs...)
     f = function (u, p, t)
-        adj_var = sqrt(max(u[2], 0))
-        return @. [μ * u[1], κ * (Θ - u[2])]
+        adj_var = max(u[2], 0)
+        return @. [μ * u[1], κ * (Θ - adj_var)]
     end
     g = function (u, p, t)
         adj_var = sqrt(max(u[2], 0))
@@ -19,40 +19,18 @@ function HestonProblem(μ, κ, Θ, σ, ρ, u0, tspan; seed = UInt64(0), kwargs..
     return SDEProblem(sde_f, u0, (tspan[1], tspan[2]), noise=noise, seed=seed, kwargs...)
 end
 
-"""
-    HestonProcess(t0, heston_dist)
-
-Constructs a `NoiseProcess` for exact Heston model sampling.
-
-- `t0`: Initial time
-- `heston_dist`: A function from time to `HestonDistribution` object containing model parameters.
-"""
-#TODO: not entirely correct, as it works only in the one-step simulation scenario. Otherwise it would need to be 2D
-function HestonNoise(t0, heston_dist, Z0=nothing; kwargs...)
-    log_S0 = log(heston_dist(t0).S0)  # Work in log-space
+# the first component of W is the log of price in heston, the second its vol
+function HestonNoise(μ, κ, θ, σ, ρ, t0, W0, Z0 = nothing; kwargs...)
     @inline function Heston_dist(DW, W, dt, u, p, t, rng) #dist
-        heston_dist_at_t = heston_dist(dt)   
+        S, V = exp(W[end][1]), W[end][2]
+        heston_dist_at_t = HestonDistribution(S, V, κ, θ, σ, ρ, μ, t + dt)
         return @fastmath rand(rng, heston_dist_at_t; kwargs...)  # Calls exact Heston sampler
     end
 
-    return NoiseProcess{false}(t0, log_S0, Z0, Heston_dist, (dW, W, W0, Wh, q, h, u, p, t, rng) -> 1)
+    return NoiseProcess{false}(t0, W0, Z0, Heston_dist, nothing)
 end
 
-"""
-    HestonDistribution(S0, V0, κ, θ, σ, ρ, r, T)
-
-Defines a univariate distribution for `log(S_T)` under the exact Heston model.
-
-- `S0`: Initial stock price
-- `V0`: Initial variance
-- `κ`: Mean-reversion speed
-- `θ`: Long-run variance level
-- `σ`: Volatility of variance (vol of vol)
-- `ρ`: Correlation between price and variance
-- `r`: Risk-free rate
-- `T`: Time to maturity
-"""
-struct HestonDistribution <: ContinuousUnivariateDistribution
+struct HestonDistribution <: ContinuousMultivariateDistribution
     S0
     V0
     κ
@@ -197,6 +175,20 @@ function rand(rng::AbstractRNG, d::HestonDistribution; kwargs...)
     log_S_T = sample_log_S_T(V_T, integral_V, rng, d)
 
     return exp(log_S_T)
+end
+
+function rand(rng::AbstractRNG, d::HestonDistribution; kwargs...)
+    d1 = HestonDistribution(d.S0, d.V0, d.κ, d.θ, d.σ, d.ρ, d.r, d.T)
+    # Step 1: Sample V_T
+    V_T = sample_V_T(rng, d1)
+
+    # Step 2: Sample ∫ V_t dt, conditional V0 and VT
+    integral_V = sample_integral_V(V_T, rng, d1; kwargs...)
+
+    # Step 3: Sample log(S_T)
+    log_S_T = sample_log_S_T(V_T, integral_V, rng, d1)
+
+    return [log_S_T, V_T]
 end
 
 """

@@ -45,7 +45,7 @@ euler_method = MonteCarlo(dynamics, euler_strategy)
 euler_pricer = Pricer(payoff, market_inputs, euler_method)
 
 # --- Monte Carlo (Broadie–Kaya) ---
-bk_strategy = HestonBroadieKaya(trajectories)
+bk_strategy = HestonBroadieKaya(trajectories, steps=1)
 bk_method = MonteCarlo(dynamics, bk_strategy)
 bk_pricer = Pricer(payoff, market_inputs, bk_method)
 
