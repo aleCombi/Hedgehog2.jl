@@ -1,5 +1,12 @@
 # sample a distribution knowing its characteristic function ϕ. ϵ is the error tolerance. 
 # n is the choice of how many standard deviations to use in h derivation (check Broadie Kaya)
+"""
+    sample_from_cf(rng, ϕ; n=5, kwargs...)
+
+Samples a random variable using its characteristic function `ϕ`, based on Fourier inversion as in Broadie-Kaya.
+Uses moment-based heuristics for initial guesses and applies root-finding to invert the CDF.
+- `n`: number of standard deviations used to derive the discretization step `h`
+"""
 function sample_from_cf(rng, ϕ; n=5, kwargs...) 
     # sample a uniform on [0,1]
     u = Distributions.rand(rng, Uniform(0,1))
@@ -19,6 +26,11 @@ end
 
 # calculate moments using the characteristic function
 # Estimate mean and variance from characteristic function ϕ
+"""
+    moments_from_cf(ϕ_iter::HestonCFIterator; h=1e-4)
+
+Estimates the mean and variance from the characteristic function `ϕ_iter` using central differences.
+"""
 function moments_from_cf(ϕ_iter::HestonCFIterator; h=1e-4)
     θ_prev = nothing
 
@@ -38,6 +50,12 @@ end
 # Calculate cdf, integrating the cf, like in Broadie Kaya.
 # h is the discretization step, ϕ the chararacteristic function, ϵ the error tolerance, x the cdf argument.
 # TODO: this could be done with SampleIntegration using Integration.jl, might improve the elegance and performance.
+"""
+    cdf_from_cf(ϕ_iter::HestonCFIterator, x, h; cf_tol=1e-4, kwargs...)
+
+Approximates the cumulative distribution function at `x` by numerically integrating the characteristic function.
+Implements the method of Broadie-Kaya with truncation tolerance `cf_tol`.
+"""
 function cdf_from_cf(ϕ_iter::HestonCFIterator, x, h; cf_tol=1e-4, kwargs...)
     if x < 0
         return 0.0
@@ -61,8 +79,13 @@ function cdf_from_cf(ϕ_iter::HestonCFIterator, x, h; cf_tol=1e-4, kwargs...)
     return result
 end
 
-
 # invert a cdf, trying with second order newton (secant), otherwise using bisection-style method
+"""
+    inverse_cdf(cdf_func, u, initial_guess, max_guess; atol=1E-4, maxiter_newton=10, maxiter_bisection=100, kwargs...)
+
+Inverts a monotonic CDF to find `x` such that `cdf_func(x) ≈ u`. 
+Uses second-order Newton’s method (secant-style), falling back to bisection if needed.
+"""
 function inverse_cdf(cdf_func, u, initial_guess, max_guess; atol=1E-4, maxiter_newton=10, maxiter_bisection=100, kwargs...)
     func = y -> cdf_func(y) - u
     try
