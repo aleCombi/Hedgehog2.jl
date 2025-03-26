@@ -2,18 +2,69 @@ using QuadGK, Dates, Distributions
 
 export CarrMadan 
 
+"""
+    CarrMadan <: AbstractPricingMethod
+
+Fourier transform-based pricing method for European options.
+
+Implements the Carr-Madan method, which prices European options using the inverse Fourier transform
+of the characteristic function of the log-price under the risk-neutral measure.
+
+# Fields
+- `α`: Damping factor to ensure integrability of the Fourier transform.
+- `bound`: Integration bound for numerical quadrature.
+- `dynamics`: The model dynamics providing the terminal characteristic function.
+- `kwargs`: Additional keyword arguments passed to `quadgk`.
+"""
 struct CarrMadan <: AbstractPricingMethod
     α 
     bound
     dynamics
-    kwargs #quadgk keyword arguments
+    kwargs # quadgk keyword arguments
 end
 
-log_dynamics(m::CarrMadan) = m.distribution
+"""
+    log_dynamics(m::CarrMadan)
 
-# Constructor with default empty kwargs
-CarrMadan(α, bound, distribution; kwargs...) = CarrMadan(α, bound, distribution, Dict(kwargs...))
+Returns the log-price dynamics (distribution) used in the Carr-Madan method.
+"""
+function log_dynamics(m::CarrMadan) 
+    return m.distribution
+end
 
+"""
+    CarrMadan(α, bound, dynamics; kwargs...)
+
+Constructs a `CarrMadan` method with optional integration settings for `quadgk`.
+
+# Arguments
+- `α`: Damping factor.
+- `bound`: Integration bound (positive real number).
+- `dynamics`: The price dynamics (must support `marginal_law`).
+- `kwargs...`: Additional keyword arguments for `quadgk`.
+"""
+function CarrMadan(α, bound, dynamics; kwargs...) 
+    return CarrMadan(α, bound, dynamics, Dict(kwargs...))
+end
+
+"""
+    compute_price(payoff::VanillaOption{European, C, Spot}, market_inputs::I, method::CarrMadan) -> Float64
+
+Computes the price of a European call or put using the Carr-Madan method.
+
+# Arguments
+- `payoff`: European vanilla option.
+- `market_inputs`: Market data including spot, rate, and reference date.
+- `method`: A `CarrMadan` method instance.
+
+# Returns
+- The present value of the option computed via Fourier inversion.
+
+# Notes
+- Uses the characteristic function of the terminal log-price.
+- Integrates a damped and transformed version of the call payoff.
+- Applies call-put parity to return the correct price for puts.
+"""
 function compute_price(payoff::VanillaOption{European, C, Spot}, market_inputs::I, method::CarrMadan) where {C,I <: AbstractMarketInputs}
     damp = exp(- method.α * log(payoff.strike)) / 2π
     T = Dates.value(payoff.expiry - market_inputs.referenceDate) / 365
@@ -26,6 +77,21 @@ function compute_price(payoff::VanillaOption{European, C, Spot}, market_inputs::
     return price
 end
 
+"""
+    call_transform(rate, time, ϕ, v, method::CarrMadan)
+
+Returns the Fourier-space representation of the damped call payoff.
+
+# Arguments
+- `rate`: Risk-free rate.
+- `time`: Time to maturity.
+- `ϕ`: Characteristic function of the log-price.
+- `v`: Fourier variable.
+- `method`: The `CarrMadan` pricing method instance.
+
+# Returns
+- The value of the integrand for the Carr-Madan integral.
+"""
 function call_transform(rate, time, ϕ, v, method::CarrMadan)
     numerator = exp(- rate * time) * ϕ(v - (method.α + 1)im)
     denominator = method.α^2 + method.α - v^2 + v * (2 * method.α + 1)im
