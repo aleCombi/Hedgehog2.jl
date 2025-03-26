@@ -1,7 +1,11 @@
-using Distributions, Random, SpecialFunctions, Roots
+using Distributions, Random, SpecialFunctions, Roots, DifferentialEquations, Random, StaticArrays
 
-using Distributions, DifferentialEquations, Random, StaticArrays
+"""
+    HestonProblem(μ, κ, Θ, σ, ρ, u0, tspan; seed=UInt64(0), kwargs...)
 
+Constructs an `SDEProblem` representing the Heston model dynamics using Euler-Maruyama.
+Returns a `SDEProblem` with correlated Brownian motion and user-specified initial values.
+"""
 function HestonProblem(μ, κ, Θ, σ, ρ, u0, tspan; seed = UInt64(0), kwargs...)
     f = function (u, p, t)
         adj_var = max(u[2], 0)
@@ -19,7 +23,12 @@ function HestonProblem(μ, κ, Θ, σ, ρ, u0, tspan; seed = UInt64(0), kwargs..
     return SDEProblem(sde_f, u0, (tspan[1], tspan[2]), noise=noise, seed=seed, kwargs...)
 end
 
-# the first component of W is the log of price in heston, the second its vol
+"""
+    HestonNoise(μ, κ, θ, σ, ρ, t0, W0, Z0=nothing; kwargs...)
+
+Constructs a custom `NoiseProcess` using the exact Heston distribution for the next increment.
+Returns a `NoiseProcess` sampling from the Heston distribution at each timestep.
+"""
 function HestonNoise(μ, κ, θ, σ, ρ, t0, W0, Z0 = nothing; kwargs...)
     @inline function Heston_dist(DW, W, dt, u, p, t, rng) #dist
         S, V = exp(W[end][1]), W[end][2]
@@ -30,6 +39,15 @@ function HestonNoise(μ, κ, θ, σ, ρ, t0, W0, Z0 = nothing; kwargs...)
     return NoiseProcess{false}(t0, W0, Z0, Heston_dist, nothing)
 end
 
+"""
+    HestonDistribution <: ContinuousMultivariateDistribution
+
+Container type for Heston model parameters, used for exact sampling.
+Fields:
+- `S0`, `V0`: initial spot and variance
+- `κ`, `θ`, `σ`, `ρ`: mean reversion, long-term variance, vol-of-vol, and correlation
+- `r`, `T`: risk-free rate and maturity
+"""
 struct HestonDistribution <: ContinuousMultivariateDistribution
     S0
     V0
@@ -41,7 +59,11 @@ struct HestonDistribution <: ContinuousMultivariateDistribution
     T
 end
 
-# sample Variance at T
+"""
+    sample_V_T(rng, d::HestonDistribution)
+
+Samples the terminal variance `V_T` from the noncentral chi-squared distribution implied by the Heston model.
+"""
 function sample_V_T(rng::AbstractRNG, d::HestonDistribution)
     κ, θ, σ, V0, T = d.κ, d.θ, d.σ, d.V0, d.T
 
@@ -53,14 +75,21 @@ function sample_V_T(rng::AbstractRNG, d::HestonDistribution)
     return V_T
 end
 
-using SpecialFunctions
+"""
+    sample_integral_V(VT, rng, dist::HestonDistribution; kwargs...)
 
-# Precompute and return characteristic function ϕ(a) for sampling
+Samples the integral ∫₀ᵗ V_s ds conditional on initial and terminal variance using the characteristic function method.
+"""
 function sample_integral_V(VT, rng, dist::HestonDistribution; kwargs...)
     ϕ = HestonCFIterator(VT, dist)
     return sample_from_cf(rng, ϕ; kwargs...)
 end
 
+"""
+    HestonCFIterator
+
+Precomputes constants for efficient evaluation of the characteristic function of ∫₀ᵗ V_s ds.
+"""
 struct HestonCFIterator
     VT::Float64
     dist::HestonDistribution
@@ -70,6 +99,11 @@ struct HestonCFIterator
     ν::Float64
 end
 
+"""
+    HestonCFIterator(VT, dist::HestonDistribution)
+
+Constructs a `HestonCFIterator` used for evaluating the characteristic function of the integral of variance.
+"""
 function HestonCFIterator(VT, dist::HestonDistribution)
     κ, θ, σ, V0, T = dist.κ, dist.θ, dist.σ, dist.V0, dist.T
     d = 4 * κ * θ / σ^2
@@ -83,12 +117,11 @@ function HestonCFIterator(VT, dist::HestonDistribution)
     return HestonCFIterator(VT, dist, logIκ, ζκ, ηκ, ν)
 end
 
-
 """
-    evaluate_chf(iter::HestonCFIterator, a::Real, θ_prev::Union{Nothing,Float64})
+    evaluate_chf(iter::HestonCFIterator, a::Real, θ_prev)
 
-Evaluates the characteristic function at `a`, using previous angle `θ_prev` for unwrapping.
-Returns a tuple `(ϕ, θ_unwrapped)` to be passed to the next step.
+Evaluates the characteristic function at point `a`, unwrapping the angle using `θ_prev` to ensure continuity.
+Returns the characteristic function value and updated unwrapped angle.
 """
 function evaluate_chf(iter::HestonCFIterator, a::Real, θ_prev::Union{Nothing, Float64})
     κ, θ, σ, V0, T = iter.dist.κ, iter.dist.θ, iter.dist.σ, iter.dist.V0, iter.dist.T
@@ -121,11 +154,11 @@ function evaluate_chf(iter::HestonCFIterator, a::Real, θ_prev::Union{Nothing, F
     return ϕ, θ_unwrapped
 end
 
-
 """
     log_besseli_corrected(ν, z, θ_ref)
 
-Corrects besseli using argument unwrapping across branch cuts.
+Computes the logarithm of the modified Bessel function of the first kind, correcting angle discontinuities.
+Used for numerical stability in CF evaluation.
 """
 function log_besseli_corrected(ν, z::Complex, θ_ref::Ref{Float64})
     θ = angle(z)
@@ -147,7 +180,11 @@ function log_besseli_corrected(ν, z::Complex, θ_ref::Ref{Float64})
     return log(besseli(ν, z_unwrapped)) + im * ν * (θ_unwrapped - θ)
 end
 
-""" Sample log(S_T) given V_T and integral_V. """
+"""
+    sample_log_S_T(V_T, integral_V, rng, d::HestonDistribution)
+
+Samples `log(S_T)` given the terminal variance and integral of the variance path under the Heston model.
+"""
 function sample_log_S_T(V_T, integral_V, rng::AbstractRNG, d::HestonDistribution)
     κ, θ, σ, ρ, V0, T, S0, r = d.κ, d.θ, d.σ, d.ρ, d.V0, d.T, d.S0, d.r
 
@@ -163,7 +200,11 @@ function sample_log_S_T(V_T, integral_V, rng::AbstractRNG, d::HestonDistribution
     return log_S_T
 end
 
-""" Full sampling process for S_T """
+"""
+    rand(rng, d::HestonDistribution; kwargs...)
+
+Performs full exact sampling from the Heston model and returns `S_T`, the terminal spot price.
+"""
 function rand(rng::AbstractRNG, d::HestonDistribution; kwargs...)
     # Step 1: Sample V_T
     V_T = sample_V_T(rng, d)
@@ -177,6 +218,12 @@ function rand(rng::AbstractRNG, d::HestonDistribution; kwargs...)
     return exp(log_S_T)
 end
 
+"""
+    rand(rng, d::HestonDistribution; kwargs...)
+
+Alternative sampling version returning `[log(S_T), V_T]` instead of `S_T`.
+Useful for testing and diagnostics.
+"""
 function rand(rng::AbstractRNG, d::HestonDistribution; kwargs...)
     d1 = HestonDistribution(d.S0, d.V0, d.κ, d.θ, d.σ, d.ρ, d.r, d.T)
     # Step 1: Sample V_T
@@ -194,7 +241,7 @@ end
 """
     characteristic_function(d::HestonDistribution, u)
 
-Computes the characteristic function of `log(S_T)`.
+Computes the characteristic function of `log(S_T)` under the Heston model at complex value `u`.
 """
 function cf(d::HestonDistribution, u)
     T, S0, V0, κ, θ, σ, ρ, r = d.T, d.S0, d.V0, d.κ, d.θ, d.σ, d.ρ, d.r
