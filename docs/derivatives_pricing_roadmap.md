@@ -12,7 +12,7 @@
 
 ## PHASE 2 — Market Inputs & Calibration (2–3 weeks)
 
-- [ ] `BSVolSurface` with rectangular grid + interpolation
+- [x] `BSVolSurface` with rectangular grid + interpolation
 - [ ] `DiscountCurve` (flat, piecewise)
 - [ ] `get_vol` and `df(t)` accessors
 - [ ] Implied vol inversion for vanilla options

@@ -1,6 +1,9 @@
 using Interpolations
 using Dates
+using Accessors
+using Roots 
 
+export RectVolSurface, spine_strikes, spine_tenors, spine_vols, get_vol
 struct RectVolSurface{I <: AbstractInterpolation}
     reference_date::Date
     interpolator::I
@@ -34,12 +37,12 @@ function RectVolSurface(
 end
 
 # Lookup by date
-function getvol(surf::RectVolSurface, expiry_date::Date, strike)
+function get_vol(surf::RectVolSurface, expiry_date::Date, strike)
     Tfrac = Dates.value(expiry_date - surf.reference_date) / 365.0
     return surf.interpolator(Tfrac, strike)
 end
 
 # Lookup by year fraction
-function getvol(surf::RectVolSurface, t_fraction::Number, strike)
+function get_vol(surf::RectVolSurface, t_fraction::Number, strike)
     return surf.interpolator(t_fraction, strike)
 end

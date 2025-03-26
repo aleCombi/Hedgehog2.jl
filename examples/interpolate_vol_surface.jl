@@ -1,4 +1,4 @@
-using Revise, Hedgehog2, Interpolations
+using Revise, Hedgehog2, Interpolations, Dates
 
 # Grid definitions
 tenors  = [0.25, 0.5, 1.0, 2.0]               # maturities in years
@@ -13,12 +13,22 @@ vols = [
 ]
 
 reference_date = Date(2020,1,1)
-vol_surface = build_rect_vol_surface(reference_date, tenors, strikes, vols)
+vol_surface = RectVolSurface(reference_date, tenors, strikes, vols)
 
 # Query interpolated vol
 T = 0.75
 K = 95.0
-σ = getvol(vol_surface, T, K)
+σ = get_vol(vol_surface, T, K)
 
 println("Implied vol at T = $T, K = $K is σ = $σ")
 
+r = 0.02
+spot = 100.0
+market_inputs = BlackScholesInputs(reference_date, r, spot, 0.65)
+expiry_date = reference_date + Day(365)
+payoff_call = VanillaOption(80.0, expiry_date, European(), Call(), Spot())
+pricer = Pricer(payoff_call, market_inputs, BlackScholesAnalytic())
+
+imp_vol = implied_vol(pricer(), pricer)
+print(imp_vol)
+#TODO: test the inversion
