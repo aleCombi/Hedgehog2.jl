@@ -3,49 +3,58 @@
 export BlackScholesAnalytic
 
 """
+    BlackScholesAnalytic <: AbstractPricingMethod
+
 The Black-Scholes pricing method.
 
-This struct represents the Black-Scholes pricing model for option pricing, which assumes a lognormal distribution for the underlying asset and continuous hedging.
+Represents the analytical Black-Scholes model for pricing European-style vanilla options. 
+Assumes the underlying follows lognormal dynamics with constant volatility and interest rate.
 """
 struct BlackScholesAnalytic <: AbstractPricingMethod end
 
-log_dynamics(::BlackScholesAnalytic) = LognormalDynamics()
+"""
+    log_dynamics(::BlackScholesAnalytic) -> LognormalDynamics
+
+Returns the assumed lognormal price dynamics for the Black-Scholes model.
+"""
+function log_dynamics(::BlackScholesAnalytic)
+  return LognormalDynamics()
+end
 
 """
-Computes the price of a vanilla European call or put option using the Black-Scholes model.
+    compute_price(payoff::VanillaOption{European, A, B}, marketInputs::BlackScholesInputs, ::BlackScholesAnalytic) -> Float64
+
+Computes the price of a European vanilla option (call or put) using the Black-Scholes formula.
 
 # Arguments
-- `payoff::VanillaOption{European}`: 
-  A European-style vanilla option, either a call or put.
+- `payoff::VanillaOption{European, A, B}`: 
+  A European-style vanilla option, where `A` and `B` denote the underlying and payout type.
 - `marketInputs::BlackScholesInputs`: 
-  The market inputs required for Black-Scholes pricing, including forward price, risk-free rate, and volatility.
-- `::BlackScholesMethod`: 
-  A placeholder argument to specify the Black-Scholes pricing method.
+  Market inputs including spot price, risk-free rate, volatility, and reference date.
+- `::BlackScholesAnalytic`: 
+  Specifies the use of the Black-Scholes pricing method.
 
 # Returns
-- The discounted expected price of the option under the Black-Scholes model.
+- The present value of the option computed under the Black-Scholes model.
 
 # Formula
-The Black-Scholes price is computed using:
-
 ```
 d1 = (log(F / K) + 0.5 * σ^2 * T) / (σ * sqrt(T))
 d2 = d1 - σ * sqrt(T)
 price = exp(-r * T) * cp * (F * Φ(cp * d1) - K * Φ(cp * d2))
 ```
-
 where:
-- `F` is the forward price of the underlying,
+- `F = S * exp(r * T)` is the forward price,
 - `K` is the strike price,
-- `σ` is the volatility,
+- `σ` is volatility,
 - `r` is the risk-free rate,
-- `T` is the time to expiry in years,
-- `cp` is +1 for calls and -1 for puts,
-- `Φ(x)` is the cumulative distribution function (CDF) of the standard normal distribution.
+- `T` is time to expiry in years,
+- `cp` is +1 for call, -1 for put,
+- `Φ` is the standard normal CDF.
 
 # Notes
-- The time to expiry `T` is computed as the difference between the option's expiry date and the reference date, assuming a 365-day year.
-- The function supports both call and put options through the `cp` factor, ensuring a unified formula.
+- If volatility `σ` is zero, the price equals the discounted payoff at expiry under deterministic growth.
+- Time to maturity `T` is calculated in years assuming a 365-day year.
 """
 function compute_price(payoff::VanillaOption{European, A, B}, marketInputs::BlackScholesInputs, ::BlackScholesAnalytic) where {A,B}
     K = payoff.strike
@@ -53,13 +62,13 @@ function compute_price(payoff::VanillaOption{European, A, B}, marketInputs::Blac
     σ = marketInputs.sigma
     cp = payoff.call_put()
     T = Dates.value.(payoff.expiry .- marketInputs.referenceDate) ./ 365  # Assuming 365-day convention
-    F = marketInputs.spot*exp(r*T)
+    F = marketInputs.spot * exp(r * T)
 
     if σ == 0
-      return exp(-r*T) * payoff(marketInputs.spot*exp(r*T))
+        return exp(-r * T) * payoff(marketInputs.spot * exp(r * T))
     end
 
     d1 = (log(F / K) + 0.5 * σ^2 * T) / (σ * sqrt(T))
     d2 = d1 - σ * sqrt(T)
-    return exp(-r*T) * cp * (F * cdf(Normal(), cp * d1) - K * cdf(Normal(), cp * d2))
+    return exp(-r * T) * cp * (F * cdf(Normal(), cp * d1) - K * cdf(Normal(), cp * d2))
 end
