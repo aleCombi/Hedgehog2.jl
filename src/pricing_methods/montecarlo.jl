@@ -1,3 +1,10 @@
+export MonteCarlo, HestonBroadieKaya, EulerMaruyama, BlackScholesExact, LognormalDynamics, HestonDynamics
+
+"""
+    PriceDynamics
+
+Abstract type representing the underlying asset dynamics in a pricing model.
+"""
 abstract type PriceDynamics end
 
 """
@@ -14,8 +21,11 @@ Represents Heston stochastic volatility model dynamics.
 """
 struct HestonDynamics <: PriceDynamics end
 
-export MonteCarlo, HestonBroadieKaya, EulerMaruyama, BlackScholesExact, LognormalDynamics, HestonDynamics
+"""
+    SimulationStrategy
 
+Abstract type for simulation strategies used in Monte Carlo pricing.
+"""
 abstract type SimulationStrategy end
 
 """
@@ -39,7 +49,9 @@ end
 
 Convenience constructor for `HestonBroadieKaya` with default `steps = 1`.
 """
-HestonBroadieKaya(trajectories; kwargs...) = HestonBroadieKaya(trajectories, 1, (; kwargs...))
+function HestonBroadieKaya(trajectories; kwargs...)
+    return HestonBroadieKaya(trajectories, 1, (; kwargs...))
+end
 
 """
     EulerMaruyama <: SimulationStrategy
@@ -73,9 +85,23 @@ struct BlackScholesExact <: SimulationStrategy
     kwargs::NamedTuple
 end
 
-EulerMaruyama(trajectories, steps; kwargs...) = EulerMaruyama(trajectories, steps, (; kwargs...))
+"""
+    EulerMaruyama(trajectories, steps; kwargs...)
 
-BlackScholesExact(trajectories, steps=1; kwargs...) = BlackScholesExact(trajectories, steps, (; kwargs...))
+Convenience constructor for `EulerMaruyama` simulation strategy.
+"""
+function EulerMaruyama(trajectories, steps; kwargs...) 
+    return EulerMaruyama(trajectories, steps, (; kwargs...))
+end
+
+"""
+    BlackScholesExact(trajectories, steps=1; kwargs...)
+
+Convenience constructor for `BlackScholesExact` simulation strategy.
+"""
+function BlackScholesExact(trajectories, steps=1; kwargs...)
+    return BlackScholesExact(trajectories, steps, (; kwargs...))
+end
 
 """
     sde_problem(::LognormalDynamics, s::BlackScholesExact, market_inputs, tspan)
