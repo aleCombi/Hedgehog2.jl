@@ -27,8 +27,10 @@ spot = 100.0
 market_inputs = BlackScholesInputs(reference_date, r, spot, 0.65)
 expiry_date = reference_date + Day(365)
 payoff_call = VanillaOption(80.0, expiry_date, European(), Call(), Spot())
-pricer = Pricer(payoff_call, market_inputs, BlackScholesAnalytic())
+pricing_problem = PricingProblem(payoff_call, market_inputs)
+price = solve(pricing_problem, BlackScholesAnalytic()).price
 
-imp_vol = implied_vol(pricer(), pricer)
-print(imp_vol)
+calibration_problem = Hedgehog2.BlackScholesCalibrationProblem(pricing_problem, BlackScholesAnalytic(), price)
+calibrated_vol = solve(calibration_problem, BlackScholesAnalytic())
+print(calibrated_vol)
 #TODO: test the inversion

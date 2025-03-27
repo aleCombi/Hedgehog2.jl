@@ -1,6 +1,6 @@
 module Hedgehog2
 
-using SciMLBase, DifferentialEquations, ForwardDiff, Distributions, Accessors, Dates
+using DifferentialEquations, ForwardDiff, Distributions, Accessors, Dates
 
 if false 
     include("../examples/includer.jl")
@@ -26,7 +26,6 @@ include("pricing_methods/carr_madan.jl")
 include("pricing_methods/least_squares_montecarlo.jl")
 
 # sensitivities
-include("sensitivity_methods/delta_methods.jl")
 
 # distributions
 include("distributions/heston.jl")

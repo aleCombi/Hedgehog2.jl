@@ -203,24 +203,6 @@ end
 """
     rand(rng, d::HestonDistribution; kwargs...)
 
-Performs full exact sampling from the Heston model and returns `S_T`, the terminal spot price.
-"""
-function rand(rng::AbstractRNG, d::HestonDistribution; kwargs...)
-    # Step 1: Sample V_T
-    V_T = sample_V_T(rng, d)
-
-    # Step 2: Sample ∫ V_t dt, conditional V0 and VT
-    integral_V = sample_integral_V(V_T, rng, d; kwargs...)
-
-    # Step 3: Sample log(S_T)
-    log_S_T = sample_log_S_T(V_T, integral_V, rng, d)
-
-    return exp(log_S_T)
-end
-
-"""
-    rand(rng, d::HestonDistribution; kwargs...)
-
 Alternative sampling version returning `[log(S_T), V_T]` instead of `S_T`.
 Useful for testing and diagnostics.
 """

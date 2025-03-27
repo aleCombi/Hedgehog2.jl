@@ -1,5 +1,6 @@
 # Black-Scholes pricing function for European vanilla options
 import DifferentialEquations
+using NonlinearSolve, Distributions, Roots
 
 export BlackScholesAnalytic, implied_vol
 
@@ -51,33 +52,31 @@ function solve(
     return AnalyticSolution(price)
 end
 
-"""
-    implied_vol(price, pricer::Pricer{VanillaOption{European, A, B}, BlackScholesInputs, BlackScholesAnalytic};
-                initial_guess=0.2, lower=1e-6, upper=5.0, kwargs...)
+# Define the calibration problem
+struct BlackScholesCalibrationProblem{P<:PricingProblem, M}
+    prob::P
+    method::M
+    price_target::Float64
+end
 
-Finds implied volatility using Newton's method with AD. Falls back to Brent if needed.
-TODO: in the input, pricer.marketInputs.sigma has a value which is not used at all.
-"""
-function implied_vol(
-    price,
-    pricer::Pricer{VanillaOption{European, A, B}, BlackScholesInputs, BlackScholesAnalytic};
-    initial_guess = 0.2,
-    lower = 1e-6,
-    upper = 5.0,
-    kwargs...
-) where {A, B}
-
-    function f(σ)
-        pricer_sigma = @set pricer.marketInputs.sigma = σ
-        return (pricer_sigma() - price)^2
+function solve(calib::BlackScholesCalibrationProblem; initial_guess=0.2, lower=1e-6, upper=5.0, kwargs...)
+    # Define the root-finding function for implied volatility calibration
+    function calibration_function(σ, p)
+        # Update the market inputs with candidate volatility σ using the @set macro
+        market = calib.prob.market
+        new_market = @set market.sigma = σ
+        new_prob = PricingProblem(calib.prob.payoff, new_market)
+        sol = solve(new_prob, calib.method)
+        return sol.price - calib.price_target  # Objective function
     end
 
-    try
-        return find_zero(f, initial_guess, Roots.Order1(); kwargs...)
-    catch e
-        @info "Newton failed with error: $(e). Falling back to Brent."
-        return find_zero(f, (lower, upper), Roots.Bisection(); kwargs...)
-    end
+    # Set up the nonlinear solver problem
+    problem = NonlinearProblem(calibration_function, initial_guess)
+
+    # Solve the problem using the NonlinearSolver
+    solution = NonlinearSolve.solve(problem; kwargs...)
+
+    return solution
 end
 
 # function ImpliedVolSurface(

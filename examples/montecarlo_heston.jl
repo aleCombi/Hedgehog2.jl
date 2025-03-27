@@ -1,7 +1,6 @@
 using Revise
 using Hedgehog2
 using Distributions
-import DifferentialEquations
 using Random
 using Plots
 using Dates
@@ -29,32 +28,35 @@ payoff = VanillaOption(strike, expiry, European(), Call(), Spot())
 # --- Dynamics ---
 dynamics = HestonDynamics()
 
-# --- Carr-Madan Method ---
+# --- Carr-Madan ---
 α = 1.0
 boundary = 32.0
 carr_madan_method = CarrMadan(α, boundary, dynamics)
-carr_madan_pricer = Pricer(payoff, market_inputs, carr_madan_method)
+carr_madan_problem = PricingProblem(payoff, market_inputs)
+carr_madan_solution = solve(carr_madan_problem, carr_madan_method)
 
 # --- Monte Carlo Parameters ---
-trajectories = 10_000
-steps = 500  # Euler-Maruyama discretization
+trajectories = 100_000
+steps = 500
 
-# --- Monte Carlo (Euler–Maruyama) ---
+# --- Euler–Maruyama ---
 euler_strategy = EulerMaruyama(trajectories, steps)
 euler_method = MonteCarlo(dynamics, euler_strategy)
-euler_pricer = Pricer(payoff, market_inputs, euler_method)
+euler_problem = PricingProblem(payoff, market_inputs)
+euler_solution = solve(euler_problem, euler_method)
 
-# --- Monte Carlo (Broadie–Kaya) ---
+# --- Broadie–Kaya ---
 bk_strategy = HestonBroadieKaya(trajectories, steps=1)
 bk_method = MonteCarlo(dynamics, bk_strategy)
-bk_pricer = Pricer(payoff, market_inputs, bk_method)
+bk_problem = PricingProblem(payoff, market_inputs)
+bk_solution = solve(bk_problem, bk_method)
 
-# --- Run and Print Results ---
+# --- Results ---
 println("\nCarr-Madan price:")
-@time println(carr_madan_pricer())
+@time println(carr_madan_solution.price)
 
 println("\nEuler–Maruyama price:")
-@time println(euler_pricer())
+@time println(euler_solution.price)
 
 println("\nBroadie–Kaya price:")
-@time println(bk_pricer())
+@time println(bk_solution.price)
