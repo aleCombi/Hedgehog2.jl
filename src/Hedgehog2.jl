@@ -10,6 +10,9 @@ if false
     include("../test/runtests.jl")
 end
 
+# utilities
+include("date_functions.jl")
+
 # payoffs
 include("payoffs/payoffs.jl")
 

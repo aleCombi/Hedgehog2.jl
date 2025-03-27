@@ -215,7 +215,7 @@ function solve(
     prob::PricingProblem{VanillaOption{European, C, Spot}, I}, 
     method::MonteCarlo
 ) where {C, I <: AbstractMarketInputs}
-    T = Dates.value(prob.payoff.expiry - prob.market.referenceDate) / 365
+    T = yearfrac(prob.market.referenceDate, prob.payoff.expiry)
 
     ens = simulate_paths(method, prob.market, T)
     paths = ens.u

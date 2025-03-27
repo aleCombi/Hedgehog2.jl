@@ -39,7 +39,7 @@ for i in 1:nrows, j in 1:ncols
 end
 
 # --- Invert surface using prices and DateTime-based expiries
-expiry_datetimes = [reference_date + Second(round(Int, T * 365 * 86400)) for T in tenors]
+expiry_datetimes = [add_yearfrac(reference_date, T) for T in tenors]
 tenor_periods = [expiry - reference_date for expiry in expiry_datetimes]
 
 inverted_surface = RectVolSurface(reference_date, rate, spot, tenor_periods, strikes, recomputed_prices)

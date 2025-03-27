@@ -38,7 +38,7 @@ function solve(
     r = prob.market.rate
     σ = prob.market.sigma
     cp = prob.payoff.call_put()
-    T = Dates.value(prob.payoff.expiry - prob.market.referenceDate) / 365
+    T = yearfrac(prob.market.referenceDate, prob.payoff.expiry)
     F = prob.market.spot * exp(r * T)
 
     price = if σ == 0
@@ -115,7 +115,7 @@ function RectVolSurface(
         sols[i, j] = solve(prob; kwargs...)
     end
 
-    times = [Dates.value(t) / 365 for t in tenors]
+    times = yearfrac.(tenors)
     vols  = [sols[i, j].u for i in 1:nrows, j in 1:ncols]
 
     return RectVolSurface(reference_date, times, strikes, vols;

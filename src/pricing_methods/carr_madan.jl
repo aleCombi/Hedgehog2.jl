@@ -55,7 +55,7 @@ function solve(
     K = prob.payoff.strike
     r = prob.market.rate
     S = prob.market.spot
-    T = Dates.value(prob.payoff.expiry - prob.market.referenceDate) / 365
+    T = yearfrac(prob.market.referenceDate, prob.payoff.expiry)
 
     terminal_law = marginal_law(method.dynamics, prob.market, T)
     ϕ(u) = cf(terminal_law, u)

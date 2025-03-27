@@ -98,7 +98,7 @@ function solve(
     market_inputs = prob.market
 
     steps = method.steps
-    T = Dates.value(payoff.expiry - market_inputs.referenceDate) / 365
+    T = yearfrac(market_inputs.referenceDate, payoff.expiry)
     forward = market_inputs.spot * exp(market_inputs.rate * T)
     ΔT = T / steps
     u = exp(market_inputs.sigma * sqrt(ΔT))

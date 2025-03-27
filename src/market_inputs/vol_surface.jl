@@ -38,7 +38,7 @@ end
 
 # Lookup by date
 function get_vol(surf::RectVolSurface, expiry_date, strike)
-    Tfrac = Dates.value(expiry_date - surf.reference_date) / 365.0
+    Tfrac = yearfrac(surf.reference_date, expiry_date)
     return surf.interpolator(Tfrac, strike)
 end
 
