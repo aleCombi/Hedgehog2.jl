@@ -13,8 +13,8 @@
 ## PHASE 2 — Market Inputs & Calibration (2–3 weeks)
 
 - [x] `BSVolSurface` with rectangular grid + interpolation and `get_vol(t)` accessor
-- [ ] Implied vol inversion for vanilla options
-- [ ] `calibrate_vol_surface(quotes)` from market prices
+- [x] Implied vol inversion for vanilla options
+- [x] `calibrate_vol_surface(quotes)` from market prices
 - [ ] `DiscountCurve` (flat, piecewise) and `df(t)` accessor
 - [ ] Unit tests: vol/curve access, interpolation, smoke pricing
 
