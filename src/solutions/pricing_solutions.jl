@@ -21,3 +21,6 @@ struct LSMSolution{T, S, M} <: AbstractPricingSolution
     spot_paths::Matrix{M}
 end
 
+struct CRRSolution{T} <: AbstractPricingSolution
+    price::T
+end

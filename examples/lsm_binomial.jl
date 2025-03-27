@@ -12,25 +12,26 @@ spot = 1.0
 sigma = 0.4
 market_inputs = BlackScholesInputs(reference_date, rate, spot, sigma)
 
-# --- Cox–Ross–Rubinstein (unchanged) ---
-steps = 80
-crr = CoxRossRubinsteinMethod(steps)
-crr_american_pricer = Pricer(american_payoff, market_inputs, crr)
+# -- Wrap everything into a pricing problem
+prob = PricingProblem(american_payoff, market_inputs)
+
+# --- Cox–Ross–Rubinstein using `solve(...)` style
+steps_crr = 80
+crr_method = CoxRossRubinsteinMethod(steps_crr)
+crr_solution = solve(prob, crr_method)
 
 println("Cox Ross Rubinstein American Price:")
-println(crr_american_pricer())
+println(crr_solution.price)
 
-# --- LSM using new `solve(...)` style ---
+# --- LSM using `solve(...)` style
 dynamics = LognormalDynamics()
 trajectories = 1000
-steps = 100
+steps_lsm = 100
 
-strategy = BlackScholesExact(trajectories, steps)
+strategy = BlackScholesExact(trajectories, steps_lsm)
 degree = 3
-lsm = LSM(dynamics, strategy, degree)
-
-prob = PricingProblem(american_payoff, market_inputs)
-lsm_solution = solve(prob, lsm)
+lsm_method = LSM(dynamics, strategy, degree)
+lsm_solution = solve(prob, lsm_method)
 
 println("LSM American Price:")
 println(lsm_solution.price)
