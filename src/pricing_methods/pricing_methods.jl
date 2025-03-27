@@ -1,5 +1,6 @@
 # Exported Types and Functions
 export AbstractPricingMethod, Pricer, compute_price, PricingProblem
+using SciMLBase
 
 """
 An abstract type representing a pricing method.

@@ -1,6 +1,6 @@
 module Hedgehog2
 
-using BenchmarkTools, ForwardDiff, Distributions, Accessors, Dates
+using SciMLBase, DifferentialEquations, ForwardDiff, Distributions, Accessors, Dates
 
 if false 
     include("../examples/includer.jl")

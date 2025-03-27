@@ -1,5 +1,5 @@
-using QuadGK, Dates, Distributions
-
+using Dates, Distributions
+import Integrals
 export CarrMadan 
 
 """
@@ -14,13 +14,13 @@ of the characteristic function of the log-price under the risk-neutral measure.
 - `α`: Damping factor to ensure integrability of the Fourier transform.
 - `bound`: Integration bound for numerical quadrature.
 - `dynamics`: The model dynamics providing the terminal characteristic function.
-- `kwargs`: Additional keyword arguments passed to `quadgk`.
+- `kwargs`: Additional keyword arguments passed to the integral solver.
 """
 struct CarrMadan <: AbstractPricingMethod
     α 
     bound
     dynamics
-    kwargs # quadgk keyword arguments
+    kwargs # integral keyword arguments
 end
 
 """
@@ -70,11 +70,40 @@ function compute_price(payoff::VanillaOption{European, C, Spot}, market_inputs::
     T = Dates.value(payoff.expiry - market_inputs.referenceDate) / 365
     terminal_law = marginal_law(method.dynamics, market_inputs, T)
     ϕ(u) = cf(terminal_law, u)
-    integrand(v) = call_transform(market_inputs.rate, T, ϕ, v, method) * exp(- im * v * log(payoff.strike))
-    integral, _ = quadgk(integrand, -method.bound, method.bound; method.kwargs...)
-    call_price = real(damp * integral)
-    price = parity_transform(call_price, payoff, market_inputs.spot, T) # apply call put parity if necessary.
+    integrand(v, p) = damp * call_transform(market_inputs.rate, T, ϕ, v, method) * exp(-im * v * log(payoff.strike))
+
+    iprob = IntegralProblem(integrand, -method.bound, method.bound)
+    result = Integrals.solve(iprob, Integrals.HCubatureJL(); method.kwargs...)
+
+    call_price = real(result.u)
+    price = parity_transform(call_price, payoff, market_inputs.spot, T)
     return price
+end
+
+function solve(
+    prob::PricingProblem{VanillaOption{European, C, Spot}, I},
+    method::CarrMadan
+) where {C, I <: AbstractMarketInputs}
+
+    K = prob.payoff.strike
+    r = prob.market.rate
+    S = prob.market.spot
+    T = Dates.value(prob.payoff.expiry - prob.market.referenceDate) / 365
+
+    terminal_law = marginal_law(method.dynamics, prob.market, T)
+    ϕ(u) = cf(terminal_law, u)
+
+    logK = log(K)
+    damp = exp(-method.α * logK) / (2π)
+    integrand(v, p) = damp * call_transform(r, T, ϕ, v, method) * exp(-im * v * logK)
+
+    iprob = IntegralProblem(integrand, -method.bound, method.bound, nothing)
+    integral_result = Integrals.solve(iprob, Integrals.HCubatureJL(); method.kwargs...)
+
+    call_price = real(integral_result.u)
+    price = parity_transform(call_price, prob.payoff, S, T)
+
+    return CarrMadanSolution(price, integral_result)
 end
 
 """
