@@ -1,40 +1,76 @@
-**Hedgehog2** is a modular derivatives pricing library in Julia.
+# Hedgehog2
+
+**Hedgehog2** is a modular, SciML-inspired derivatives pricing library in Julia.
 
 [![Build Status](https://github.com/aleCombi/Hedgehog2.jl/actions/workflows/CI.yml/badge.svg?branch=master)](https://github.com/aleCombi/Hedgehog2.jl/actions/workflows/CI.yml?query=branch%3Amaster)
 
-Typical usage: define a price by combining the following three components, each chosen to be compatible with the others:
+## 📐 Design Overview
 
-- A **payoff** (e.g. European Call, American Put)
-- A set of **market inputs** (e.g. BlackScholes inputs, Heston inputs, later Discount Curves and Vol Surfaces)
-- A **pricing method** (e.g. analytical, Monte Carlo, PDE, Fourier)
+All pricing and calibration workflows follow a SciML-inspired `solve(problem, method)` interface.
 
-## Supported Payoffs
+To compute a price, you define a `PricingProblem` using:
 
-- EuropeanCall / EuropeanPut
-- AmericanCall / AmericanPut
-- Digital, Barrier, Asian (in progress)
+- A **payoff** (e.g. European call, American put)
+- A set of **market inputs** (e.g. Black-Scholes inputs, Heston inputs)
+- Then solve it with a **pricing method** (e.g. Monte Carlo, analytical formula, Fourier inversion)
 
-## Supported Models
+```julia
+payoff = VanillaOption(...)
+market = BlackScholesInputs(...)
+problem = PricingProblem(payoff, market)
 
-- Black-Scholes (LognormalDynamics)
+sol = solve(problem, BlackScholesAnalytic())
+price = sol.price
+```
+
+## ✅ Supported Payoffs
+
+- European Call / Put
+- American Call / Put
+- Digital and Barrier (in progress)
+- Asian and Path-Dependent (planned)
+
+## 🧠 Supported Models (Price Dynamics)
+
+- Black-Scholes (`LognormalDynamics`)
 - Heston
-- Hull-White (short rates)
-- More models planned: Variance Gamma, Rough Bergomi
+- Hull-White (short-rate)
+- Planned: Variance Gamma, Rough Bergomi
 
-## Pricing Methods
+## ⚙️ Pricing Methods
 
 - Analytical formulas (Black-Scholes)
-- Binomial trees (CRR)
-- Monte Carlo (Euler, exact simulations of BlackScholes and Heston using Broadie-Kaya method)
-- PDE (Crank-Nicolson), in progress
-- Fourier (Carr-Madan), COS in progress
+- Binomial Trees (Cox–Ross–Rubinstein)
+- Monte Carlo:
+  - Euler–Maruyama
+  - Exact simulation (Black-Scholes)
+  - Broadie–Kaya for Heston
+- Fourier methods (Carr–Madan; COS coming soon)
+- PDE methods (Crank–Nicolson, in progress)
 
-## Notes
+## 📊 Calibration
 
-- Sensitivities (Greeks) supported via AD or finite differences (in progress)
-- Components are swappable and extensible by design
-- The goal is to prototype, test, and extend new models and methods
+Hedgehog2 supports calibration via a unified nonlinear solver interface:
 
-## License
+- Solve for implied volatility using `CalibrationProblem`
+- Invert volatility surfaces
+- Build fully calibrated `RectVolSurface` objects from price matrices
+
+## 🧮 Sensitivities
+
+- Greeks supported via:
+  - Finite differences
+  - Automatic differentiation (planned)
+- Extensible `GreekProblem` interface is under development
+
+## 🚀 Highlights
+
+- Modular by construction: models, payoffs, and methods are swappable
+- Unified `solve(problem, method)` interface across pricing and calibration
+- Inspired by the SciML architecture and ecosystem
+- Built on top of SciML components (DifferentialEquations.jl, NonlinearSolve.jl, Integrals.jl)
+- Open-source and focused on prototyping cutting-edge methods
+
+## 📄 License
 
 MIT
