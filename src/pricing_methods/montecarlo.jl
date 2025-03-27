@@ -211,27 +211,6 @@ function simulate_paths(method::MonteCarlo, market_inputs::I, T) where {I <: Abs
     )
 end
 
-"""
-    compute_price(payoff::VanillaOption{European, C, Spot}, market_inputs, method::MonteCarlo) -> Float64
-
-Prices a European vanilla option using Monte Carlo simulation.
-
-# Arguments
-- `payoff`: European-style vanilla option.
-- `market_inputs`: Market data (spot, rate, reference date).
-- `method`: Monte Carlo pricing method with defined dynamics and strategy.
-
-# Returns
-- Discounted expected payoff from simulated terminal values.
-"""
-function compute_price(payoff::VanillaOption{European, C, Spot}, market_inputs::I, method::MonteCarlo) where {C, I <: AbstractMarketInputs}
-    T = Dates.value(payoff.expiry - market_inputs.referenceDate) / 365
-    paths = simulate_paths(method, market_inputs, T).u
-    prices = [get_terminal_value(p, method.dynamics, method.strategy) for p in paths]
-    payoffs = payoff.(prices)
-    return exp(-market_inputs.rate * T) * mean(payoffs)
-end
-
 function solve(
     prob::PricingProblem{VanillaOption{European, C, Spot}, I}, 
     method::MonteCarlo

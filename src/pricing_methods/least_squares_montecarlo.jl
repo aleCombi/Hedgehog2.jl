@@ -44,66 +44,6 @@ function extract_spot_grid(sol)
     return hcat([getindex.(s.u, 1) for s in sol.u]...)  # size: (nsteps, npaths)
 end
 
-"""
-    compute_price(payoff::VanillaOption{American, C, Spot}, market_inputs::I, method::LSM) -> Float64
-
-Computes the price of an American-style vanilla option using the Longstaff-Schwartz (LSM) algorithm.
-
-# Arguments
-- `payoff`: American-style vanilla option.
-- `market_inputs`: Market data (spot, rate, reference date).
-- `method`: An `LSM` method instance.
-
-# Returns
-- Estimated price of the American option based on backward induction.
-
-# Notes
-- Simulates paths using the underlying Monte Carlo method.
-- Uses polynomial regression at each timestep to estimate the continuation value.
-- Determines early exercise opportunities and computes expected discounted payoff.
-"""
-function compute_price(
-    payoff::VanillaOption{American, C, Spot},
-    market_inputs::I,
-    method::LSM
-) where {I <: AbstractMarketInputs, C}
-
-    T = Dates.value(payoff.expiry - market_inputs.referenceDate) / 365
-    sol = simulate_paths(method.mc_method, market_inputs, T)
-    spot_grid = extract_spot_grid(sol) ./ market_inputs.spot
-
-    ntimes, npaths = size(spot_grid)
-    nsteps = ntimes - 1
-    discount = exp(-market_inputs.rate * T / nsteps)
-
-    # (time_index, payoff_value) per path
-    stopping_info = [(nsteps, payoff(spot_grid[nsteps + 1, p])) for p in 1:npaths]
-
-    for i in (ntimes - 1):-1:2
-        t = i - 1 #the matrix indices are 1-based, but times are 0-based
-
-        continuation = [
-            discount^(stopping_info[p][1] - t) * stopping_info[p][2]
-            for p in 1:npaths
-        ]
-
-        payoff_t = payoff.(spot_grid[i, :])
-
-        in_the_money = findall(payoff_t .> 0)
-        isempty(in_the_money) && continue
-
-        x = spot_grid[i, in_the_money]
-        y = continuation[in_the_money]
-        poly = Polynomials.fit(x, y, method.degree)
-        cont_value = poly.(x)
-
-        update_stopping_info!(stopping_info, in_the_money, cont_value, payoff_t, t)
-    end
-
-    discounted_values = [discount^t * val for (t, val) in stopping_info]
-    return market_inputs.spot * mean(discounted_values)
-end
-
 function solve(
     prob::PricingProblem{VanillaOption{American, C, Spot}, I},
     method::LSM

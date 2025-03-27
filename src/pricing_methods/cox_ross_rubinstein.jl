@@ -89,48 +89,6 @@ function binomial_tree_underlying(_, forward, _, _, ::Forward)
     return forward
 end
 
-"""
-Computes the price of a vanilla option using the Cox-Ross-Rubinstein binomial tree model.
-
-# Arguments
-- `payoff`: The option payoff function, which determines intrinsic value.
-- `market_inputs`: Market data including forward price, risk-free rate, and volatility.
-- `method`: The CRR pricing method with a defined number of steps.
-
-# Returns
-- The computed option price using backward induction.
-
-# Notes
-- This implementation supports **options on either forward prices or spot prices**.
-  - If the option is written on a forward price, discounting is embedded.
-  - If the option is written on a spot price, discounting is applied explicitly.
-- The up-move factor is computed as `u = exp(σ√ΔT)`, and the up probability is given by `p = 1 / (1 + u)`.
-"""
-function compute_price(payoff, market_inputs, method::CoxRossRubinsteinMethod)
-    steps = method.steps
-    T = Dates.value.(payoff.expiry - market_inputs.referenceDate) / 365
-    forward = market_inputs.spot * exp(market_inputs.rate * T)
-    ΔT = T / steps  # Assuming ACT/365 day count
-    u = exp(market_inputs.sigma * sqrt(ΔT))  # Up-move factor
-    forward_at_i(i) = forward * u .^ (-i:2:i)
-    underlying_at_i(i) = binomial_tree_underlying(i, forward_at_i(i), market_inputs.rate, ΔT, payoff.underlying)
-
-    # Up probability in forward measure
-    p = 1 / (1 + u)
-
-    # Initialize terminal payoffs
-    value = payoff.(forward_at_i(steps))
-
-    # Backward induction
-    for step in (steps-1):-1:0
-        continuation = p * value[2:end] + (1 - p) * value[1:end-1]
-        df = exp(-market_inputs.rate * ΔT)  # Discounting
-        value = binomial_tree_value(step, df * continuation, underlying_at_i, payoff, payoff.exercise_style)
-    end
-
-    return value[1]
-end
-
 function solve(
     prob::PricingProblem{VanillaOption{E, C, U}, M},
     method::CoxRossRubinsteinMethod
