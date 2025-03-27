@@ -5,7 +5,7 @@ using Roots
 
 export RectVolSurface, spine_strikes, spine_tenors, spine_vols, get_vol
 struct RectVolSurface{I <: AbstractInterpolation}
-    reference_date::Date
+    reference_date
     interpolator::I
 end
 
@@ -24,7 +24,7 @@ end
 
 # Constructor with interpolation options
 function RectVolSurface(
-    reference_date::Date,
+    reference_date,
     tenors::AbstractVector,
     strikes::AbstractVector,
     vols::AbstractMatrix;
@@ -37,7 +37,7 @@ function RectVolSurface(
 end
 
 # Lookup by date
-function get_vol(surf::RectVolSurface, expiry_date::Date, strike)
+function get_vol(surf::RectVolSurface, expiry_date, strike)
     Tfrac = Dates.value(expiry_date - surf.reference_date) / 365.0
     return surf.interpolator(Tfrac, strike)
 end

@@ -79,24 +79,46 @@ function solve(calib::BlackScholesCalibrationProblem; initial_guess=0.2, lower=1
     return solution
 end
 
-# function ImpliedVolSurface(
-#     reference_date::Date,
-#     tenors::AbstractVector,
-#     strikes::AbstractVector,
-#     rate,
-#     spot,
-#     call_prices::AbstractMatrix;
-#     interp_type = Gridded(Linear()),
-#     extrap_type = Flat();
-#     kwargs...
-# )
-#     function vol_func(strike, tenor, price)
-#         market_inputs = BlackScholesInputs(reference_date, rate, spot, 0.0)
-#         payoff = VanillaOption(strike, reference_date + Day(365 * tenor), European(), Call(), Spot())
-#         pricer = Pricer(payoff, market_inputs, BlackScholesAnalytic())
-#         return implied_vol(price, pricer; kwargs...)
-#     end
+function RectVolSurface(
+    reference_date,
+    rate::Real,
+    spot::Real,
+    tenors::Vector{<:Period},
+    strikes::Vector{<:Real},
+    prices::Matrix{<:Real};
+    call_put_matrix::Union{Nothing, AbstractMatrix} = nothing,
+    interp = Gridded(Linear()),
+    extrap = Flat(),
+    kwargs...
+)
+    nrows, ncols = length(tenors), length(strikes)
+    @assert size(prices) == (nrows, ncols) "Price matrix size must match (length(tenors), length(strikes))"
 
-#     vols = [vol_func(strikes[j], tenors[i], call_prices[i,j]) for i in eachindex(tenors), j in eachindex(strikes)]
-#     return RectVolSurface(reference_date, tenors, strikes, vols, interp_type, extrap_type)
-# end
+    if call_put_matrix === nothing
+        call_put_matrix = fill(Call(), nrows, ncols)
+    else
+        @assert size(call_put_matrix) == (nrows, ncols) "Call/Put matrix must match price matrix size"
+    end
+
+    sols = Matrix(undef, nrows, ncols)
+
+    for i in 1:nrows, j in 1:ncols
+        expiry = reference_date + tenors[i]
+        strike = strikes[j]
+        cp     = call_put_matrix[i, j]
+        price  = prices[i, j]
+
+        payoff = VanillaOption(strike, expiry, European(), cp, Spot())
+        market = BlackScholesInputs(reference_date, rate, spot, 0.2)
+
+        prob = BlackScholesCalibrationProblem(PricingProblem(payoff, market), BlackScholesAnalytic(), price)
+        sols[i, j] = solve(prob; kwargs...)
+    end
+
+    times = [Dates.value(t) / 365 for t in tenors]
+    vols  = [sols[i, j].u for i in 1:nrows, j in 1:ncols]
+
+    return RectVolSurface(reference_date, times, strikes, vols;
+                          interp_type = interp, extrap_type = extrap)
+end
+
