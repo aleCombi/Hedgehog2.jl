@@ -1,5 +1,5 @@
 # Exported Types and Functions
-export AbstractPricingMethod, Pricer, compute_price
+export AbstractPricingMethod, Pricer, compute_price, PricingProblem
 
 """
 An abstract type representing a pricing method.
@@ -42,4 +42,17 @@ This function allows a `Pricer` instance to be called directly as a function, fo
 """
 function (pricer::Pricer{A,B,C})() where {A<:AbstractPayoff,B<:AbstractMarketInputs,C<:AbstractPricingMethod}
   return compute_price(pricer.payoff, pricer.marketInputs, pricer.pricingMethod)
+end
+
+struct PricingProblem{P<:AbstractPayoff, M<:AbstractMarketInputs}
+  payoff::P
+  market::M
+end
+
+function solve(prob::PricingProblem{P,I}, method::M) where {P<:AbstractPayoff,I<:AbstractMarketInputs,M<:AbstractPricingMethod}
+  return compute_price(prob.payoff, prob.market, method)
+end
+
+function solve(payoff::P, market::I, method::M) where {P<:AbstractPayoff, I<:AbstractMarketInputs, M<:AbstractPricingMethod}
+  return solve(PricingProblem(payoff, market), method)
 end

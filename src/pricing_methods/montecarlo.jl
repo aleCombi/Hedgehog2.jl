@@ -1,4 +1,6 @@
-export MonteCarlo, HestonBroadieKaya, EulerMaruyama, BlackScholesExact, LognormalDynamics, HestonDynamics
+import DifferentialEquations
+
+export MonteCarlo, HestonBroadieKaya, EulerMaruyama, BlackScholesExact, LognormalDynamics, HestonDynamics, solve
 
 """
     PriceDynamics
@@ -157,7 +159,7 @@ end
 Solves the SDE using ensemble simulation with the specified strategy.
 """
 function montecarlo_solution(problem, strategy::S) where {S <: SimulationStrategy}
-    return solve(
+    return DifferentialEquations.solve(
         EnsembleProblem(problem),
         EM();
         dt = problem.tspan[end] / strategy.steps,
@@ -229,3 +231,20 @@ function compute_price(payoff::VanillaOption{European, C, Spot}, market_inputs::
     payoffs = payoff.(prices)
     return exp(-market_inputs.rate * T) * mean(payoffs)
 end
+
+function solve(
+    prob::PricingProblem{VanillaOption{European, C, Spot}, I}, 
+    method::MonteCarlo
+) where {C, I <: AbstractMarketInputs}
+    T = Dates.value(prob.payoff.expiry - prob.market.referenceDate) / 365
+
+    ens = simulate_paths(method, prob.market, T)
+    paths = ens.u
+
+    terminal_prices = [get_terminal_value(p, method.dynamics, method.strategy) for p in paths]
+    payoffs = prob.payoff.(terminal_prices)
+    price = exp(-prob.market.rate * T) * mean(payoffs)
+
+    return MonteCarloSolution(price, ens)
+end
+

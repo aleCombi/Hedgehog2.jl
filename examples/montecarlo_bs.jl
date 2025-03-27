@@ -18,22 +18,26 @@ market_inputs = BlackScholesInputs(reference_date, rate, spot, sigma)
 strike = 1.2
 payoff = VanillaOption(strike, expiry, European(), Call(), Spot())
 
-# -- Monte Carlo Pricer
+# -- Construct Pricing Problem
+prob = PricingProblem(payoff, market_inputs)
+
+# -- Monte Carlo Method
 trajectories = 10_000
-strategy = Hedgehog2.BlackScholesExact(trajectories)
-dynamics = Hedgehog2.LognormalDynamics()
-method_mc = Hedgehog2.MonteCarlo(dynamics, strategy)
-mc_pricer = Pricer(payoff, market_inputs, method_mc)
+strategy = BlackScholesExact(trajectories)
+dynamics = LognormalDynamics()
+method_mc = MonteCarlo(dynamics, strategy)
 
-# -- Analytic Pricer
+# -- Analytic Method
 method_analytic = BlackScholesAnalytic()
-analytic_pricer = Pricer(payoff, market_inputs, method_analytic)
 
-# -- Run both and show results
-println("Analytic price:  ", analytic_pricer())
-println("Monte Carlo price:", mc_pricer())
+# -- Solve Both
+solution_analytic = solve(prob, method_analytic)
+solution_mc = solve(prob, method_mc)
+
+println("Analytic price:   ", solution_analytic.price)
+println("Monte Carlo price:", solution_mc.price)
 
 # -- Benchmark
 println("\n--- Benchmarking ---")
-@btime $analytic_pricer()
-@btime $mc_pricer()
+@btime solve($prob, $method_analytic).price
+@btime solve($prob, $method_mc).price

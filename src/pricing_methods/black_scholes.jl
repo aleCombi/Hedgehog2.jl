@@ -1,4 +1,5 @@
 # Black-Scholes pricing function for European vanilla options
+import DifferentialEquations
 
 export BlackScholesAnalytic, implied_vol
 
@@ -72,6 +73,35 @@ function compute_price(payoff::VanillaOption{European, A, B}, marketInputs::Blac
     d1 = (log(F / K) + 0.5 * σ^2 * T) / (σ * sqrt(T))
     d2 = d1 - σ * sqrt(T)
     return exp(-r * T) * cp * (F * cdf(Normal(), cp * d1) - K * cdf(Normal(), cp * d2))
+end
+
+"""
+    solve(prob::PricingProblem, ::BlackScholesAnalytic) -> AnalyticSolution
+
+Computes the price of a European vanilla option under Black-Scholes.
+Returns an `AnalyticSolution` with the price.
+"""
+function solve(
+    prob::PricingProblem{VanillaOption{European, A, B}, BlackScholesInputs},
+    ::BlackScholesAnalytic
+) where {A, B}
+
+    K = prob.payoff.strike
+    r = prob.market.rate
+    σ = prob.market.sigma
+    cp = prob.payoff.call_put()
+    T = Dates.value(prob.payoff.expiry - prob.market.referenceDate) / 365
+    F = prob.market.spot * exp(r * T)
+
+    price = if σ == 0
+        exp(-r * T) * prob.payoff(prob.market.spot * exp(r * T))
+    else
+        d1 = (log(F / K) + 0.5 * σ^2 * T) / (σ * sqrt(T))
+        d2 = d1 - σ * sqrt(T)
+        exp(-r * T) * cp * (F * cdf(Normal(), cp * d1) - K * cdf(Normal(), cp * d2))
+    end
+
+    return AnalyticSolution(price)
 end
 
 """

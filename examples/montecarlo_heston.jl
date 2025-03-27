@@ -1,7 +1,7 @@
 using Revise
 using Hedgehog2
 using Distributions
-using DifferentialEquations
+import DifferentialEquations
 using Random
 using Plots
 using Dates

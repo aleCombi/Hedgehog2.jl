@@ -31,5 +31,6 @@ include("sensitivity_methods/delta_methods.jl")
 # distributions
 include("distributions/heston.jl")
 include("distributions/sample_from_cf.jl")
+include("solutions/pricing_solutions.jl")
 
 end
