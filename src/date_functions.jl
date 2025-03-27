@@ -4,7 +4,7 @@ const SECONDS_IN_YEAR_365 = 365 * 86400
 
 function yearfrac(start::S, stop::E) where {S<:TimeType, E<:TimeType}
     ms_start = Dates.datetime2epochms(DateTime(start))
-    ms_stop = Dates.datetime2epochms(DateTime(stop))
+    ms_stop = Dates.datetime2epochms(DateTime(stop) )
     return (ms_stop - ms_start) / (365 * 86400 * 1000)
 end
 
