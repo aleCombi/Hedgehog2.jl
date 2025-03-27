@@ -2,6 +2,5 @@ adr_index:
   - "adr-001-payoff.yaml"
   - "adr-002-market-inputs.yaml"
   - "adr-003-pricing-methods.yaml"
-  - "adr-004-pricer-callable-struct.yaml"
+  - "adr-004-sciml-integration.yaml"
   - "adr-005-greeks-calculation-design.yaml"
-  - "adr-006-sciml_integration.yaml"
