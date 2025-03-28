@@ -1,4 +1,4 @@
-export BlackScholesInputs, AbstractMarketInputs, HestonInputs
+export BlackScholesInputs, AbstractMarketInputs, HestonInputs, BlackScholesInputs2
 
 """
     AbstractMarketInputs
@@ -26,6 +26,20 @@ struct BlackScholesInputs <: AbstractMarketInputs
     spot
     sigma
 end
+
+struct BlackScholesInputs2 <: AbstractMarketInputs
+    referenceDate
+    rate::RateCurve
+    spot
+    sigma
+end
+
+BlackScholesInputs2(
+    reference_date,
+    rate::Real,
+    spot,
+    sigma
+) = BlackScholesInputs2(reference_date, FlatRateCurve(rate), spot, sigma)
 
 # in distribution.jl t is Real, hence we need to redefine it.
 """

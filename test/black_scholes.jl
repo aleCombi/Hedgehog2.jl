@@ -9,7 +9,7 @@
 
     # Common strike and inputs
     strike = spot * exp(r)
-    market_inputs = BlackScholesInputs(reference_date, r, spot, σ)
+    market_inputs = BlackScholesInputs2(reference_date, r, spot, σ)
 
     # Test case 1: European Call Option
     payoff_call = VanillaOption(strike, expiry_date, European(), Call(), Spot())
@@ -26,7 +26,7 @@
     @test isapprox(sol_put.price, expected_price_put, atol=1e-6)
 
     # Test case 3: Zero volatility
-    market_inputs_zero_vol = BlackScholesInputs(reference_date, r, spot, 0)
+    market_inputs_zero_vol = BlackScholesInputs2(reference_date, r, spot, 0)
     prob_call_zero_vol = PricingProblem(payoff_call, market_inputs_zero_vol)
     sol_call_zero_vol = solve(prob_call_zero_vol, method)
     @test isapprox(sol_call_zero_vol.price, 0, atol=1e-9)
@@ -37,7 +37,7 @@
     @test isapprox(sol_put_zero_vol.price, expected_price_put_zero_vol, atol=1e-6)
 
     # Test case 4: Very short time to expiry
-    market_inputs_short_expiry = BlackScholesInputs(reference_date, r, spot, σ)
+    market_inputs_short_expiry = BlackScholesInputs2(reference_date, r, spot, σ)
     payoff_short_expiry = VanillaOption(strike, reference_date + Day(1), European(), Call(), Spot())
     prob_short_expiry = PricingProblem(payoff_short_expiry, market_inputs_short_expiry)
     sol_short_expiry = solve(prob_short_expiry, method)

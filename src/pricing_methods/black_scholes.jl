@@ -30,23 +30,22 @@ Computes the price of a European vanilla option under Black-Scholes.
 Returns an `AnalyticSolution` with the price.
 """
 function solve(
-    prob::PricingProblem{VanillaOption{European, A, B}, BlackScholesInputs},
+    prob::PricingProblem{VanillaOption{European, A, B}, BlackScholesInputs2},
     ::BlackScholesAnalytic
 ) where {A, B}
 
     K = prob.payoff.strike
-    r = prob.market.rate
     σ = prob.market.sigma
     cp = prob.payoff.call_put()
     T = yearfrac(prob.market.referenceDate, prob.payoff.expiry)
-    F = prob.market.spot * exp(r * T)
-
+    D = df(prob.market.rate, T)
+    F = prob.market.spot / D
     price = if σ == 0
-        exp(-r * T) * prob.payoff(prob.market.spot * exp(r * T))
+        D * prob.payoff(F)
     else
         d1 = (log(F / K) + 0.5 * σ^2 * T) / (σ * sqrt(T))
         d2 = d1 - σ * sqrt(T)
-        exp(-r * T) * cp * (F * cdf(Normal(), cp * d1) - K * cdf(Normal(), cp * d2))
+        D * cp * (F * cdf(Normal(), cp * d1) - K * cdf(Normal(), cp * d2))
     end
 
     return AnalyticSolution(price)
