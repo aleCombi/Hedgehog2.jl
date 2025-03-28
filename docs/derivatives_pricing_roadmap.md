@@ -15,8 +15,8 @@
 - [x] `BSVolSurface` with rectangular grid + interpolation and `get_vol(t)` accessor
 - [x] Implied vol inversion for vanilla options
 - [x] `calibrate_vol_surface(quotes)` from market prices
-- [ ] `DiscountCurve` (flat, piecewise) and `df(t)` accessor
-- [ ] Unit tests: vol/curve access, interpolation, smoke pricing
+- [x] `DiscountCurve` (flat, piecewise) and `df(t)` accessor
+- [x] Unit tests: vol/curve access, interpolation, smoke pricing
 
 
 ## PHASE 3 — PDE, Greeks, Heston Calibration (4–5 weeks)

@@ -45,3 +45,11 @@ forward_rate(curve::RateCurve, d1::Date, d2::Date) =
 # -- Diagnostic accessors --
 spine_tenors(curve::RateCurve) = curve.interpolator.x
 spine_zeros(curve::RateCurve) = curve.interpolator.y
+
+FlatRateCurve(r::Float64) = RateCurve(
+    Date(0),                  # reference_date (arbitrary, won't be used)
+    [1e-8],                   # tiny positive tenor
+    [exp(-r * 1e-8)],         # corresponding DF, gives back r via interpolation
+    interp = LinearInterpolation,
+    extrap = ExtrapolationType.Constant
+)
