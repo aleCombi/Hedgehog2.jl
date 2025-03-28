@@ -22,8 +22,8 @@ curve_cubic = Hedgehog2.RateCurve(ref_date, tenors, dfs;
 
 # Evaluation grid for plotting
 ts = range(0.0, stop=10.0, length=300)
-zr_linear = [Hedgehog2.zero_rate(curve_linear, t) for t in ts]
-zr_cubic = [Hedgehog2.zero_rate(curve_cubic, t) for t in ts]
+zr_linear = zero_rate.(Ref(curve_linear), ts)
+zr_cubic = zero_rate.(Ref(curve_cubic), ts)
 zr_input = @. -log(dfs) / tenors  # Implied input zero rates
 
 # Plot interpolated zero rate curves

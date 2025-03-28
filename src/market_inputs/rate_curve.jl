@@ -1,15 +1,13 @@
 import DataInterpolations: LinearInterpolation, ExtrapolationType
 import Dates: Date, value
 import Base: getindex
+export RateCurve, df, zero_rate, forward_rate, spine_tenors, spine_zeros
 
 # -- Curve struct --
 struct RateCurve{I}
     reference_date::Date
     interpolator::I  # Should be a callable interpolating function
 end
-
-# -- Year fraction (ACT/365 fallback) --
-yearfrac(d1::Date, d2::Date) = value(d2 - d1) / 365
 
 # -- Constructor from discount factors (interpolate in zero rates) --
 function RateCurve(
