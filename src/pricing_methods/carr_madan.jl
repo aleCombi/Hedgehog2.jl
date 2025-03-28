@@ -52,6 +52,10 @@ function solve(
     method::CarrMadan
 ) where {C, I <: AbstractMarketInputs}
 
+    if !is_flat(prob.market.rate)
+        throw(ArgumentError("Carr–Madan pricing only supports flat rate curves."))
+    end
+        
     K = prob.payoff.strike
     r = prob.market.rate
     S = prob.market.spot
@@ -89,7 +93,7 @@ Returns the Fourier-space representation of the damped call payoff.
 - The value of the integrand for the Carr-Madan integral.
 """
 function call_transform(rate, time, ϕ, v, method::CarrMadan)
-    numerator = exp(- rate * time) * ϕ(v - (method.α + 1)im)
+    numerator = df(rate, time) * ϕ(v - (method.α + 1)im)
     denominator = method.α^2 + method.α - v^2 + v * (2 * method.α + 1)im
     return numerator / denominator
 end

@@ -125,6 +125,12 @@ function marginal_law(::LognormalDynamics, m::BlackScholesInputs, t)
     return Normal(log(m.spot) + (m.rate - m.sigma^2 / 2)t, m.sigma * √t)  
 end
 
+function marginal_law(::LognormalDynamics, m::BlackScholesInputs2, t)
+    rate = zero_rate(m.rate, t)
+    return Normal(log(m.spot) + (rate - m.sigma^2 / 2)t, m.sigma * √t)  
+end
+
+
 """
     sde_problem(::HestonDynamics, ::EulerMaruyama, m::HestonInputs, tspan)
 

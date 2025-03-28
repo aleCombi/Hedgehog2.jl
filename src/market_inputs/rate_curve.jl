@@ -1,7 +1,7 @@
 using DataInterpolations
 import Dates: Date, value
 import Base: getindex
-export RateCurve, df, zero_rate, forward_rate, spine_tenors, spine_zeros, FlatRateCurve
+export RateCurve, df, zero_rate, forward_rate, spine_tenors, spine_zeros, FlatRateCurve, is_flat
 
 # -- Curve struct --
 struct RateCurve{I}
@@ -43,10 +43,14 @@ forward_rate(curve::RateCurve, d1::Date, d2::Date) =
     forward_rate(curve, yearfrac(curve.reference_date, d1), yearfrac(curve.reference_date, d2))
 
 # -- Diagnostic accessors --
-spine_tenors(curve::RateCurve) = curve.interpolator.x
-spine_zeros(curve::RateCurve) = curve.interpolator.y
+spine_tenors(curve::RateCurve) = curve.interpolator.t
+spine_zeros(curve::RateCurve) = curve.interpolator.u
 
 function FlatRateCurve(r; reference_date=Date(0)) 
     itp = DataInterpolations.ConstantInterpolation([r], [1]; extrapolation=ExtrapolationType.Constant)
     return RateCurve(reference_date, itp)
+end
+
+function is_flat(curve::RateCurve)
+    length(spine_tenors(curve)) == 1
 end

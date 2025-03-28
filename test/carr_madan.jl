@@ -4,7 +4,7 @@
     rate = 0.2
     spot = 100.0
     sigma = 0.4
-    market_inputs = BlackScholesInputs(reference_date, rate, spot, sigma)
+    market_inputs = BlackScholesInputs2(reference_date, rate, spot, sigma)
 
     # Define payoff
     expiry = reference_date + Day(365)
