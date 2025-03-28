@@ -15,7 +15,7 @@ using DataInterpolations
 
     # Build the curve
     curve = Hedgehog2.RateCurve(ref_date, tenors, dfs;
-        interp = LinearInterpolation,
+        interp = DataInterpolations.LinearInterpolation,
         extrap = ExtrapolationType.Constant,
     )
 
