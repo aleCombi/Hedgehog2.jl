@@ -94,6 +94,9 @@ function solve(
     method::CoxRossRubinsteinMethod
 ) where {E, C, U, M <: AbstractMarketInputs}
 
+    if !is_flat(prob.market.rate)
+        throw(ArgumentError("For now Cox Ross Rubinstein pricing only supports flat rate curves. The implementation has to be checked for general rate curves."))
+    end
     payoff = prob.payoff
     market_inputs = prob.market
 

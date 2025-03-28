@@ -12,7 +12,7 @@ spot           = 12.0
 sigma          = 0.4
 rate           = 0.0
 
-market_inputs = BlackScholesInputs(reference_date, rate, spot, sigma)
+market_inputs = BlackScholesInputs2(reference_date, rate, spot, sigma)
 
 # -- Payoff
 strike = 1.2

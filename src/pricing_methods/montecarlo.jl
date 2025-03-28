@@ -115,7 +115,16 @@ function sde_problem(::LognormalDynamics, s::BlackScholesExact, market_inputs::B
     kwargs = s.kwargs
     return NoiseProblem(noise, tspan; kwargs...)
 end
-
+function sde_problem(::LognormalDynamics, s::BlackScholesExact, market_inputs::BlackScholesInputs2, tspan)
+    if !is_flat(market_inputs.rate)
+        throw(ArgumentError("LognormalDynamics simulation is only valid for flat rate curves for now."))
+    end
+    
+    rate = zero_rate(market_inputs.rate, 0.0)
+    noise = GeometricBrownianMotionProcess(rate, market_inputs.sigma, 0.0, market_inputs.spot)
+    kwargs = s.kwargs
+    return NoiseProblem(noise, tspan; kwargs...)
+end
 """
     marginal_law(::LognormalDynamics, market_inputs, t)
 
@@ -228,7 +237,7 @@ function solve(
 
     terminal_prices = [get_terminal_value(p, method.dynamics, method.strategy) for p in paths]
     payoffs = prob.payoff.(terminal_prices)
-    price = exp(-prob.market.rate * T) * mean(payoffs)
+    price = df(prob.market.rate, T) * mean(payoffs)
 
     return MonteCarloSolution(price, ens)
 end
