@@ -82,20 +82,24 @@ function RectVolSurface(
     strikes::Vector{<:Real},
     prices::Matrix{<:Real};
     call_put_matrix::Union{Nothing, AbstractMatrix} = nothing,
-    interp = Gridded(Linear()),
-    extrap = Flat(),
+    interp_strike = LinearInterpolation,
+    interp_time = LinearInterpolation,
+    extrap_strike = ExtrapolationType.Constant,
+    extrap_time = ExtrapolationType.Constant,
     kwargs...
 )
     nrows, ncols = length(tenors), length(strikes)
     @assert size(prices) == (nrows, ncols) "Price matrix size must match (length(tenors), length(strikes))"
 
+    # Fill call/put matrix if not provided
     if call_put_matrix === nothing
         call_put_matrix = fill(Call(), nrows, ncols)
     else
         @assert size(call_put_matrix) == (nrows, ncols) "Call/Put matrix must match price matrix size"
     end
 
-    sols = Matrix(undef, nrows, ncols)
+    # Calibrate implied vols
+    vols = Matrix{Float64}(undef, nrows, ncols)
 
     for i in 1:nrows, j in 1:ncols
         expiry = reference_date + tenors[i]
@@ -106,14 +110,27 @@ function RectVolSurface(
         payoff = VanillaOption(strike, expiry, European(), cp, Spot())
         market = BlackScholesInputs(reference_date, rate, spot, 0.2)
 
-        prob = BlackScholesCalibrationProblem(PricingProblem(payoff, market), BlackScholesAnalytic(), price)
-        sols[i, j] = solve(prob; kwargs...)
-    end    
+        prob = BlackScholesCalibrationProblem(
+            PricingProblem(payoff, market),
+            BlackScholesAnalytic(),
+            price
+        )
 
-    times = yearfrac.(tenors)
-    vols  = [sols[i, j].u for i in 1:nrows, j in 1:ncols]
+        sol = solve(prob; kwargs...)
+        vols[i, j] = sol.u
+    end
 
-    return RectVolSurface(reference_date, times, strikes, vols;
-                          interp_type = interp, extrap_type = extrap)
+    # Convert periods to year fractions
+    times = [yearfrac(reference_date, reference_date + τ) for τ in tenors]
+
+    return RectVolSurface(
+        reference_date,
+        times,
+        strikes,
+        vols;
+        interp_strike = interp_strike,
+        interp_time   = interp_time,
+        extrap_strike = extrap_strike,
+        extrap_time   = extrap_time,
+    )
 end
-

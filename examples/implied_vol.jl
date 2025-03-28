@@ -1,4 +1,4 @@
-using Revise, Hedgehog2, Interpolations, Dates
+using Revise, Hedgehog2, Dates
 
 reference_date = Date(2020,1,1)
 

@@ -1,37 +1,36 @@
-using Revise, Hedgehog2, Interpolations, Dates, Test
+using Revise
+using Hedgehog2
+using Dates
+using Test
 
 @testset "Implied Vol Calibration Consistency" begin
     reference_date = Date(2020, 1, 1)
-    expiry_date = reference_date + Day(365)
+    expiry_date = reference_date + Year(1)
     r = 0.02
     spot = 100.0
     true_vol = 0.65
     strike = 80.0
 
-    # Step 1: Generate market price from known vol
+    # Step 1: Price from known vol
     market_inputs = BlackScholesInputs(reference_date, r, spot, true_vol)
     payoff = VanillaOption(strike, expiry_date, European(), Call(), Spot())
     pricing_problem = PricingProblem(payoff, market_inputs)
     price = solve(pricing_problem, BlackScholesAnalytic()).price
 
-    # Step 2: Calibrate vol to recover implied from price
-    market_inputs_new = BlackScholesInputs(reference_date, r, spot, 9000.8) # the vol value is not used
-    pricing_problem_new = PricingProblem(payoff, market_inputs_new)
-    calib_problem = Hedgehog2.BlackScholesCalibrationProblem(pricing_problem, BlackScholesAnalytic(), price)
-    calib_solution = solve(calib_problem)
-    implied_vol = calib_solution.u
+    # Step 2: Invert to implied vol
+    dummy_inputs = BlackScholesInputs(reference_date, r, spot, 999.0)  # unused vol
+    pricing_problem_new = PricingProblem(payoff, dummy_inputs)
+    calib_problem = Hedgehog2.BlackScholesCalibrationProblem(pricing_problem_new, BlackScholesAnalytic(), price)
+    implied_vol = solve(calib_problem).u
 
     @test isapprox(implied_vol, true_vol; atol=1e-8)
 end
 
-using Revise, Hedgehog2, Interpolations, Dates, Test
-
 @testset "Vol Surface Inversion Consistency (DateTime-safe)" begin
     # --- Grid definitions
-    tenors  = [0.25, 0.5, 1.0, 2.0]               # maturities in years
-    strikes = [80.0, 90.0, 100.0, 110.0]          # strikes
+    tenors  = [0.25, 0.5, 1.0, 2.0]
+    strikes = [80.0, 90.0, 100.0, 110.0]
 
-    # --- Vol grid: vols[i, j] corresponds to (tenor[i], strike[j])
     vols = [
         0.22  0.21  0.20  0.19;
         0.23  0.22  0.21  0.20;
@@ -39,15 +38,12 @@ using Revise, Hedgehog2, Interpolations, Dates, Test
         0.28  0.27  0.26  0.25
     ]
 
-    # --- Market data
     reference_date = DateTime(2020, 1, 1)
     rate = 0.02
     spot = 100.0
 
-    # --- Build volatility surface
     vol_surface = RectVolSurface(reference_date, tenors, strikes, vols)
 
-    # --- Recompute prices from surface
     nrows, ncols = size(vols)
     recomputed_prices = zeros(nrows, ncols)
 
@@ -65,13 +61,22 @@ using Revise, Hedgehog2, Interpolations, Dates, Test
         recomputed_prices[i, j] = sol.price
     end
 
-    # --- Invert surface using recomputed prices
     expiry_datetimes = [add_yearfrac(reference_date, T) for T in tenors]
     tenor_periods = [expiry - reference_date for expiry in expiry_datetimes]
 
-    inverted_surface = RectVolSurface(reference_date, rate, spot, tenor_periods, strikes, recomputed_prices)
+    inverted_surface = RectVolSurface(
+        reference_date,
+        rate,
+        spot,
+        tenor_periods,
+        strikes,
+        recomputed_prices;
+        interp_strike = LinearInterpolation,
+        interp_time = LinearInterpolation,
+        extrap_strike = ExtrapolationType.Constant,
+        extrap_time = ExtrapolationType.Constant,
+    )
 
-    # --- Check recovery of original volatilities
     for i in 1:nrows, j in 1:ncols
         T = tenors[i]
         K = strikes[j]
