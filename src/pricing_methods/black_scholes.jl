@@ -30,7 +30,7 @@ Computes the price of a European vanilla option under Black-Scholes.
 Returns an `AnalyticSolution` with the price.
 """
 function solve(
-    prob::PricingProblem{VanillaOption{European, A, B}, BlackScholesInputs2},
+    prob::PricingProblem{VanillaOption{European, A, B}, BlackScholesInputs},
     ::BlackScholesAnalytic
 ) where {A, B}
 

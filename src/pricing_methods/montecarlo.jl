@@ -115,7 +115,7 @@ function sde_problem(::LognormalDynamics, s::BlackScholesExact, market_inputs::B
     kwargs = s.kwargs
     return NoiseProblem(noise, tspan; kwargs...)
 end
-function sde_problem(::LognormalDynamics, s::BlackScholesExact, market_inputs::BlackScholesInputs2, tspan)
+function sde_problem(::LognormalDynamics, s::BlackScholesExact, market_inputs::BlackScholesInputs, tspan)
     if !is_flat(market_inputs.rate)
         throw(ArgumentError("LognormalDynamics simulation is only valid for flat rate curves for now."))
     end
@@ -134,7 +134,7 @@ function marginal_law(::LognormalDynamics, m::BlackScholesInputs, t)
     return Normal(log(m.spot) + (m.rate - m.sigma^2 / 2)t, m.sigma * √t)  
 end
 
-function marginal_law(::LognormalDynamics, m::BlackScholesInputs2, t)
+function marginal_law(::LognormalDynamics, m::BlackScholesInputs, t)
     rate = zero_rate(m.rate, t)
     return Normal(log(m.spot) + (rate - m.sigma^2 / 2)t, m.sigma * √t)  
 end

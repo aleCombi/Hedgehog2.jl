@@ -1,4 +1,4 @@
-export BlackScholesInputs, AbstractMarketInputs, HestonInputs, BlackScholesInputs2
+export BlackScholesInputs, AbstractMarketInputs, HestonInputs
 
 """
     AbstractMarketInputs
@@ -22,24 +22,17 @@ This struct encapsulates the necessary inputs for pricing derivatives under the 
 """
 struct BlackScholesInputs <: AbstractMarketInputs
     referenceDate
-    rate
-    spot
-    sigma
-end
-
-struct BlackScholesInputs2 <: AbstractMarketInputs
-    referenceDate
     rate::RateCurve
     spot
     sigma
 end
 
-BlackScholesInputs2(
+BlackScholesInputs(
     reference_date,
     rate::Real,
     spot,
     sigma
-) = BlackScholesInputs2(reference_date, FlatRateCurve(rate), spot, sigma)
+) = BlackScholesInputs(reference_date, FlatRateCurve(rate), spot, sigma)
 
 # in distribution.jl t is Real, hence we need to redefine it.
 """
