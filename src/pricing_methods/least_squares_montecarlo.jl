@@ -55,7 +55,7 @@ function solve(
 
     ntimes, npaths = size(spot_grid)
     nsteps = ntimes - 1
-    discount = exp(-prob.market.rate * T / nsteps)
+    discount = df(prob.market.rate, T / nsteps)
 
     # (time_index, value) for each path
     stopping_info = [(nsteps, prob.payoff(spot_grid[nsteps + 1, p])) for p in 1:npaths]
