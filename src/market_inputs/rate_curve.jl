@@ -12,8 +12,8 @@ end
 # -- Constructor from discount factors (interpolate in zero rates) --
 function RateCurve(
     reference_date::Date,
-    tenors::AbstractVector{<:Real},
-    dfs::AbstractVector{<:Real};
+    tenors,
+    dfs;
     interp = LinearInterpolation,
     extrap = ExtrapolationType.Constant
 )
@@ -47,7 +47,7 @@ spine_tenors(curve::RateCurve) = curve.interpolator.t
 spine_zeros(curve::RateCurve) = curve.interpolator.u
 
 function FlatRateCurve(r; reference_date=Date(0)) 
-    itp = DataInterpolations.ConstantInterpolation([r], [1]; extrapolation=ExtrapolationType.Constant)
+    itp = DataInterpolations.ConstantInterpolation([r], [0]; extrapolation=ExtrapolationType.Constant)
     return RateCurve(reference_date, itp)
 end
 

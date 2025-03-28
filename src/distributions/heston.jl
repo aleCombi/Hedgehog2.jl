@@ -15,7 +15,7 @@ function HestonProblem(μ, κ, Θ, σ, ρ, u0, tspan; seed = UInt64(0), kwargs..
         adj_var = sqrt(max(u[2], 0))
         return @. [adj_var * u[1], σ * adj_var]
     end
-    Γ = [1 ρ; ρ 1]  # ensure this is Float64
+    Γ = [1 ρ; ρ 1]
 
     noise = CorrelatedWienerProcess(Γ, tspan[1], zeros(2))
 

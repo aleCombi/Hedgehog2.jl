@@ -62,3 +62,60 @@ println("Gamma (Finite Diff): $gamma_fd\n")
 
 println("Volga (Forward AD): $volga_ad")
 println("Volga (Finite Diff): $volga_fd")
+
+println("\n--- Zero Rate Deltas (per tenor) ---")
+
+struct ZeroRateSpineLens
+    i::Int
+end
+
+import Accessors: set, @optic
+
+# Getter
+function (lens::ZeroRateSpineLens)(prob)
+    return spine_zeros(prob.market.rate)[lens.i]
+end
+
+# Setter (rebuilds the rate curve with updated zero rate at index `i`)
+function set(prob, lens::ZeroRateSpineLens, new_zᵢ)
+    curve = prob.market.rate
+    t = spine_tenors(curve)
+    z = spine_zeros(curve)
+    dfs = @. exp(-z * t)
+    
+    # Update only the i-th discount factor with new_zᵢ
+    dfs_bumped = @set dfs[lens.i] = exp(-new_zᵢ * t[lens.i])
+
+    new_curve = RateCurve(curve.reference_date, t, dfs_bumped)
+    return @set prob.market.rate = new_curve
+end
+
+# Create a rate curve with multiple tenors
+tenors = [0.25, 0.5, 1.0, 2.0, 5.0]
+dfs = @. exp(-rate * tenors)
+rate_curve = RateCurve(reference_date, tenors, dfs)
+
+# Replace scalar rate in market_inputs with the curve
+market_inputs_with_curve = BlackScholesInputs(reference_date, rate_curve, spot, sigma)
+curve_prob = PricingProblem(euro_payoff, market_inputs_with_curve)
+
+# Choose method and Greek method
+greek_method = ForwardAD()
+pricing_method = bs_method
+
+# Compute zero deltas (∂Price/∂zᵢ)
+spine_len = length(spine_zeros(rate_curve))
+zero_deltas = [
+    solve(
+        GreekProblem(curve_prob, ZeroRateSpineLens(i)),
+        greek_method,
+        pricing_method
+    ).greek
+    for i in 1:spine_len
+]
+
+# Print result
+for (i, d) in enumerate(zero_deltas)
+    t = spine_tenors(rate_curve)[i]
+    println("Tenor $(t)y: ∂Price/∂z[$i] = ", round(d, sigdigits=6))
+end
