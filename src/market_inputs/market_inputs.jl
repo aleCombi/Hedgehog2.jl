@@ -70,7 +70,7 @@ Used for pricing under the Heston model and simulation of stochastic volatility 
 """
 struct HestonInputs <: AbstractMarketInputs
     referenceDate
-    rate
+    rate::RateCurve
     spot
     V0
     κ
@@ -78,3 +78,14 @@ struct HestonInputs <: AbstractMarketInputs
     σ
     ρ
 end
+
+HestonInputs(
+    reference_date,
+    rate::Real,
+    spot,
+    V0,
+    κ,
+    θ,
+    σ,
+    ρ
+) = HestonInputs(reference_date, FlatRateCurve(rate), spot, V0, κ, θ, σ, ρ)

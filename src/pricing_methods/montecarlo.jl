@@ -105,16 +105,6 @@ function BlackScholesExact(trajectories, steps=1; kwargs...)
     return BlackScholesExact(trajectories, steps, (; kwargs...))
 end
 
-"""
-    sde_problem(::LognormalDynamics, s::BlackScholesExact, market_inputs, tspan)
-
-Constructs a `NoiseProblem` for exact simulation of Black-Scholes model.
-"""
-function sde_problem(::LognormalDynamics, s::BlackScholesExact, market_inputs::BlackScholesInputs, tspan)
-    noise = GeometricBrownianMotionProcess(market_inputs.rate, market_inputs.sigma, 0.0, market_inputs.spot)
-    kwargs = s.kwargs
-    return NoiseProblem(noise, tspan; kwargs...)
-end
 function sde_problem(::LognormalDynamics, s::BlackScholesExact, market_inputs::BlackScholesInputs, tspan)
     if !is_flat(market_inputs.rate)
         throw(ArgumentError("LognormalDynamics simulation is only valid for flat rate curves for now."))
@@ -125,15 +115,12 @@ function sde_problem(::LognormalDynamics, s::BlackScholesExact, market_inputs::B
     kwargs = s.kwargs
     return NoiseProblem(noise, tspan; kwargs...)
 end
+
 """
     marginal_law(::LognormalDynamics, market_inputs, t)
 
 Returns the lognormal distribution of the asset price at time `t`.
 """
-function marginal_law(::LognormalDynamics, m::BlackScholesInputs, t)
-    return Normal(log(m.spot) + (m.rate - m.sigma^2 / 2)t, m.sigma * √t)  
-end
-
 function marginal_law(::LognormalDynamics, m::BlackScholesInputs, t)
     rate = zero_rate(m.rate, t)
     return Normal(log(m.spot) + (rate - m.sigma^2 / 2)t, m.sigma * √t)  
@@ -146,7 +133,12 @@ end
 Constructs an `SDEProblem` for Heston dynamics using Euler-Maruyama.
 """
 function sde_problem(::HestonDynamics, ::EulerMaruyama, m::HestonInputs, tspan)
-    return HestonProblem(m.rate, m.κ, m.θ, m.σ, m.ρ, [m.spot, m.V0], tspan)
+    if !is_flat(m.rate)
+        throw(ArgumentError("Heston simulation is only valid for flat rate curves for now."))
+    end
+    
+    rate = zero_rate(m.rate, 0.0)
+    return HestonProblem(rate, m.κ, m.θ, m.σ, m.ρ, [m.spot, m.V0], tspan)
 end
 
 """
@@ -164,7 +156,12 @@ end
 Constructs a `NoiseProblem` for Heston dynamics using Broadie-Kaya sampling.
 """
 function sde_problem(::HestonDynamics, strategy::HestonBroadieKaya, m::HestonInputs, tspan)
-    noise = HestonNoise(m.rate, m.κ, m.θ, m.σ, m.ρ, 0.0, [log(m.spot), m.V0], Z0=nothing; strategy.kwargs...)
+    if !is_flat(m.rate)
+        throw(ArgumentError("Heston simulation is only valid for flat rate curves for now."))
+    end
+    
+    rate = zero_rate(m.rate, 0.0)
+    noise = HestonNoise(rate, m.κ, m.θ, m.σ, m.ρ, 0.0, [log(m.spot), m.V0], Z0=nothing; strategy.kwargs...)
     return NoiseProblem(noise, tspan)
 end
 
