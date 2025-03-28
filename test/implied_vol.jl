@@ -2,6 +2,7 @@ using Revise
 using Hedgehog2
 using Dates
 using Test
+using DataInterpolations
 
 @testset "Implied Vol Calibration Consistency" begin
     reference_date = Date(2020, 1, 1)
