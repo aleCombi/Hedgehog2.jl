@@ -23,14 +23,14 @@
 ## PHASE 3 — Greeks & Calibration Infrastructure (2–3 weeks)
 
 - [ ] Implement `GreekCalculator{G, P, M, S}` with support for:
-  - [ ] Finite differences (forward and backward)
-  - [ ] Analytic Greeks for Black-Scholes
-  - [ ] Optional: AD for Monte Carlo methods
+- [ ] Finite differences (forward and backward)
+- [ ] Analytic Greeks for Black-Scholes
+- [ ] Optional: AD for Monte Carlo methods
 - [ ] Plug Greeks into pricing pipeline with consistent API
 - [ ] Develop modular calibration system:
-  - [ ] Residual-based calibration engine
-  - [ ] Objective functions from market quotes
-  - [ ] Support for different pricer-model combinations
+- [ ] Residual-based calibration engine
+- [ ] Objective functions from market quotes
+- [ ] Support for different pricer-model combinations
 - [ ] Heston calibration to implied volatility surface
 - [ ] Unit tests: Greeks accuracy vs known formulas, calibration residual shapes
 
