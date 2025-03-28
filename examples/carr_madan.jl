@@ -1,4 +1,4 @@
-using Revise, Hedgehog2, BenchmarkTools, Dates
+using Revise, Hedgehog2, BenchmarkTools, Dates, Accessors
 
 # -- Market Inputs
 reference_date = Date(2020, 1, 1)
@@ -12,26 +12,48 @@ expiry = reference_date + Day(365)
 strike = 100.0
 payoff = VanillaOption(strike, expiry, European(), Call(), Spot())
 
-# -- Construct pricing problem
+# -- Pricing problem
 prob = PricingProblem(payoff, market_inputs)
 
-# -- Carr–Madan method
-α = 1.0
-boundary = 16.0
-method_carr_madan = CarrMadan(α, boundary, LognormalDynamics())
-
-# -- Analytic method
+# -- Methods
 method_analytic = BlackScholesAnalytic()
+method_carr_madan = CarrMadan(1.0, 16.0, LognormalDynamics())
 
-# -- Solve both
-sol_carr = solve(prob, method_carr_madan)
+# -- Solve for prices
 sol_analytic = solve(prob, method_analytic)
+sol_carr = solve(prob, method_carr_madan)
 
-# -- Print results
 println("Analytic price:   ", sol_analytic.price)
 println("Carr-Madan price: ", sol_carr.price)
 
-# -- Benchmark
-println("\n--- Benchmarking ---")
-@btime solve($prob, $method_analytic).price
-@btime solve($prob, $method_carr_madan).price
+# --- Greeks via GreekProblem
+
+# Accessors
+spot_lens = @optic _.market.spot
+sigma_lens = @optic _.market.sigma
+
+# Methods
+fd = FiniteDifference(1e-3)
+ad = ForwardAD()
+
+println("\n--- Greeks (Analytic Method) ---")
+delta_fd = solve(GreekProblem(prob, spot_lens), fd, method_analytic).greek
+vega_fd = solve(GreekProblem(prob, sigma_lens), fd, method_analytic).greek
+delta_ad = solve(GreekProblem(prob, spot_lens), ad, method_analytic).greek
+vega_ad = solve(GreekProblem(prob, sigma_lens), ad, method_analytic).greek
+
+println("FD Delta (analytic): ", delta_fd)
+println("AD Delta (analytic): ", delta_ad)
+println("FD Vega  (analytic): ", vega_fd)
+println("AD Vega  (analytic): ", vega_ad)
+
+println("\n--- Greeks (Carr-Madan Method) ---")
+delta_fd_cm = solve(GreekProblem(prob, spot_lens), fd, method_carr_madan).greek
+vega_fd_cm = solve(GreekProblem(prob, sigma_lens), fd, method_carr_madan).greek
+delta_ad_cm = solve(GreekProblem(prob, spot_lens), ad, method_carr_madan).greek
+vega_ad_cm = solve(GreekProblem(prob, sigma_lens), ad, method_carr_madan).greek
+
+println("FD Delta (Carr-Madan): ", delta_fd_cm)
+println("AD Delta (Carr-Madan): ", delta_ad_cm)
+println("FD Vega  (Carr-Madan): ", vega_fd_cm)
+println("AD Vega  (Carr-Madan): ", vega_ad_cm)

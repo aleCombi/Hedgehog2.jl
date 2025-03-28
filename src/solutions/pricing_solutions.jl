@@ -11,7 +11,7 @@ struct AnalyticSolution <: AbstractPricingSolution
 end
 
 struct CarrMadanSolution <: AbstractPricingSolution
-    price::Float64
+    price
     integral_solution::SciMLBase.IntegralSolution
 end
 
