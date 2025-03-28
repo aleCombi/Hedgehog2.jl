@@ -60,20 +60,15 @@ struct BlackScholesCalibrationProblem{P<:PricingProblem, M}
 end
 
 function solve(calib::BlackScholesCalibrationProblem; initial_guess=0.2, lower=1e-6, upper=5.0, kwargs...)
-    # Define the root-finding function for implied volatility calibration
     function calibration_function(σ, p)
-        # Update the market inputs with candidate volatility σ using the @set macro
         market = calib.prob.market
         new_market = @set market.sigma = σ
         new_prob = PricingProblem(calib.prob.payoff, new_market)
         sol = solve(new_prob, calib.method)
-        return sol.price - calib.price_target  # Objective function
+        return sol.price - calib.price_target 
     end
 
-    # Set up the nonlinear solver problem
     problem = NonlinearProblem(calibration_function, initial_guess)
-
-    # Solve the problem using the NonlinearSolver
     solution = NonlinearSolve.solve(problem; kwargs...)
 
     return solution
@@ -113,7 +108,7 @@ function RectVolSurface(
 
         prob = BlackScholesCalibrationProblem(PricingProblem(payoff, market), BlackScholesAnalytic(), price)
         sols[i, j] = solve(prob; kwargs...)
-    end
+    end    
 
     times = yearfrac.(tenors)
     vols  = [sols[i, j].u for i in 1:nrows, j in 1:ncols]

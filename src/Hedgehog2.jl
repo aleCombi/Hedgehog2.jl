@@ -19,6 +19,7 @@ include("payoffs/payoffs.jl")
 # market inputs
 include("market_inputs/market_inputs.jl")
 include("market_inputs/vol_surface.jl")
+include("market_inputs/rate_curve.jl")
 
 # pricing methods
 include("pricing_methods/pricing_methods.jl")
