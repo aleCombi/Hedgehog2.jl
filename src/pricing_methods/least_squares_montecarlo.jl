@@ -49,6 +49,10 @@ function solve(
     method::LSM
 ) where {I <: AbstractMarketInputs, C}
 
+    if !is_flat(prob.market.rate)
+        throw(ArgumentError("LSM pricing only supports flat rate curves."))
+    end
+
     T = Dates.value(prob.payoff.expiry - prob.market.referenceDate) / 365
     sol = simulate_paths(method.mc_method, prob.market, T)
     spot_grid = extract_spot_grid(sol) ./ prob.market.spot  # Normalize paths
