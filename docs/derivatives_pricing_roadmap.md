@@ -17,7 +17,7 @@
 - [x] `calibrate_vol_surface(quotes)` from market prices
 - [x] `DiscountCurve` (flat, piecewise) and `df(t)` accessor
 - [x] Unit tests: vol/curve access, interpolation, smoke pricing
-
+- [ ] Rate Curves: Usage instead of constant rates, convenience constructors.
 
 ## PHASE 3 — PDE, Greeks, Heston Calibration (4–5 weeks)
 

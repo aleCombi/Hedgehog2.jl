@@ -1,3 +1,4 @@
+using Revise
 using Test
 using Dates
 using Hedgehog2  # Replace with your module name
@@ -27,4 +28,33 @@ using DataInterpolations
     for (t, zr_expected) in zip(tenors, expected_zr)
         @test isapprox(Hedgehog2.zero_rate(curve, t), zr_expected; atol=1e-12)
     end
+end
+
+@testset "FlatRateCurve correctness" begin
+    r = 0.025  # 2.5% flat rate
+    curve = Hedgehog2.FlatRateCurve(r)
+
+    # Check scalar zero_rate and df
+    for t in [0.1, 1.0, 5.0]
+        @test isapprox(Hedgehog2.zero_rate(curve, t), r; atol=1e-12)
+        @test isapprox(Hedgehog2.df(curve, t), exp(-r * t); atol=1e-12)
+    end
+
+    # Check vectorized input
+    ts = [0.25, 1.0, 3.0]
+    expected_zr = fill(r, length(ts))
+    expected_df = @. exp(-r * ts)
+
+    @test Hedgehog2.zero_rate.(Ref(curve), ts) == expected_zr
+    @test isapprox.(Hedgehog2.df.(Ref(curve), ts), expected_df; atol=1e-6) |> all
+
+    # Check Date input
+    t0 = Date(2025, 1, 1)
+    t1 = Date(2026, 1, 1)
+    τ = Dates.value(t1 - t0) / 365
+
+    curve = Hedgehog2.FlatRateCurve(r; reference_date=t0)
+
+    @test isapprox(Hedgehog2.zero_rate(curve, t1), r; atol=1e-12)
+    @test isapprox(Hedgehog2.df(curve, t1), exp(-r * τ); atol=1e-12)
 end

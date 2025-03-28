@@ -1,7 +1,7 @@
-import DataInterpolations: LinearInterpolation, ExtrapolationType
+using DataInterpolations
 import Dates: Date, value
 import Base: getindex
-export RateCurve, df, zero_rate, forward_rate, spine_tenors, spine_zeros
+export RateCurve, df, zero_rate, forward_rate, spine_tenors, spine_zeros, FlatRateCurve
 
 # -- Curve struct --
 struct RateCurve{I}
@@ -46,10 +46,7 @@ forward_rate(curve::RateCurve, d1::Date, d2::Date) =
 spine_tenors(curve::RateCurve) = curve.interpolator.x
 spine_zeros(curve::RateCurve) = curve.interpolator.y
 
-FlatRateCurve(r::Float64) = RateCurve(
-    Date(0),                  # reference_date (arbitrary, won't be used)
-    [1e-8],                   # tiny positive tenor
-    [exp(-r * 1e-8)],         # corresponding DF, gives back r via interpolation
-    interp = LinearInterpolation,
-    extrap = ExtrapolationType.Constant
-)
+function FlatRateCurve(r; reference_date=Date(0)) 
+    itp = DataInterpolations.ConstantInterpolation([r], [1]; extrapolation=ExtrapolationType.Constant)
+    return RateCurve(reference_date, itp)
+end
