@@ -25,23 +25,40 @@ euro_pricing_prob = PricingProblem(euro_payoff, market_inputs)
 bs_method = BlackScholesAnalytic()
 
 # ------------------------------
-# Define lens to volatility
+# Define lenses
 # ------------------------------
 vol_lens = @optic _.market.sigma
+spot_lens = @optic _.market.spot
 
 # ------------------------------
-# Compute vega using ForwardAD
+# Vega (1st order w.r.t. sigma)
 # ------------------------------
 gprob = Hedgehog2.GreekProblem(euro_pricing_prob, vol_lens)
 vega_ad = solve(gprob, ForwardAD(), bs_method).greek
-
-# ------------------------------
-# Compute vega using Finite Difference
-# ------------------------------
 vega_fd = solve(gprob, FiniteDifference(1e-4), bs_method).greek
 
 # ------------------------------
-# Compare and print
+# Gamma (2nd order w.r.t. spot)
+# ------------------------------
+gammaprob = Hedgehog2.SecondOrderGreekProblem(euro_pricing_prob, spot_lens, spot_lens)
+gamma_ad = solve(gammaprob, ForwardAD(), bs_method).greek
+gamma_fd = solve(gammaprob, FiniteDifference(1e-4), bs_method).greek
+
+# ------------------------------
+# Volga (2nd order w.r.t. sigma)
+# ------------------------------
+volgaprob = Hedgehog2.SecondOrderGreekProblem(euro_pricing_prob, vol_lens, vol_lens)
+volga_ad = solve(volgaprob, ForwardAD(), bs_method).greek
+volga_fd = solve(volgaprob, FiniteDifference(1e-4), bs_method).greek
+
+# ------------------------------
+# Print results
 # ------------------------------
 println("Vega (Forward AD): $vega_ad")
-println("Vega (Finite Diff): $vega_fd")
+println("Vega (Finite Diff): $vega_fd\n")
+
+println("Gamma (Forward AD): $gamma_ad")
+println("Gamma (Finite Diff): $gamma_fd\n")
+
+println("Volga (Forward AD): $volga_ad")
+println("Volga (Finite Diff): $volga_fd")
