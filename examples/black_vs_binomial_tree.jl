@@ -13,23 +13,25 @@ rate = 0.2
 spot = 1
 sigma = 0.4
 market_inputs = BlackScholesInputs(reference_date, rate, spot, sigma)
+euro_pricing_prob = PricingProblem(euro_payoff, market_inputs)
 
 # create analytical black scholes pricer
-bs_method = BlackScholesAnalytic()
-analytical_pricer = Pricer(euro_payoff, market_inputs, bs_method)
+analytical_price = solve(euro_pricing_prob, BlackScholesAnalytic())
 
 # create Cox Ross Rubinstein pricer
 steps = 800
 crr = CoxRossRubinsteinMethod(steps)
-crr_euro_pricer = Pricer(euro_payoff, market_inputs, crr)
-crr_american_pricer = Pricer(american_payoff, market_inputs, crr)
+crr_euro_prob = PricingProblem(euro_payoff, market_inputs)
+crr_euro_price = solve(crr_euro_prob, crr)
+crr_american_prob = PricingProblem(american_payoff, market_inputs)
+crr_american_price = solve(crr_american_prob, crr)
 
 # print results
 println("Cox Ross Rubinstein European Price:")
-println(crr_euro_pricer())
+println(crr_euro_price)
 
 println("Cox Ross Rubinstein American Price:")
-println(crr_american_pricer())
+println(crr_american_price)
 
 println("Analytical European price:")
-println(analytical_pricer())
+println(analytical_price)

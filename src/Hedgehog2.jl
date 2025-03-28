@@ -30,6 +30,7 @@ include("pricing_methods/carr_madan.jl")
 include("pricing_methods/least_squares_montecarlo.jl")
 
 # sensitivities
+include("greeks/greeks_problem.jl")
 
 # distributions
 include("distributions/heston.jl")
