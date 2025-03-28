@@ -1,4 +1,5 @@
-# ✅ Derivatives Pricing Library – Roadmap Checklist
+
+# ✅ Derivatives Pricing Library – Roadmap Checklist (Updated)
 
 ## PHASE 1 — Core Pricing Engine [✅ Completed]
 
@@ -10,103 +11,116 @@
 - [x] Pricer structure with method, marketinputs, payoff
 - [x] Test suite with unit tests and basic price agreements
 
-## PHASE 2 — Market Inputs & Calibration (2–3 weeks)
+## PHASE 2 — Market Inputs & Calibration Basics [✅ Completed]
 
 - [x] `BSVolSurface` with rectangular grid + interpolation and `get_vol(t)` accessor
 - [x] Implied vol inversion for vanilla options
 - [x] `calibrate_vol_surface(quotes)` from market prices
 - [x] `DiscountCurve` (flat, piecewise) and `df(t)` accessor
 - [x] Unit tests: vol/curve access, interpolation, smoke pricing
-- [ ] Rate Curves: Usage instead of constant rates, convenience constructors.
+- [x] Rate Curves: Usage instead of constant rates, convenience constructors.
 
-## PHASE 3 — PDE, Greeks, Heston Calibration (4–5 weeks)
+## PHASE 3 — Greeks & Calibration Infrastructure (2–3 weeks)
 
-- [ ] Crank–Nicolson solver for BS PDE
-- [ ] Greeks framework (FD + analytic for BS)
-- [ ] Plug Greeks into pricing pipeline
-- [ ] Heston calibration to implied vol surface
-- [ ] Unit tests: PDE convergence, Greeks shape + accuracy, calibration residuals
+- [ ] Implement `GreekCalculator{G, P, M, S}` with support for:
+  - [ ] Finite differences (forward and backward)
+  - [ ] Analytic Greeks for Black-Scholes
+  - [ ] Optional: AD for Monte Carlo methods
+- [ ] Plug Greeks into pricing pipeline with consistent API
+- [ ] Develop modular calibration system:
+  - [ ] Residual-based calibration engine
+  - [ ] Objective functions from market quotes
+  - [ ] Support for different pricer-model combinations
+- [ ] Heston calibration to implied volatility surface
+- [ ] Unit tests: Greeks accuracy vs known formulas, calibration residual shapes
 
+## PHASE 3.5 — Monte Carlo Enhancements (1 week)
 
-## PHASE 4 — Structured Payoffs: Asians, Digitals, Barriers (3–4 weeks)
+- [ ] Add antithetic variates toggle to `MonteCarlo` method
+- [ ] Implement control variates with BS analytical formulas
+- [ ] Add reproducibility features: seeded RNG + control panel
+- [ ] Refactor MC framework to support pluggable variance reduction via `MCStrategy`
+- [ ] Optional: add stratified / quasi-random sampling hooks
+- [ ] Unit tests: check variance reduction and correctness vs analytic prices
 
-- [ ] Arithmetic Asian (MC)
-- [ ] Geometric Asian (closed form)
-- [ ] Digital options (cash-or-nothing, asset-or-nothing)
-- [ ] Barrier options (knock-in/out, discrete MC)
-- [ ] Payoff extensions for monitoring / averaging
-- [ ] Unit tests: payoff logic, price agreement, monitoring
+## PHASE 4 — Structured Payoffs (2–3 weeks)
 
+- [ ] Extend `Payoff` system to support path-dependent and monitored options
+- [ ] Arithmetic Asian pricing via Monte Carlo
+- [ ] Geometric Asian pricing via closed-form solution
+- [ ] Cash-or-nothing and asset-or-nothing digital options
+- [ ] Barrier options (up/down, knock-in/out, discrete monitoring)
+- [ ] Add `Monitoring` and `Averaging` traits or modifiers
+- [ ] Unit tests: price agreement across methods, monitoring edge cases
 
-## PHASE 5 — IR Products & Models (4 weeks)
+## PHASE 5 — Interest Rate Products & Models (3–4 weeks)
 
-- [ ] Zero-coupon and coupon bond pricing
-- [ ] FRA, IRS with schedule engine
-- [ ] Cap/floor pricing using Black model
-- [ ] Hull–White model implementation
-- [ ] Swaption pricing via Jamshidian or PDE
-- [ ] Basic CDS pricing (flat hazard curve)
-- [ ] Unit tests: cashflow valuation, IR curve usage, swap replication
+- [ ] Implement zero-coupon and fixed-coupon bond pricing
+- [ ] Build FRA and IRS support with schedule engine and stub logic
+- [ ] Cap/floor pricing using Black formula
+- [ ] Hull–White short rate model
+- [ ] Swaption pricing via Jamshidian decomposition or PDE method
+- [ ] Basic CDS pricing with flat hazard rate model
+- [ ] Unit tests: replication of swaps via bond strips, curve usage, date handling
 
+## PHASE 6 — Multi-Curve Support & Calibration (3 weeks)
 
-## PHASE 5.5 — Multi-Curve Support & Calibration (3 weeks)
+- [ ] Introduce multi-curve framework (OIS + forwarding curves)
+- [ ] Curve bootstrapping: deposit, futures, swaps
+- [ ] Curve interpolation: ZC rates, discount factors, log-linear extrapolation
+- [ ] Integrate multi-curve into FRA, IRS, caps/floors pricing
+- [ ] Unit tests: bootstrapping accuracy, multi-curve vs single-curve comparisons
 
-- [ ] Multi-curve struct: OIS + forwarding curves
-- [ ] Curve bootstrapping (deposits, futures, swaps)
-- [ ] Curve interpolation (ZC, DF, log-linear)
-- [ ] Integration into FRA, IRS, caps
-- [ ] Unit tests: calibration residuals, multi-curve pricing
+## PHASE 6.5 — PDE Framework (2–3 weeks)
 
+- [ ] Implement Crank–Nicolson solver for Black-Scholes PDE
+- [ ] Define `PDEProblem` type with boundary conditions and solver settings
+- [ ] Generalize solver infrastructure for future PDE models
+- [ ] Unit tests: convergence checks, price agreement with analytic/MC methods
 
-## PHASE 6 — SABR, Local Vol, Rough Vol (4–6 weeks)
+## PHASE 7 — SABR, Local Vol, Rough Vol (4–5 weeks)
 
-- [ ] SABR model (Hagan) + calibration
-- [ ] SABR-implied vol surface
-- [ ] Local vol generation (Dupire)
-- [ ] Rough Heston or rBergomi simulation
-- [ ] MC or Fourier pricing for rough models
-- [ ] Unit tests: calibration error, rough sim stability
+- [ ] SABR model implementation (Hagan approximation)
+- [ ] Calibration to vanilla vol surface
+- [ ] Dupire local vol generation from calibrated surface
+- [ ] Rough Heston or rBergomi sampling engine
+- [ ] Fourier or Monte Carlo pricing for rough volatility models
+- [ ] Unit tests: calibration error metrics, simulation path sanity checks
 
+## PHASE 8 — Robustness & Performance (3–4 weeks)
 
-## PHASE 7 — Robustness & Performance (4 weeks)
+- [ ] Edge case test suite: deep ITM/OTM, short maturity, extreme vol
+- [ ] Sensitivity exploration tools (Greeks wrt model parameters)
+- [ ] Allocation-free Monte Carlo and LSM refactoring
+- [ ] Batch pricing support for performance testing
+- [ ] Parallel/multithreaded MC and calibration support
+- [ ] Optional: GPU backend for simulation
+- [ ] CI: Full unit test and regression test coverage, GitHub Actions setup
 
-- [ ] Hedge case test suite (deep ITM, expiry, high/low vol)
-- [ ] Sensitivity testing tools (Greeks vs model parameters)
-- [ ] Allocation-free Monte Carlo + LSM
-- [ ] Batch pricing support
-- [ ] Multithreaded MC / calibration
-- [ ] Optional: GPU support
-- [ ] Full unit + regression test coverage
-- [ ] GitHub Actions or CI setup
+## PHASE 9 — Model-Free Pricing & Arbitrage Detection (2–3 weeks)
 
+- [ ] Risk-neutral density extraction from call spread surface
+- [ ] Variance swap pricing via replication
+- [ ] Digital option replication using spreads
+- [ ] Arbitrage checks: calendar spreads, butterfly arbitrage
+- [ ] Super-replication bounds for exotic payoffs
+- [ ] Unit tests: convexity and arbitrage consistency, replication sanity
 
-## PHASE 8 — Model-Free Pricing & Arbitrage Detection (2–3 weeks)
+## PHASE 10 — Documentation & Launch Prep (2 weeks)
 
-- [ ] Risk-neutral density from call spread surface
-- [ ] Variance swap replication (model-free)
-- [ ] Digital replication from spreads
-- [ ] Arbitrage checks (calendar, butterfly)
-- [ ] Super-replication bounds
-- [ ] Unit tests: convexity checks, replication consistency
+- [ ] Full docstrings for all exported types and functions
+- [ ] Notebooks covering pricing, Greeks, calibration, and structured payoffs
+- [ ] CONTRIBUTING.md and internal dev onboarding guide
+- [ ] Smoke-tested example scripts folder
+- [ ] Test coverage badge and CI status reporting
+- [ ] Prepare for public release: package registry, landing README
+- [ ] Soft launch with trusted peers; optionally post to LinkedIn, Discourse
 
+## PHASE 11 — Optional Extensions
 
-## PHASE 9 — Documentation & Launch Prep (2–3 weeks)
-
-- [ ] Full docstrings and module-level documentation
-- [ ] Notebooks: pricing, calibration, Greeks, structured payoffs
-- [ ] CONTRIBUTING.md + dev onboarding notes
-- [ ] Smoke-tested example folder
-- [ ] Test coverage badge
-- [ ] Prepare public repo / registry package
-- [ ] Soft launch with trusted peers
-- [ ] Optional public launch (LinkedIn, Discourse, blog post)
-
-
-## PHASE 10 — Optional Extensions
-
-- [ ] REST API wrapper (pricing, calibration)
-- [ ] Pluto.jl-based interactive UI
-- [ ] Real-time batch pricing or risk engine
+- [ ] REST API or service wrapper for pricing/calibration endpoints
+- [ ] Pluto.jl-based interactive pricing UI
+- [ ] Real-time batch pricing and risk engine prototype
 - [ ] Signature-based models (rough paths theory)
-- [ ] Structured product generator (range accruals, callable notes)
-- [ ] QUAD method (revisit and polish implementation)
+- [ ] Structured product builder (range accruals, callable notes)
+- [ ] QUAD method revisitation and benchmarking
