@@ -53,9 +53,9 @@ end
 
 # Define the calibration problem
 struct BlackScholesCalibrationProblem{P<:PricingProblem, M}
-    prob::P
+    prob::P 
     method::M
-    price_target::Float64
+    price_target
 end
 
 function solve(calib::BlackScholesCalibrationProblem; initial_guess=0.2, lower=1e-6, upper=5.0, kwargs...)

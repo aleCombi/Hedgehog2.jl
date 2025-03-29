@@ -94,3 +94,20 @@ for (i, d) in enumerate(zero_deltas)
     t = spine_tenors(rate_curve)[i]
     println("Tenor $(t)y: ∂Price/∂z[$i] = ", round(d, sigdigits=6))
 end
+
+vega_an = solve(gprob, AnalyticGreek(), bs_method).greek
+
+gamma_an = solve(gammaprob, AnalyticGreek(), bs_method).greek
+volga_an = solve(volgaprob, AnalyticGreek(), bs_method).greek
+
+println("Vega (Analytic): $vega_an")
+println("Vega (Forward AD): $vega_ad")
+println("Vega (Finite Diff): $vega_fd\n")
+
+println("Gamma (Analytic): $gamma_an")
+println("Gamma (Forward AD): $gamma_ad")
+println("Gamma (Finite Diff): $gamma_fd\n")
+
+println("Volga (Analytic): $volga_an")
+println("Volga (Forward AD): $volga_ad")
+println("Volga (Finite Diff): $volga_fd")

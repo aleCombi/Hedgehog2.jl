@@ -1,5 +1,5 @@
 # Exports
-export ForwardAD, FiniteDifference, GreekProblem, SecondOrderGreekProblem
+export ForwardAD, FiniteDifference, GreekProblem, SecondOrderGreekProblem, AnalyticGreek
 
 # Method types
 abstract type GreekMethod end
@@ -10,13 +10,16 @@ struct FDForward <: FDScheme end
 struct FDBackward <: FDScheme end
 struct FDCentral <: FDScheme end
 
+struct AnalyticGreek <: GreekMethod end
+
 struct ForwardAD <: GreekMethod end
+
 struct FiniteDifference{S<:FDScheme} <: GreekMethod
     bump
     scheme::S
 end
 
-FiniteDifference(bump) = FiniteDifference(bump, CentralFiniteDifference())
+FiniteDifference(bump) = FiniteDifference(bump, FDCentral())
 
 # First-order GreekProblem
 struct GreekProblem{P, L}
@@ -60,7 +63,7 @@ function compute_fd_derivative(::FDCentral, prob, lens, ε, pricing_method)
     return (v_up - v_down) / (2ε)
 end
 
-function solve(gprob::GreekProblem, method::FiniteDifference{S}, pricing_method::P) where {S<:FiniteDifferenceScheme, P<:AbstractPricingMethod}
+function solve(gprob::GreekProblem, method::FiniteDifference{S}, pricing_method::P) where {S<:FDScheme, P<:AbstractPricingMethod}
     prob = gprob.pricing_problem
     lens = gprob.wrt
     ε = method.bump
@@ -118,4 +121,77 @@ function solve(gprob::SecondOrderGreekProblem, method::FiniteDifference, pricing
     end
 
     return (greek = deriv,)
+end
+
+function solve(gprob::GreekProblem, ::AnalyticGreek, ::BlackScholesAnalytic)
+    prob = gprob.pricing_problem
+    lens = gprob.wrt
+    inputs = prob.market
+
+    S = inputs.spot
+    σ = inputs.sigma
+    T = yearfrac(prob.market.referenceDate, prob.payoff.expiry)
+    K = prob.payoff.strike
+
+    D = df(prob.market.rate, T)
+    F = prob.market.spot / D
+    √T = sqrt(T)
+    d1 = (log(F / K) + 0.5 * σ^2 * T) / (σ * √T)
+    d2 = d1 - σ * √T
+
+    Φ = x -> cdf(Normal(), x)
+    ϕ = x -> pdf(Normal(), x)
+
+    greek = if lens === @optic _.market.spot
+        # Delta = ∂V/∂S = ∂V/∂F * ∂F/∂S = (cp * N(cp·d1)) * (1/D)
+        cp * Φ(cp * d1)
+
+    elseif lens === @optic _.market.sigma
+        # Vega = ∂V/∂σ = D · F · φ(d1) · √T
+        D * F * ϕ(d1) * √T
+
+    else
+        error("Unsupported lens for analytic Greek")
+    end
+
+    return (greek = greek,)
+end
+
+function solve(
+    gprob::SecondOrderGreekProblem,
+    ::AnalyticGreek,
+    ::BlackScholesAnalytic
+)
+    prob = gprob.pricing_problem
+    lens1 = gprob.wrt1
+    lens2 = gprob.wrt2
+    inputs = prob.market
+
+    S = inputs.spot
+    σ = inputs.sigma
+    T = yearfrac(inputs.referenceDate, prob.payoff.expiry)
+    K = prob.payoff.strike
+
+    D = df(inputs.rate, T)
+    F = S / D
+    √T = sqrt(T)
+    d1 = (log(F / K) + 0.5 * σ^2 * T) / (σ * √T)
+    d2 = d1 - σ * √T
+
+    ϕ = x -> pdf(Normal(), x)
+
+    greek = if (lens1 === @optic _.market.spot) && (lens2 === @optic _.market.spot)
+        # Gamma = ∂²V/∂S² = φ(d1) / (Sσ√T)
+        ϕ(d1) / (S * σ * √T)
+
+    elseif (lens1 === @optic _.market.sigma) && (lens2 === @optic _.market.sigma)
+        # Volga = Vega * d1 * d2 / σ
+        vega = D * F * ϕ(d1) * √T
+        vega * d1 * d2 / σ
+
+    else
+        error("Unsupported second-order analytic Greek")
+    end
+
+    return (greek = greek,)
 end
