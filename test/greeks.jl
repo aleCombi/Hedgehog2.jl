@@ -117,3 +117,48 @@ import Accessors: @optic
     @test isapprox(theta_ad, theta_fd; rtol=5e-3)
     @test isapprox(theta_ad, theta_analytic; rtol=1e-8)
 end
+
+using Test
+using Hedgehog2
+using Dates
+using Accessors
+import Accessors: @optic
+
+@testset "Zero Rate Deltas: ForwardAD vs FiniteDifference" begin
+    # Define the vanilla option
+    strike = 1.0
+    expiry = Date(2020, 4, 2)
+    underlying = Hedgehog2.Forward()
+    payoff = VanillaOption(strike, expiry, European(), Put(), underlying)
+
+    # Reference date and market inputs
+    reference_date = Date(2020, 1, 1)
+    spot = 1.0
+    sigma = 1.0
+    base_rate = 0.03
+
+    # Create multi-tenor flat curve for testing
+    tenors = [0.25, 0.5, 1.0, 2.0, 5.0]
+    dfs = @. exp(-base_rate * tenors)
+    rate_curve = RateCurve(reference_date, tenors, dfs)
+
+    # Construct pricing problem with interpolated curve
+    market_inputs = BlackScholesInputs(reference_date, rate_curve, spot, sigma)
+    prob = PricingProblem(payoff, market_inputs)
+
+    # Choose Greek and pricing methods
+    pricing_method = BlackScholesAnalytic()
+    ad_method = ForwardAD()
+    fd_method = FiniteDifference(1e-5)
+
+    # Loop through each zero rate pillar and compare AD vs FD
+    for i in 1:length(spine_zeros(rate_curve))
+        lens = ZeroRateSpineLens(i)
+
+        g_ad = solve(GreekProblem(prob, lens), ad_method, pricing_method).greek
+        g_fd = solve(GreekProblem(prob, lens), fd_method, pricing_method).greek
+        println(g_ad, g_fd)
+        @test isapprox(g_ad, g_fd; rtol=1e-6, atol=1e-10) ||
+            @warn "Mismatch at zero rate spine index $i" ad=g_ad fd=g_fd
+    end
+end
