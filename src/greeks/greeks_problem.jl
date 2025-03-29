@@ -124,10 +124,13 @@ function solve(gprob::SecondOrderGreekProblem, method::FiniteDifference, pricing
     return (greek = deriv,)
 end
 
-function solve(gprob::GreekProblem, ::AnalyticGreek, ::BlackScholesAnalytic)
+function solve(gprob::GreekProblem{
+PricingProblem{VanillaOption{European, A, B}, BlackScholesInputs},
+    <:Any}, ::AnalyticGreek, ::BlackScholesAnalytic) where {A, B}
     prob = gprob.pricing_problem
     lens = gprob.wrt
     inputs = prob.market
+    cp = prob.payoff.call_put()
 
     S = inputs.spot
     σ = inputs.sigma
@@ -150,6 +153,13 @@ function solve(gprob::GreekProblem, ::AnalyticGreek, ::BlackScholesAnalytic)
     elseif lens === @optic _.market.sigma
         # Vega = ∂V/∂σ = D · F · φ(d1) · √T
         D * F * ϕ(d1) * √T
+    
+    elseif lens === @optic _.payoff.expiry
+        @assert is_flat(prob.market.rate)
+
+        # Assume flat rate: z(T) = r ⇒ D(T) = exp(-rT), F(T) = S / D(T)
+        r = zero_rate_yf(prob.market.rate, T)
+        (r * prob.payoff.strike * D * Φ(d2) + F * D * prob.market.sigma * ϕ(d1) / (2√T)) / (MILLISECONDS_IN_YEAR_365) #against ticks, to match AD and FD. Observe that the sign is counterintuitive as it is a derivative against expiry in tticks, not against time-to-maturity in yearfrac
 
     else
         error("Unsupported lens for analytic Greek")
