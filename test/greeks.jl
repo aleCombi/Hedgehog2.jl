@@ -61,3 +61,57 @@ import Accessors: @optic
         @test isapprox(ad_val, fd_val; rtol=1e-5)
     end
 end
+
+using Test
+using Hedgehog2
+using Dates
+using Accessors
+import Accessors: @optic
+
+@testset "Greeks Agreement Test" begin
+    strike = 1.0
+    expiry = Date(2020, 1, 2)
+    reference_date = Date(2020, 1, 1)
+    rate = 0.03
+    spot = 1.0
+    sigma = 1.0
+
+    underlying = Hedgehog2.Forward()
+    payoff = VanillaOption(strike, expiry, European(), Put(), underlying)
+    market_inputs = BlackScholesInputs(reference_date, rate, spot, sigma)
+    pricing_prob = PricingProblem(payoff, market_inputs)
+    bs_method = BlackScholesAnalytic()
+
+    vol_lens = @optic _.market.sigma
+    spot_lens = @optic _.market.spot
+
+    # Vega
+    gprob = GreekProblem(pricing_prob, vol_lens)
+    vega_ad = solve(gprob, ForwardAD(), bs_method).greek
+    vega_fd = solve(gprob, FiniteDifference(1e-4), bs_method).greek
+    vega_an = solve(gprob, AnalyticGreek(), bs_method).greek
+    @test isapprox(vega_ad, vega_fd; rtol=1e-5)
+    @test isapprox(vega_ad, vega_an; rtol=1e-5)
+
+    # Gamma
+    gammaprob = SecondOrderGreekProblem(pricing_prob, spot_lens, spot_lens)
+    gamma_ad = solve(gammaprob, ForwardAD(), bs_method).greek
+    gamma_fd = solve(gammaprob, FiniteDifference(1e-4), bs_method).greek
+    gamma_an = solve(gammaprob, AnalyticGreek(), bs_method).greek
+    @test isapprox(gamma_ad, gamma_fd; rtol=1e-5)
+    @test isapprox(gamma_ad, gamma_an; rtol=1e-5)
+
+    # Volga
+    volgaprob = SecondOrderGreekProblem(pricing_prob, vol_lens, vol_lens)
+    volga_ad = solve(volgaprob, ForwardAD(), bs_method).greek
+    volga_fd = solve(volgaprob, FiniteDifference(1e-4), bs_method).greek
+    volga_an = solve(volgaprob, AnalyticGreek(), bs_method).greek
+    @test isapprox(volga_ad, volga_fd; rtol=1e-3)
+    @test isapprox(volga_ad, volga_an; rtol=1e-5)
+
+    # Theta (no analytic yet)
+    thetaprob = GreekProblem(pricing_prob, @optic _.payoff.expiry)
+    theta_ad = solve(thetaprob, ForwardAD(), bs_method).greek
+    theta_fd = solve(thetaprob, FiniteDifference(1), bs_method).greek
+    @test isapprox(theta_ad, theta_fd; rtol=1e-5)
+end

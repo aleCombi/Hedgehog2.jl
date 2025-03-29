@@ -115,6 +115,7 @@ println("Volga (Finite Diff): $volga_fd")
 # ------------------------------
 # Theta (1st order w.r.t. expiry)
 # ------------------------------
+# note that derivatives are in ticks, hence very small
 thetaproblem = Hedgehog2.GreekProblem(euro_pricing_prob, @optic _.payoff.expiry)
 theta_ad = solve(thetaproblem, ForwardAD(), bs_method).greek
 theta_fd = solve(thetaproblem, FiniteDifference(1), bs_method).greek
