@@ -4,10 +4,19 @@ export ForwardAD, FiniteDifference, GreekProblem, SecondOrderGreekProblem
 # Method types
 abstract type GreekMethod end
 
+abstract type FDScheme end
+
+struct FDForward <: FDScheme end
+struct FDBackward <: FDScheme end
+struct FDCentral <: FDScheme end
+
 struct ForwardAD <: GreekMethod end
-struct FiniteDifference <: GreekMethod
-    bump::Float64
+struct FiniteDifference{S<:FDScheme} <: GreekMethod
+    bump
+    scheme::S
 end
+
+FiniteDifference(bump) = FiniteDifference(bump, CentralFiniteDifference())
 
 # First-order GreekProblem
 struct GreekProblem{P, L}
@@ -26,19 +35,38 @@ function solve(gprob::GreekProblem, ::ForwardAD, pricing_method::P) where P<:Abs
     return (greek = deriv,)
 end
 
-function solve(gprob::GreekProblem, method::FiniteDifference, pricing_method::P) where P<:AbstractPricingMethod
-    prob = gprob.pricing_problem
-    lens = gprob.wrt
-    ε = method.bump
+function compute_fd_derivative(::ForwardFiniteDifference, prob, lens, ε, pricing_method)
+    x₀ = lens(prob)
+    prob_up = set(prob, lens, x₀ + ε)
+    v_up = solve(prob_up, pricing_method).price
+    v₀ = solve(prob, pricing_method).price
+    return (v_up - v₀) / ε
+end
 
+function compute_fd_derivative(::BackwardFiniteDifference, prob, lens, ε, pricing_method)
+    x₀ = lens(prob)
+    prob_down = set(prob, lens, x₀ - ε)
+    v_down = solve(prob_down, pricing_method).price
+    v₀ = solve(prob, pricing_method).price
+    return (v₀ - v_down) / ε
+end
+
+function compute_fd_derivative(::CentralFiniteDifference, prob, lens, ε, pricing_method)
     x₀ = lens(prob)
     prob_up = set(prob, lens, x₀ + ε)
     prob_down = set(prob, lens, x₀ - ε)
-
     v_up = solve(prob_up, pricing_method).price
     v_down = solve(prob_down, pricing_method).price
+    return (v_up - v_down) / (2ε)
+end
 
-    deriv = (v_up - v_down) / (2ε)
+function solve(gprob::GreekProblem, method::FiniteDifference{S}, pricing_method::P) where {S<:FiniteDifferenceScheme, P<:AbstractPricingMethod}
+    prob = gprob.pricing_problem
+    lens = gprob.wrt
+    ε = method.bump
+    scheme = method.scheme
+
+    deriv = compute_fd_derivative(scheme, prob, lens, ε, pricing_method)
     return (greek = deriv,)
 end
 
