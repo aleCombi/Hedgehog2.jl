@@ -65,31 +65,6 @@ println("Volga (Finite Diff): $volga_fd")
 
 println("\n--- Zero Rate Deltas (per tenor) ---")
 
-struct ZeroRateSpineLens
-    i::Int
-end
-
-import Accessors: set, @optic
-
-# Getter
-function (lens::ZeroRateSpineLens)(prob)
-    return spine_zeros(prob.market.rate)[lens.i]
-end
-
-# Setter (rebuilds the rate curve with updated zero rate at index `i`)
-function set(prob, lens::ZeroRateSpineLens, new_zᵢ)
-    curve = prob.market.rate
-    t = spine_tenors(curve)
-    z = spine_zeros(curve)
-    dfs = @. exp(-z * t)
-    
-    # Update only the i-th discount factor with new_zᵢ
-    dfs_bumped = @set dfs[lens.i] = exp(-new_zᵢ * t[lens.i])
-
-    new_curve = RateCurve(curve.reference_date, t, dfs_bumped)
-    return @set prob.market.rate = new_curve
-end
-
 # Create a rate curve with multiple tenors
 tenors = [0.25, 0.5, 1.0, 2.0, 5.0]
 dfs = @. exp(-rate * tenors)

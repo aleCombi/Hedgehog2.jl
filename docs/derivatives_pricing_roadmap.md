@@ -24,7 +24,7 @@
 
 - [ ] Implement `GreekCalculator{G, P, M, S}` with support for:
 - [ ] Finite differences (forward, backward, central)
-- [ ] Forward AD
+- [x] Forward AD
 - [ ] Analytic Greeks for Black-Scholes
 - [ ] Optional: AD for Monte Carlo methods
 - [ ] Plug Greeks into pricing pipeline with consistent API

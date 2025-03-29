@@ -1,7 +1,7 @@
 using DataInterpolations
 import Dates: Date, value
 import Base: getindex
-export RateCurve, df, zero_rate, forward_rate, spine_tenors, spine_zeros, FlatRateCurve, is_flat
+export RateCurve, df, zero_rate, forward_rate, spine_tenors, spine_zeros, FlatRateCurve, is_flat, ZeroRateSpineLens
 
 # -- Curve struct --
 struct RateCurve{I}
@@ -53,4 +53,30 @@ end
 
 function is_flat(curve::RateCurve)
     length(spine_tenors(curve)) == 1
+end
+
+struct ZeroRateSpineLens
+    i::Int
+end
+
+# accessors for greeks
+import Accessors: set, @optic
+
+# Getter
+function (lens::ZeroRateSpineLens)(prob)
+    return spine_zeros(prob.market.rate)[lens.i]
+end
+
+# Setter (rebuilds the rate curve with updated zero rate at index `i`)
+function set(prob, lens::ZeroRateSpineLens, new_zᵢ)
+    curve = prob.market.rate
+    t = spine_tenors(curve)
+    z = spine_zeros(curve)
+    dfs = @. exp(-z * t)
+    
+    # Update only the i-th discount factor with new_zᵢ
+    dfs_bumped = @set dfs[lens.i] = exp(-new_zᵢ * t[lens.i])
+
+    new_curve = RateCurve(curve.reference_date, t, dfs_bumped)
+    return @set prob.market.rate = new_curve
 end
