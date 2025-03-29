@@ -1,10 +1,10 @@
 @testset "Carr-Madan vs Black-Scholes analytical" begin
     # Define market inputs
     reference_date = Date(2020, 1, 1)
-    rate = 0.2
+    interest_rate = 0.2
     spot = 100.0
     sigma = 0.4
-    market_inputs = BlackScholesInputs(reference_date, rate, spot, sigma)
+    market_inputs = BlackScholesInputs(reference_date, interest_rate, spot, sigma)
 
     # Define payoff
     expiry = reference_date + Day(365)

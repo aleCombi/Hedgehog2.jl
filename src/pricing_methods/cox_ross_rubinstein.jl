@@ -72,7 +72,7 @@ Computes the underlying asset price at a given step when pricing an option on th
 - The estimated spot price, derived by discounting the forward price.
 """
 function binomial_tree_underlying(time_step, forward, rate, delta_time, ::Spot)
-    return df(rate, time_step * delta_time) * forward
+    return exp(-zero_rate(rate, add_yearfrac(rate.reference_date, time_step* delta_time)) * time_step* delta_time) * forward
 end
 
 """
@@ -102,7 +102,7 @@ function solve(
 
     steps = method.steps
     T = yearfrac(market_inputs.referenceDate, payoff.expiry)
-    forward = market_inputs.spot / df(market_inputs.rate, T)
+    forward = market_inputs.spot / df(market_inputs.rate, payoff.expiry)
     ΔT = T / steps
     u = exp(market_inputs.sigma * sqrt(ΔT))
 
@@ -114,7 +114,7 @@ function solve(
 
     for step in (steps-1):-1:0
         continuation = p * value[2:end] + (1 - p) * value[1:end-1]
-        discount_factor = df(market_inputs.rate, ΔT)
+        discount_factor = exp(-zero_rate(market_inputs.rate, payoff.expiry) * ΔT)
         value = binomial_tree_value(step, discount_factor * continuation, underlying_at_i, payoff, payoff.exercise_style)
     end
 

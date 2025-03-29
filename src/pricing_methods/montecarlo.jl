@@ -123,7 +123,8 @@ Returns the lognormal distribution of the asset price at time `t`.
 """
 function marginal_law(::LognormalDynamics, m::BlackScholesInputs, t)
     rate = zero_rate(m.rate, t)
-    return Normal(log(m.spot) + (rate - m.sigma^2 / 2)t, m.sigma * √t)  
+    α = yearfrac(m.rate.reference_date, t)
+    return Normal(log(m.spot) + (rate - m.sigma^2 / 2)√α, m.sigma * √α)  
 end
 
 
@@ -147,7 +148,8 @@ end
 Returns the joint distribution of log(S_T) and V_T under the Heston model.
 """
 function marginal_law(::HestonDynamics, m::HestonInputs, t)
-    return HestonDistribution(m.spot, m.V0, m.κ, m.θ, m.σ, m.ρ, m.rate, t)
+    α = yearfrac(m.rate.reference_date, t)
+    return HestonDistribution(m.spot, m.V0, m.κ, m.θ, m.σ, m.ρ, m.rate, α)
 end
 
 """
@@ -234,7 +236,7 @@ function solve(
 
     terminal_prices = [get_terminal_value(p, method.dynamics, method.strategy) for p in paths]
     payoffs = prob.payoff.(terminal_prices)
-    price = df(prob.market.rate, T) * mean(payoffs)
+    price = df(prob.market.rate, prob.payoff.expiry) * mean(payoffs)
 
     return MonteCarloSolution(price, ens)
 end

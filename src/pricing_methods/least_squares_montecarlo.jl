@@ -53,13 +53,13 @@ function solve(
         throw(ArgumentError("LSM pricing only supports flat rate curves."))
     end
 
-    T = Dates.value(prob.payoff.expiry - prob.market.referenceDate) / 365
+    T = yearfrac(prob.market.referenceDate, prob.payoff.expiry)
     sol = simulate_paths(method.mc_method, prob.market, T)
     spot_grid = extract_spot_grid(sol) ./ prob.market.spot  # Normalize paths
 
     ntimes, npaths = size(spot_grid)
     nsteps = ntimes - 1
-    discount = df(prob.market.rate, T / nsteps)
+    discount = df(prob.market.rate, add_yearfrac(prob.market.referenceDate, T / nsteps))
 
     # (time_index, value) for each path
     stopping_info = [(nsteps, prob.payoff(spot_grid[nsteps + 1, p])) for p in 1:npaths]

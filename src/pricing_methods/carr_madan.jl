@@ -59,20 +59,19 @@ function solve(
     K = prob.payoff.strike
     r = prob.market.rate
     S = prob.market.spot
-    T = yearfrac(prob.market.referenceDate, prob.payoff.expiry)
 
-    terminal_law = marginal_law(method.dynamics, prob.market, T)
+    terminal_law = marginal_law(method.dynamics, prob.market, prob.payoff.expiry)
     ϕ(u) = cf(terminal_law, u)
 
     logK = log(K)
     damp = exp(-method.α * logK) / (2π)
-    integrand(v, p) = damp * call_transform(r, T, ϕ, v, method) * exp(-im * v * logK)
+    integrand(v, p) = damp * call_transform(r, prob.payoff.expiry, ϕ, v, method) * exp(-im * v * logK)
 
     iprob = IntegralProblem(integrand, -method.bound, method.bound, nothing)
     integral_result = Integrals.solve(iprob, Integrals.HCubatureJL(); method.kwargs...)
 
     call_price = real(integral_result.u)
-    price = parity_transform(call_price, prob.payoff, S, T)
+    price = parity_transform(call_price, prob.payoff, S)
 
     return CarrMadanSolution(price, integral_result)
 end

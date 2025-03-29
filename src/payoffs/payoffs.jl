@@ -146,7 +146,7 @@ Returns the call price unchanged (no transformation needed).
 - `S`: Spot price.
 - `T`: Time to expiry.
 """
-function parity_transform(call_price, opt::VanillaOption{E, Call, U}, S, T) where {E, U}
+function parity_transform(call_price, opt::VanillaOption{E, Call, U}, S) where {E, U}
     return call_price
 end
 
@@ -164,6 +164,6 @@ Applies put-call parity to derive the put price from the call price.
 # Returns
 - The corresponding put price using: `put = call - S + K * exp(-rT)`.
 """
-function parity_transform(call_price, opt::VanillaOption{E, Put, U}, S, T) where {E, U}
+function parity_transform(call_price, opt::VanillaOption{E, Put, U}, S) where {E, U}
     return call_price - S + opt.strike * exp(-opt.expiry)
 end

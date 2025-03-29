@@ -44,6 +44,9 @@ end
 df(curve::RateCurve, ticks::Real) =
     exp(-zero_rate(curve, ticks) * yearfrac(curve.reference_date, ticks))
 
+df_yf(curve::RateCurve, yf::Real) =
+    exp(-zero_rate_yf(curve, yf) * yf)
+
 # Accepts Date, routes to tick-based version
 df(curve::RateCurve, t::Date) =
     df(curve, to_ticks(t))
@@ -51,6 +54,9 @@ df(curve::RateCurve, t::Date) =
 # Accepts ticks (ms since epoch)
 zero_rate(curve::RateCurve, ticks::Real) =
     curve.interpolator(yearfrac(curve.reference_date, ticks))
+
+zero_rate_yf(curve::RateCurve, yf::Real) =
+    curve.interpolator(yf)
 
 # Accepts daycounts (already in year fractions)
 zero_rate(curve::RateCurve, t::Date) = zero_rate(curve, to_ticks(t))

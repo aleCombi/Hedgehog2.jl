@@ -21,12 +21,12 @@ using DataInterpolations
 
     # Test discount factors at each tenor
     for (t, df_expected) in zip(tenors, dfs)
-        @test isapprox(Hedgehog2.df(curve, t), df_expected; atol=1e-12)
+        @test isapprox(Hedgehog2.df_yf(curve, t), df_expected; atol=1e-12)
     end
 
     # Test zero rates at each tenor
     for (t, zr_expected) in zip(tenors, expected_zr)
-        @test isapprox(Hedgehog2.zero_rate(curve, t), zr_expected; atol=1e-12)
+        @test isapprox(Hedgehog2.zero_rate_yf(curve, t), zr_expected; atol=1e-12)
     end
 end
 
@@ -36,8 +36,8 @@ end
 
     # Check scalar zero_rate and df
     for t in [0.1, 1.0, 5.0]
-        @test isapprox(Hedgehog2.zero_rate(curve, t), r; atol=1e-12)
-        @test isapprox(Hedgehog2.df(curve, t), exp(-r * t); atol=1e-12)
+        @test isapprox(Hedgehog2.zero_rate_yf(curve, t), r; atol=1e-12)
+        @test isapprox(Hedgehog2.df_yf(curve, t), exp(-r * t); atol=1e-12)
     end
 
     # Check vectorized input
@@ -45,8 +45,8 @@ end
     expected_zr = fill(r, length(ts))
     expected_df = @. exp(-r * ts)
 
-    @test Hedgehog2.zero_rate.(Ref(curve), ts) == expected_zr
-    @test isapprox.(Hedgehog2.df.(Ref(curve), ts), expected_df; atol=1e-6) |> all
+    @test Hedgehog2.zero_rate_yf.(Ref(curve), ts) == expected_zr
+    @test isapprox.(Hedgehog2.df_yf.(Ref(curve), ts), expected_df; atol=1e-6) |> all
 
     # Check Date input
     t0 = Date(2025, 1, 1)
