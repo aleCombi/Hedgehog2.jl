@@ -134,7 +134,7 @@ function solve(gprob::GreekProblem, ::AnalyticGreek, ::BlackScholesAnalytic)
     T = yearfrac(prob.market.referenceDate, prob.payoff.expiry)
     K = prob.payoff.strike
 
-    D = df_ticks(prob.market.rate, T)
+    D = df(prob.market.rate, T)
     F = prob.market.spot / D
     √T = sqrt(T)
     d1 = (log(F / K) + 0.5 * σ^2 * T) / (σ * √T)
@@ -173,7 +173,7 @@ function solve(
     T = yearfrac(inputs.referenceDate, prob.payoff.expiry)
     K = prob.payoff.strike
 
-    D = df_ticks(inputs.rate, T)
+    D = df(inputs.rate, prob.payoff.expiry)
     F = S / D
     √T = sqrt(T)
     d1 = (log(F / K) + 0.5 * σ^2 * T) / (σ * √T)

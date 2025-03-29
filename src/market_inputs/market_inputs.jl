@@ -40,7 +40,7 @@ BlackScholesInputs(
     rate::Real,
     spot,
     sigma
-) = BlackScholesInputs(reference_date, FlatRateCurve(rate), spot, sigma)
+) = BlackScholesInputs(reference_date, FlatRateCurve(rate; reference_date=reference_date), spot, sigma)
 
 # in distribution.jl t is Real, hence we need to redefine it.
 """

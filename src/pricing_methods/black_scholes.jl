@@ -38,7 +38,7 @@ function solve(
     σ = prob.market.sigma
     cp = prob.payoff.call_put()
     T = yearfrac(prob.market.referenceDate, prob.payoff.expiry)
-    D = df_ticks(prob.market.rate, T)
+    D = df(prob.market.rate, prob.payoff.expiry)
     F = prob.market.spot / D
     price = if σ == 0
         D * prob.payoff(F)
