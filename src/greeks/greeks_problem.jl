@@ -35,7 +35,7 @@ function solve(gprob::GreekProblem, ::ForwardAD, pricing_method::P) where P<:Abs
     return (greek = deriv,)
 end
 
-function compute_fd_derivative(::ForwardFiniteDifference, prob, lens, ε, pricing_method)
+function compute_fd_derivative(::FDForward, prob, lens, ε, pricing_method)
     x₀ = lens(prob)
     prob_up = set(prob, lens, x₀ + ε)
     v_up = solve(prob_up, pricing_method).price
@@ -43,7 +43,7 @@ function compute_fd_derivative(::ForwardFiniteDifference, prob, lens, ε, pricin
     return (v_up - v₀) / ε
 end
 
-function compute_fd_derivative(::BackwardFiniteDifference, prob, lens, ε, pricing_method)
+function compute_fd_derivative(::FDBackward, prob, lens, ε, pricing_method)
     x₀ = lens(prob)
     prob_down = set(prob, lens, x₀ - ε)
     v_down = solve(prob_down, pricing_method).price
@@ -51,7 +51,7 @@ function compute_fd_derivative(::BackwardFiniteDifference, prob, lens, ε, prici
     return (v₀ - v_down) / ε
 end
 
-function compute_fd_derivative(::CentralFiniteDifference, prob, lens, ε, pricing_method)
+function compute_fd_derivative(::FDCentral, prob, lens, ε, pricing_method)
     x₀ = lens(prob)
     prob_up = set(prob, lens, x₀ + ε)
     prob_down = set(prob, lens, x₀ - ε)

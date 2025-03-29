@@ -22,8 +22,8 @@
 
 ## PHASE 3 — Greeks & Calibration Infrastructure (2–3 weeks)
 
-- [ ] Implement `GreekCalculator{G, P, M, S}` with support for:
-- [ ] Finite differences (forward, backward, central)
+- [ ] Implement `GreekProblem` and `solve` with support for:
+- [x] Finite differences (forward, backward, central)
 - [x] Forward AD
 - [ ] Analytic Greeks for Black-Scholes
 - [ ] Optional: AD for Monte Carlo methods
