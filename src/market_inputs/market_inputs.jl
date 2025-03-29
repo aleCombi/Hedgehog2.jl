@@ -21,14 +21,22 @@ Market data inputs for the Black-Scholes model.
 This struct encapsulates the necessary inputs for pricing derivatives under the Black-Scholes model.
 """
 struct BlackScholesInputs <: AbstractMarketInputs
-    referenceDate
+    referenceDate::Real
     rate::RateCurve
     spot
     sigma
 end
 
 BlackScholesInputs(
-    reference_date,
+    reference_date::TimeType,
+    rate::RateCurve,
+    spot,
+    sigma
+) = BlackScholesInputs(to_ticks(reference_date), rate, spot, sigma)
+
+
+BlackScholesInputs(
+    reference_date::TimeType,
     rate::Real,
     spot,
     sigma

@@ -41,6 +41,7 @@ end
 function compute_fd_derivative(::FDForward, prob, lens, ε, pricing_method)
     x₀ = lens(prob)
     prob_up = set(prob, lens, x₀ + ε)
+
     v_up = solve(prob_up, pricing_method).price
     v₀ = solve(prob, pricing_method).price
     return (v_up - v₀) / ε
@@ -56,6 +57,7 @@ end
 
 function compute_fd_derivative(::FDCentral, prob, lens, ε, pricing_method)
     x₀ = lens(prob)
+
     prob_up = set(prob, lens, x₀ + ε)
     prob_down = set(prob, lens, x₀ - ε)
     v_up = solve(prob_up, pricing_method).price
@@ -68,7 +70,6 @@ function solve(gprob::GreekProblem, method::FiniteDifference{S}, pricing_method:
     lens = gprob.wrt
     ε = method.bump
     scheme = method.scheme
-
     deriv = compute_fd_derivative(scheme, prob, lens, ε, pricing_method)
     return (greek = deriv,)
 end
@@ -133,7 +134,7 @@ function solve(gprob::GreekProblem, ::AnalyticGreek, ::BlackScholesAnalytic)
     T = yearfrac(prob.market.referenceDate, prob.payoff.expiry)
     K = prob.payoff.strike
 
-    D = df(prob.market.rate, T)
+    D = df_ticks(prob.market.rate, T)
     F = prob.market.spot / D
     √T = sqrt(T)
     d1 = (log(F / K) + 0.5 * σ^2 * T) / (σ * √T)
@@ -172,7 +173,7 @@ function solve(
     T = yearfrac(inputs.referenceDate, prob.payoff.expiry)
     K = prob.payoff.strike
 
-    D = df(inputs.rate, T)
+    D = df_ticks(inputs.rate, T)
     F = S / D
     √T = sqrt(T)
     d1 = (log(F / K) + 0.5 * σ^2 * T) / (σ * √T)

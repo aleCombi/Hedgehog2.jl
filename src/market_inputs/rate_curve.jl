@@ -5,13 +5,17 @@ export RateCurve, df, zero_rate, forward_rate, spine_tenors, spine_zeros, FlatRa
 
 # -- Curve struct --
 struct RateCurve{I}
-    reference_date::Date
+    reference_date::Real #ticks
     interpolator::I  # Should be a callable interpolating function
+end
+
+function RateCurve(reference_date::TimeType, interpolator)
+    return RateCurve(to_ticks(reference_date), interpolator)
 end
 
 # -- Constructor from discount factors (interpolate in zero rates) --
 function RateCurve(
-    reference_date::Date,
+    reference_date::Real,
     tenors,
     dfs;
     interp = LinearInterpolation,
@@ -25,12 +29,31 @@ function RateCurve(
     return RateCurve(reference_date, itp)
 end
 
-# -- Accessors --
-df(curve::RateCurve, t::Real) = exp(-zero_rate(curve, t) * t)
-df(curve::RateCurve, t::Date) = df(curve, yearfrac(curve.reference_date, t))
+function RateCurve(
+    reference_date::TimeType,
+    tenors,
+    dfs;
+    interp = LinearInterpolation,
+    extrap = ExtrapolationType.Constant
+) 
+    return RateCurve(to_ticks(reference_date), tenors, dfs; interp=interp, extrap=extrap)
+end
 
-zero_rate(curve::RateCurve, t::Real) = curve.interpolator(t)
-zero_rate(curve::RateCurve, t::Date) = zero_rate(curve, yearfrac(curve.reference_date, t))
+# -- Accessors --
+# Accepts ticks (ms since epoch)
+df_ticks(curve::RateCurve, ticks::Real) =
+    exp(-zero_rate_ticks(curve, ticks) * yearfrac(curve.reference_date, ticks))
+
+# Accepts Date, routes to tick-based version
+df(curve::RateCurve, t::Date) =
+    df_ticks(curve, to_ticks(t))
+
+# Accepts ticks (ms since epoch)
+zero_rate_ticks(curve::RateCurve, ticks::Real) =
+    curve.interpolator(yearfrac(curve.reference_date, ticks))
+
+# Accepts daycounts (already in year fractions)
+zero_rate(curve::RateCurve, t::Date) = zero_rate_ticks(curve, to_ticks(t))
 
 # -- Forward rate between two times --
 function forward_rate(curve::RateCurve, t1::Real, t2::Real)

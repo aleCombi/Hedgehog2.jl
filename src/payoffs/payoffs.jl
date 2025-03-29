@@ -102,10 +102,21 @@ A vanilla option with specified exercise style, call/put type, and underlying ty
 """
 struct VanillaOption{E,C,U} <: AbstractPayoff where {E<:AbstractExerciseStyle, C <: AbstractCallPut, U<: Underlying}
     strike
-    expiry
+    expiry::Real
     exercise_style::E
     call_put::C
     underlying::U
+end
+
+function VanillaOption(
+    strike,
+    expiry_date::TimeType,
+    exercise_style::E,
+    call_put::C,
+    underlying::U
+) where {E<:AbstractExerciseStyle, C<:AbstractCallPut, U<:Underlying}
+    expiry_ticks = to_ticks(expiry_date)
+    return VanillaOption{E, C, U}(strike, expiry_ticks, exercise_style, call_put, underlying)
 end
 
 """

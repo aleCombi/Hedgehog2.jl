@@ -5,16 +5,16 @@ import Accessors: @optic
 # ------------------------------
 # Define payoff and pricing problem
 # ------------------------------
-strike = 1.2
-expiry = Date(2021, 1, 1)
+strike = 1.0
+expiry = Date(2020, 1, 2)
 underlying = Hedgehog2.Forward()
 
 euro_payoff = VanillaOption(strike, expiry, European(), Put(), underlying)
 
 reference_date = Date(2020, 1, 1)
-rate = 0.2
+rate = 0.03
 spot = 1.0
-sigma = 0.4
+sigma = 1.0
 
 market_inputs = BlackScholesInputs(reference_date, rate, spot, sigma)
 euro_pricing_prob = PricingProblem(euro_payoff, market_inputs)
@@ -111,3 +111,15 @@ println("Gamma (Finite Diff): $gamma_fd\n")
 println("Volga (Analytic): $volga_an")
 println("Volga (Forward AD): $volga_ad")
 println("Volga (Finite Diff): $volga_fd")
+
+# ------------------------------
+# Theta (1st order w.r.t. expiry)
+# ------------------------------
+thetaproblem = Hedgehog2.GreekProblem(euro_pricing_prob, @optic _.payoff.expiry)
+theta_ad = solve(thetaproblem, ForwardAD(), bs_method).greek
+theta_fd = solve(thetaproblem, FiniteDifference(1), bs_method).greek
+# theta_an = solve(thetaproblem, AnalyticGreek(), bs_method).greek
+
+# println("Theta (Analytic):     $theta_an")
+println("Theta (Forward AD):  $theta_ad")
+println("Theta (Finite Diff): $theta_fd")
