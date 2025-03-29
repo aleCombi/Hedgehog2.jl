@@ -70,14 +70,14 @@ import Accessors: @optic
 
 @testset "Greeks Agreement Test" begin
     strike = 1.0
-    expiry = Date(2020, 1, 2)
+    expiry = Date(2021, 1, 1)
     reference_date = Date(2020, 1, 1)
     rate = 0.03
     spot = 1.0
     sigma = 1.0
 
     underlying = Hedgehog2.Forward()
-    payoff = VanillaOption(strike, expiry, European(), Put(), underlying)
+    payoff = VanillaOption(strike, expiry, European(), Call(), underlying)
     market_inputs = BlackScholesInputs(reference_date, rate, spot, sigma)
     pricing_prob = PricingProblem(payoff, market_inputs)
     bs_method = BlackScholesAnalytic()
@@ -109,9 +109,11 @@ import Accessors: @optic
     @test isapprox(volga_ad, volga_fd; rtol=1e-3)
     @test isapprox(volga_ad, volga_an; rtol=1e-5)
 
-    # Theta (no analytic yet)
+    # Theta (no analytic)
     thetaprob = GreekProblem(pricing_prob, @optic _.payoff.expiry)
     theta_ad = solve(thetaprob, ForwardAD(), bs_method).greek
     theta_fd = solve(thetaprob, FiniteDifference(1), bs_method).greek
-    @test isapprox(theta_ad, theta_fd; rtol=1e-5)
+    theta_analytic = solve(thetaprob, AnalyticGreek(), bs_method).greek
+    @test isapprox(theta_ad, theta_fd; rtol=5e-3)
+    @test isapprox(theta_ad, theta_analytic; rtol=1e-8)
 end
