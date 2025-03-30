@@ -1,223 +1,100 @@
-import DifferentialEquations
+using DifferentialEquations
+using DiffEqNoiseProcess
+using Statistics
+using Accessors
 
 export MonteCarlo, HestonBroadieKaya, EulerMaruyama, BlackScholesExact, LognormalDynamics, HestonDynamics, solve
 
-"""
-    PriceDynamics
+# ------------------ Price Dynamics ------------------
 
-Abstract type representing the underlying asset dynamics in a pricing model.
-"""
 abstract type PriceDynamics end
-
-"""
-    LognormalDynamics <: PriceDynamics
-
-Represents standard Black-Scholes lognormal dynamics.
-"""
 struct LognormalDynamics <: PriceDynamics end
-
-"""
-    HestonDynamics <: PriceDynamics
-
-Represents Heston stochastic volatility model dynamics.
-"""
 struct HestonDynamics <: PriceDynamics end
 
-"""
-    SimulationStrategy
+# ------------------ Simulation Strategies ------------------
 
-Abstract type for simulation strategies used in Monte Carlo pricing.
-"""
 abstract type SimulationStrategy end
 
-"""
-    HestonBroadieKaya <: SimulationStrategy
-
-Simulation strategy for Heston dynamics using Broadie-Kaya exact sampling.
-
-# Fields
-- `trajectories`: Number of Monte Carlo paths.
-- `steps`: Number of time steps (should be 1 for exact method).
-- `kwargs`: Named tuple of optional arguments passed to noise process or solver.
-"""
 struct HestonBroadieKaya <: SimulationStrategy
     trajectories
     steps
     kwargs::NamedTuple
 end
 
-"""
-    HestonBroadieKaya(trajectories; kwargs...)
+HestonBroadieKaya(trajectories; kwargs...) = HestonBroadieKaya(trajectories, 1, (; kwargs...))
 
-Convenience constructor for `HestonBroadieKaya` with default `steps = 1`.
-"""
-function HestonBroadieKaya(trajectories; kwargs...)
-    return HestonBroadieKaya(trajectories, 1, (; kwargs...))
-end
-
-"""
-    EulerMaruyama <: SimulationStrategy
-
-Simulation strategy using Euler-Maruyama discretization.
-
-# Fields
-- `trajectories`: Number of Monte Carlo paths.
-- `steps`: Number of time steps.
-- `kwargs`: Named tuple of optional solver arguments.
-"""
 struct EulerMaruyama <: SimulationStrategy
     trajectories
     steps
     kwargs::NamedTuple
 end
 
-"""
-    BlackScholesExact <: SimulationStrategy
-
-Exact simulation strategy for lognormal dynamics (Black-Scholes).
-
-# Fields
-- `trajectories`: Number of Monte Carlo paths.
-- `steps`: Number of time steps (usually 1).
-- `kwargs`: Named tuple of optional solver arguments.
-"""
 struct BlackScholesExact <: SimulationStrategy
     trajectories
     steps
     kwargs::NamedTuple
 end
 
-"""
-    EulerMaruyama(trajectories, steps; kwargs...)
+EulerMaruyama(trajectories, steps; kwargs...) = EulerMaruyama(trajectories, steps, (; kwargs...))
+BlackScholesExact(trajectories, steps=1; kwargs...) = BlackScholesExact(trajectories, steps, (; kwargs...))
 
-Convenience constructor for `EulerMaruyama` simulation strategy.
-"""
-function EulerMaruyama(trajectories, steps; kwargs...) 
-    return EulerMaruyama(trajectories, steps, (; kwargs...))
+# ------------------ SDE Problem Builders ------------------
+
+function sde_problem(::LognormalDynamics, s::BlackScholesExact, market::BlackScholesInputs, tspan)
+    @assert is_flat(market.rate) "LognormalDynamics requires flat rate curve"
+    rate = zero_rate(market.rate, 0.0)
+    noise = GeometricBrownianMotionProcess(rate, market.sigma, 0.0, market.spot)
+    return NoiseProblem(noise, tspan; s.kwargs...)
 end
 
-"""
-    BlackScholesExact(trajectories, steps=1; kwargs...)
-
-Convenience constructor for `BlackScholesExact` simulation strategy.
-"""
-function BlackScholesExact(trajectories, steps=1; kwargs...)
-    return BlackScholesExact(trajectories, steps, (; kwargs...))
-end
-
-function sde_problem(::LognormalDynamics, s::BlackScholesExact, market_inputs::BlackScholesInputs, tspan)
-    if !is_flat(market_inputs.rate)
-        throw(ArgumentError("LognormalDynamics simulation is only valid for flat rate curves for now."))
-    end
-    
-    rate = zero_rate(market_inputs.rate, 0.0)
-    noise = GeometricBrownianMotionProcess(rate, market_inputs.sigma, 0.0, market_inputs.spot)
-    kwargs = s.kwargs
-    return NoiseProblem(noise, tspan; kwargs...)
-end
-
-"""
-    marginal_law(::LognormalDynamics, market_inputs, t)
-
-Returns the lognormal distribution of the asset price at time `t`.
-"""
-function marginal_law(::LognormalDynamics, m::BlackScholesInputs, t)
-    rate = zero_rate(m.rate, t)
-    α = yearfrac(m.rate.reference_date, t)
-    return Normal(log(m.spot) + (rate - m.sigma^2 / 2)√α, m.sigma * √α)  
-end
-
-
-"""
-    sde_problem(::HestonDynamics, ::EulerMaruyama, m::HestonInputs, tspan)
-
-Constructs an `SDEProblem` for Heston dynamics using Euler-Maruyama.
-"""
 function sde_problem(::HestonDynamics, ::EulerMaruyama, m::HestonInputs, tspan)
-    if !is_flat(m.rate)
-        throw(ArgumentError("Heston simulation is only valid for flat rate curves for now."))
-    end
-    
+    @assert is_flat(m.rate) "Heston simulation requires flat rate curve"
     rate = zero_rate(m.rate, 0.0)
     return HestonProblem(rate, m.κ, m.θ, m.σ, m.ρ, [m.spot, m.V0], tspan)
 end
 
-"""
-    marginal_law(::HestonDynamics, market_inputs, t)
-
-Returns the joint distribution of log(S_T) and V_T under the Heston model.
-"""
-function marginal_law(::HestonDynamics, m::HestonInputs, t)
-    α = yearfrac(m.rate.reference_date, t)
-    return HestonDistribution(m.spot, m.V0, m.κ, m.θ, m.σ, m.ρ, m.rate, α)
-end
-
-"""
-    sde_problem(::HestonDynamics, strategy::HestonBroadieKaya, m::HestonInputs, tspan)
-
-Constructs a `NoiseProblem` for Heston dynamics using Broadie-Kaya sampling.
-"""
 function sde_problem(::HestonDynamics, strategy::HestonBroadieKaya, m::HestonInputs, tspan)
-    if !is_flat(m.rate)
-        throw(ArgumentError("Heston simulation is only valid for flat rate curves for now."))
-    end
-    
+    @assert is_flat(m.rate) "Heston simulation requires flat rate curve"
     rate = zero_rate(m.rate, 0.0)
     noise = HestonNoise(rate, m.κ, m.θ, m.σ, m.ρ, 0.0, [log(m.spot), m.V0], Z0=nothing; strategy.kwargs...)
     return NoiseProblem(noise, tspan)
 end
 
-"""
-    montecarlo_solution(problem, strategy)
+# ------------------ Marginal Laws (optional) ------------------
 
-Solves the SDE using ensemble simulation with the specified strategy.
-"""
-function montecarlo_solution(problem, strategy::S) where {S <: SimulationStrategy}
-    return DifferentialEquations.solve(
-        EnsembleProblem(problem),
-        EM();
-        dt = problem.tspan[end] / strategy.steps,
-        trajectories = strategy.trajectories
-    )
+function marginal_law(::LognormalDynamics, m::BlackScholesInputs, t)
+    rate = zero_rate(m.rate, t)
+    α = yearfrac(m.rate.reference_date, t)
+    return Normal(log(m.spot) + (rate - m.sigma^2 / 2) * √α, m.sigma * √α)
 end
 
-"""
-    MonteCarlo{P, S} <: AbstractPricingMethod
+function marginal_law(::HestonDynamics, m::HestonInputs, t)
+    α = yearfrac(m.rate.reference_date, t)
+    return HestonDistribution(m.spot, m.V0, m.κ, m.θ, m.σ, m.ρ, m.rate, α)
+end
 
-Pricing method for European options using Monte Carlo simulation.
+# ------------------ Ensemble Simulation Wrapper ------------------
 
-# Fields
-- `dynamics`: Price dynamics (e.g., Black-Scholes or Heston).
-- `strategy`: Simulation strategy.
-"""
+function montecarlo_solution(problem::Union{NoiseProblem, SDEProblem}, strategy::S) where {S <: SimulationStrategy}
+    dt = problem.tspan[end] / strategy.steps
+    seeds = Base.rand(1:10^9, strategy.trajectories) #generate seeds
+    modify = (p, seed, _) -> remake(p; seed=seed)
+    custom_prob = CustomEnsembleProblem(problem, collect(seeds), modify)
+    return solve_custom_ensemble(custom_prob; dt=dt)
+end
+
+# ------------------ Terminal Value Extractors ------------------
+
+get_terminal_value(path, ::HestonDynamics, ::HestonBroadieKaya) = exp(last(path)[1])
+get_terminal_value(path, ::PriceDynamics, ::SimulationStrategy) = last(path) isa Number ? last(path) : last(path)[1]
+
+# ------------------ Monte Carlo Method ------------------
+
 struct MonteCarlo{P<:PriceDynamics, S<:SimulationStrategy} <: AbstractPricingMethod
     dynamics::P
     strategy::S
 end
 
-"""
-    get_terminal_value(path, ::HestonDynamics, ::HestonBroadieKaya)
-
-Returns the terminal asset price from a path simulated with Broadie-Kaya.
-"""
-function get_terminal_value(path, ::HestonDynamics, strategy::HestonBroadieKaya)
-    return exp(last(path)[1])
-end
-
-"""
-    get_terminal_value(path, ::D, ::K)
-
-Returns the terminal value for generic dynamics and strategy.
-"""
-function get_terminal_value(path, ::D, strategy::K) where {D <:PriceDynamics, K<:SimulationStrategy}
-    return last(path) isa Number ? last(path) : last(path)[1]
-end
-
-"""
-    simulate_paths(method::MonteCarlo, market_inputs, T)
-
-Simulates asset paths over time horizon `T` using the specified Monte Carlo method.
-"""
 function simulate_paths(method::MonteCarlo, market_inputs::I, T) where {I <: AbstractMarketInputs}
     return montecarlo_solution(
         sde_problem(method.dynamics, method.strategy, market_inputs, (0.0, T)),
@@ -225,14 +102,10 @@ function simulate_paths(method::MonteCarlo, market_inputs::I, T) where {I <: Abs
     )
 end
 
-function solve(
-    prob::PricingProblem{VanillaOption{European, C, Spot}, I}, 
-    method::MonteCarlo
-) where {C, I <: AbstractMarketInputs}
+function solve(prob::PricingProblem{VanillaOption{European, C, Spot}, I}, method::MonteCarlo) where {C, I <: AbstractMarketInputs}
     T = yearfrac(prob.market.referenceDate, prob.payoff.expiry)
-
     ens = simulate_paths(method, prob.market, T)
-    paths = ens.u
+    paths = ens.solutions
 
     terminal_prices = [get_terminal_value(p, method.dynamics, method.strategy) for p in paths]
     payoffs = prob.payoff.(terminal_prices)
@@ -240,4 +113,3 @@ function solve(
 
     return MonteCarloSolution(price, ens)
 end
-

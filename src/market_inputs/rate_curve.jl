@@ -36,7 +36,7 @@ end
 
 function RateCurve(
     reference_date::Date,
-    tenors,
+    tenors::AbstractVector,
     dfs;
     interp = (u, t) -> LinearInterpolation(u, t; extrapolation=ExtrapolationType.Constant)
 )

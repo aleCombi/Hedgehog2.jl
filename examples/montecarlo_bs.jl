@@ -22,7 +22,7 @@ payoff = VanillaOption(strike, expiry, European(), Call(), Spot())
 prob = PricingProblem(payoff, market_inputs)
 
 # -- Monte Carlo Method
-trajectories = 10_000
+trajectories = 100_000
 strategy = BlackScholesExact(trajectories, seed=1)
 dynamics = LognormalDynamics()
 method_mc = MonteCarlo(dynamics, strategy)
