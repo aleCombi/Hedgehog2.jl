@@ -23,13 +23,13 @@ prob = PricingProblem(payoff, market_inputs)
 
 # -- Monte Carlo Method
 trajectories = 10_000
-strategy = BlackScholesExact(trajectories)
+strategy = BlackScholesExact(trajectories, seed=1)
 dynamics = LognormalDynamics()
 method_mc = MonteCarlo(dynamics, strategy)
 
 # -- Analytic Method
 method_analytic = BlackScholesAnalytic()
-
+ 
 # -- Solve Both
 solution_analytic = solve(prob, method_analytic)
 solution_mc = solve(prob, method_mc)
@@ -38,6 +38,6 @@ println("Analytic price:   ", solution_analytic.price)
 println("Monte Carlo price:", solution_mc.price)
 
 # -- Benchmark
-println("\n--- Benchmarking ---")
-@btime solve($prob, $method_analytic).price
-@btime solve($prob, $method_mc).price
+# println("\n--- Benchmarking ---")
+# @btime solve($prob, $method_analytic).price
+# @btime solve($prob, $method_mc).price
