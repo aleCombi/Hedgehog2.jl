@@ -15,7 +15,8 @@
     dynamics = LognormalDynamics()
     trajectories = 1
     steps = 100
-    strategy = BlackScholesExact(trajectories, steps; seed=42)  # Deterministic seed
+    seeds = [42]
+    strategy = BlackScholesExact(trajectories, steps, seeds)  # Deterministic seed
     degree = 3
     method = LSM(dynamics, strategy, degree)
 

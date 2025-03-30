@@ -33,10 +33,11 @@ struct BlackScholesExact <: SimulationStrategy
     trajectories
     steps
     kwargs::NamedTuple
+    seeds::Union{Nothing, Vector{Int}}
 end
 
 EulerMaruyama(trajectories, steps; kwargs...) = EulerMaruyama(trajectories, steps, (; kwargs...))
-BlackScholesExact(trajectories, steps=1; kwargs...) = BlackScholesExact(trajectories, steps, (; kwargs...))
+BlackScholesExact(trajectories, steps=1,seeds=nothing; kwargs...) = BlackScholesExact(trajectories, steps, (; kwargs...), seeds)
 
 # ------------------ SDE Problem Builders ------------------
 
@@ -77,7 +78,11 @@ end
 
 function montecarlo_solution(problem::Union{NoiseProblem, SDEProblem}, strategy::S) where {S <: SimulationStrategy}
     dt = problem.tspan[end] / strategy.steps
-    seeds = Base.rand(1:10^9, strategy.trajectories) #generate seeds
+    N = strategy.trajectories
+
+    seeds = strategy isa BlackScholesExact && strategy.seeds !== nothing ? strategy.seeds :
+            Base.rand(1_000_000_000:2_000_000_000, N)
+
     modify = (p, seed, _) -> remake(p; seed=seed)
     custom_prob = CustomEnsembleProblem(problem, collect(seeds), modify)
     return solve_custom_ensemble(custom_prob; dt=dt)

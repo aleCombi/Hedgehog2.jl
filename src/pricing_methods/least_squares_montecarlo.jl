@@ -39,10 +39,11 @@ end
 Extracts the simulated spot paths from a `Vector` of state vectors. Returns a matrix of size (nsteps, npaths).
 Each column corresponds to a single simulation path.
 """
-function extract_spot_grid(sol)
-    # Each path is a Vector of state vectors; we extract first component at each time step
-    return hcat([getindex.(s.u, 1) for s in sol.u]...)  # size: (nsteps, npaths)
+function extract_spot_grid(sol::CustomEnsembleSolution)
+    # Each s is a solution in sol.solutions, where s.u is a vector of states
+    return hcat([getindex.(s.u, 1) for s in sol.solutions]...)  # size: (nsteps, npaths)
 end
+
 
 function solve(
     prob::PricingProblem{VanillaOption{American, C, Spot}, I},
