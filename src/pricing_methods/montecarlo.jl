@@ -37,7 +37,10 @@ struct BlackScholesExact <: SimulationStrategy
 end
 
 EulerMaruyama(trajectories, steps; kwargs...) = EulerMaruyama(trajectories, steps, (; kwargs...))
-BlackScholesExact(trajectories, steps=1,seeds=nothing; kwargs...) = BlackScholesExact(trajectories, steps, (; kwargs...), seeds)
+BlackScholesExact(trajectories, steps=1; seeds=nothing, kwargs...) = begin
+    seeds === nothing && (seeds = Base.rand(MersenneTwister(42), 1_000_000_000:2_000_000_000, trajectories))
+    BlackScholesExact(trajectories, steps, (; kwargs...), seeds)
+end
 
 # ------------------ SDE Problem Builders ------------------
 

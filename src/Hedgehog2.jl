@@ -12,6 +12,7 @@ end
 
 # utilities
 include("date_functions.jl")
+include("solutions/pricing_solutions.jl")
 
 # payoffs
 include("payoffs/payoffs.jl")
@@ -35,6 +36,5 @@ include("greeks/greeks_problem.jl")
 # distributions
 include("distributions/heston.jl")
 include("distributions/sample_from_cf.jl")
-include("solutions/pricing_solutions.jl")
 
 end

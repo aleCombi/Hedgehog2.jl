@@ -16,7 +16,7 @@
     trajectories = 1
     steps = 100
     seeds = [42]
-    strategy = BlackScholesExact(trajectories, steps, seeds)  # Deterministic seed
+    strategy = BlackScholesExact(trajectories, steps, seeds=seeds)  # Deterministic seed
     degree = 3
     method = LSM(dynamics, strategy, degree)
 
