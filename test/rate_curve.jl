@@ -1,7 +1,7 @@
 using Revise
 using Test
 using Dates
-using Hedgehog2  # Replace with your module name
+using Hedgehog2
 using DataInterpolations
 
 @testset "RateCurve interpolation at spine points" begin
@@ -13,10 +13,9 @@ using DataInterpolations
     # Expected zero rates
     expected_zr = @. -log(dfs) / tenors
 
-    # Build the curve
+    # Build the curve using the new builder function format
     curve = Hedgehog2.RateCurve(ref_date, tenors, dfs;
-        interp = DataInterpolations.LinearInterpolation,
-        extrap = ExtrapolationType.Constant,
+        interp = (u, t) -> LinearInterpolation(u, t; extrapolation=ExtrapolationType.Constant)
     )
 
     # Test discount factors at each tenor

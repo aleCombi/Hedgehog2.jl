@@ -138,10 +138,11 @@ using DataInterpolations
     sigma = 1.0
     rates = [0.03, 0.032, 0.07, 0.042, 0.03]
 
-    # Create multi-tenor flat curve for testing
+    # Create multi-tenor curve with explicit interpolation builder
     tenors = [0.25, 0.5, 1.0, 2.0, 5.0]
     dfs = @. exp(-rates * tenors)
-    rate_curve = RateCurve(reference_date, tenors, dfs; interp = DataInterpolations.QuadraticInterpolations)
+    interp_fn = (u, t) -> QuadraticInterpolation(u, t; extrapolation=ExtrapolationType.Constant)
+    rate_curve = RateCurve(reference_date, tenors, dfs; interp=interp_fn)
 
     # Construct pricing problem with interpolated curve
     market_inputs = BlackScholesInputs(reference_date, rate_curve, spot, sigma)
@@ -158,8 +159,8 @@ using DataInterpolations
 
         g_ad = solve(GreekProblem(prob, lens), ad_method, pricing_method).greek
         g_fd = solve(GreekProblem(prob, lens), fd_method, pricing_method).greek
-        println(g_ad, g_fd)
         @test isapprox(g_ad, g_fd; rtol=1e-6, atol=1e-10) ||
             @warn "Mismatch at zero rate spine index $i" ad=g_ad fd=g_fd
     end
 end
+

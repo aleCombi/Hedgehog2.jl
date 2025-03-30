@@ -1,67 +1,74 @@
 using DataInterpolations
 import Dates: Date, value
 import Base: getindex
+import Accessors: set, @optic
+
 export RateCurve, df, zero_rate, forward_rate, spine_tenors, spine_zeros, FlatRateCurve, is_flat, ZeroRateSpineLens
 
-# -- Curve struct --
-struct RateCurve{I}
-    reference_date::Real #ticks
-    interpolator::I  # Should be a callable interpolating function
+# -- Structs --
+
+struct RateCurve{F}
+    reference_date::Real # ticks
+    interpolator::DataInterpolations.AbstractInterpolation     # callable interpolation function
+    builder::F           # function (u, t) -> interpolator
 end
 
-function RateCurve(reference_date::TimeType, interpolator)
-    return RateCurve(to_ticks(reference_date), interpolator)
+struct ZeroRateSpineLens
+    i::Int
 end
 
-# -- Constructor from discount factors (interpolate in zero rates) --
+
+# -- Constructors --
+
 function RateCurve(
     reference_date::Real,
-    tenors,
+    tenors::AbstractVector,
     dfs;
-    interp = LinearInterpolation,
-    extrap = ExtrapolationType.Constant
+    interp = (u, t) -> LinearInterpolation(u, t; extrapolation=ExtrapolationType.Constant)
 )
     @assert length(tenors) == length(dfs) "Mismatched tenor/DF lengths"
     @assert issorted(tenors) "Tenors must be sorted"
 
     zr = @. -log(dfs) / tenors  # continuous zero rate
-    itp = interp(zr, tenors; extrapolation=extrap)
-    return RateCurve(reference_date, itp)
+    itp = interp(zr, tenors)
+    return RateCurve(reference_date, itp, interp)
 end
 
 function RateCurve(
-    reference_date::TimeType,
+    reference_date::Date,
     tenors,
     dfs;
-    interp = LinearInterpolation,
-    extrap = ExtrapolationType.Constant
-) 
-    return RateCurve(to_ticks(reference_date), tenors, dfs; interp=interp, extrap=extrap)
+    interp = (u, t) -> LinearInterpolation(u, t; extrapolation=ExtrapolationType.Constant)
+)
+    return RateCurve(to_ticks(reference_date), tenors, dfs; interp=interp)
+end
+
+function RateCurve(reference_date::Date, itp::I, builder::F) where {I, F}
+    return RateCurve(to_ticks(reference_date), itp, builder)
 end
 
 # -- Accessors --
-# Accepts ticks (ms since epoch)
+
 df(curve::RateCurve, ticks::Real) =
     exp(-zero_rate(curve, ticks) * yearfrac(curve.reference_date, ticks))
+
+df(curve::RateCurve, t::Date) =
+    df(curve, to_ticks(t))
 
 df_yf(curve::RateCurve, yf::Real) =
     exp(-zero_rate_yf(curve, yf) * yf)
 
-# Accepts Date, routes to tick-based version
-df(curve::RateCurve, t::Date) =
-    df(curve, to_ticks(t))
-
-# Accepts ticks (ms since epoch)
 zero_rate(curve::RateCurve, ticks::Real) =
     curve.interpolator(yearfrac(curve.reference_date, ticks))
+
+zero_rate(curve::RateCurve, t::Date) =
+    zero_rate(curve, to_ticks(t))
 
 zero_rate_yf(curve::RateCurve, yf::Real) =
     curve.interpolator(yf)
 
-# Accepts daycounts (already in year fractions)
-zero_rate(curve::RateCurve, t::Date) = zero_rate(curve, to_ticks(t))
+# -- Forward Rates --
 
-# -- Forward rate between two times --
 function forward_rate(curve::RateCurve, t1::Real, t2::Real)
     df1 = df(curve, t1)
     df2 = df(curve, t2)
@@ -71,41 +78,38 @@ end
 forward_rate(curve::RateCurve, d1::Date, d2::Date) =
     forward_rate(curve, yearfrac(curve.reference_date, d1), yearfrac(curve.reference_date, d2))
 
-# -- Diagnostic accessors --
+# -- Spine Access --
+
 spine_tenors(curve::RateCurve) = curve.interpolator.t
 spine_zeros(curve::RateCurve) = curve.interpolator.u
 
-function FlatRateCurve(r; reference_date=Date(0)) 
-    itp = DataInterpolations.ConstantInterpolation([r], [0]; extrapolation=ExtrapolationType.Constant)
-    return RateCurve(reference_date, itp)
+# -- Flat Curve --
+
+function FlatRateCurve(r; reference_date=Date(0))
+    builder = (u, t) -> ConstantInterpolation(u, t; extrapolation=ExtrapolationType.Constant)
+    itp = builder([r], [0.0])
+    return RateCurve(to_ticks(reference_date), itp, builder)
 end
 
 function is_flat(curve::RateCurve)
     length(spine_tenors(curve)) == 1
 end
 
-struct ZeroRateSpineLens
-    i::Int
-end
+# -- Lens for bumping --
 
-# accessors for greeks
-import Accessors: set, @optic
-
-# Getter
 function (lens::ZeroRateSpineLens)(prob)
     return spine_zeros(prob.market.rate)[lens.i]
 end
 
-# Setter (rebuilds the rate curve with updated zero rate at index `i`)
 function set(prob, lens::ZeroRateSpineLens, new_zᵢ)
     curve = prob.market.rate
     t = spine_tenors(curve)
     z = spine_zeros(curve)
-    dfs = @. exp(-z * t)
-    
-    # Update only the i-th discount factor with new_zᵢ
-    dfs_bumped = @set dfs[lens.i] = exp(-new_zᵢ * t[lens.i])
 
-    new_curve = RateCurve(curve.reference_date, t, dfs_bumped)
+    # Rebuild bumped zero rates
+    z_bumped = @set z[lens.i] = new_zᵢ
+    new_itp = curve.builder(z_bumped, t)
+    new_curve = RateCurve(curve.reference_date, new_itp, curve.builder)
+
     return @set prob.market.rate = new_curve
 end
