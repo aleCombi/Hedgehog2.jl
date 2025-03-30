@@ -38,7 +38,7 @@ end
 
 EulerMaruyama(trajectories, steps; kwargs...) = EulerMaruyama(trajectories, steps, (; kwargs...))
 BlackScholesExact(trajectories, steps=1; seeds=nothing, kwargs...) = begin
-    seeds === nothing && (seeds = Base.rand(MersenneTwister(42), 1_000_000_000:2_000_000_000, trajectories))
+    seeds === nothing && (seeds = Base.rand(1_000_000_000:2_000_000_000, trajectories))
     BlackScholesExact(trajectories, steps, (; kwargs...), seeds)
 end
 
@@ -46,8 +46,16 @@ end
 
 function sde_problem(::LognormalDynamics, s::BlackScholesExact, market::BlackScholesInputs, tspan)
     @assert is_flat(market.rate) "LognormalDynamics requires flat rate curve"
-    rate = zero_rate(market.rate, 0.0)
-    noise = GeometricBrownianMotionProcess(rate, market.sigma, 0.0, market.spot)
+
+    # Promote all parameters to a common type (Dual or Float64)
+    T = promote_type(typeof(zero_rate(market.rate, 0.0)), typeof(market.sigma), typeof(market.spot))
+
+    r   = convert(T, zero_rate(market.rate, 0.0))
+    σ   = convert(T, market.sigma)
+    S₀  = convert(T, market.spot)
+    t₀  = zero(T)
+
+    noise = GeometricBrownianMotionProcess(r, σ, t₀, S₀)
     return NoiseProblem(noise, tspan; s.kwargs...)
 end
 
