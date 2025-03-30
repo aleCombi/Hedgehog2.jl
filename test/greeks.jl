@@ -123,6 +123,7 @@ using Hedgehog2
 using Dates
 using Accessors
 import Accessors: @optic
+using DataInterpolations
 
 @testset "Zero Rate Deltas: ForwardAD vs FiniteDifference" begin
     # Define the vanilla option
@@ -135,12 +136,12 @@ import Accessors: @optic
     reference_date = Date(2020, 1, 1)
     spot = 1.0
     sigma = 1.0
-    base_rate = 0.03
+    rates = [0.03, 0.032, 0.07, 0.042, 0.03]
 
     # Create multi-tenor flat curve for testing
     tenors = [0.25, 0.5, 1.0, 2.0, 5.0]
-    dfs = @. exp(-base_rate * tenors)
-    rate_curve = RateCurve(reference_date, tenors, dfs)
+    dfs = @. exp(-rates * tenors)
+    rate_curve = RateCurve(reference_date, tenors, dfs; interp = DataInterpolations.QuadraticInterpolations)
 
     # Construct pricing problem with interpolated curve
     market_inputs = BlackScholesInputs(reference_date, rate_curve, spot, sigma)
