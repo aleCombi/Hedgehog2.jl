@@ -22,12 +22,12 @@
 
 ## PHASE 3 — Greeks & Calibration Infrastructure (2–3 weeks)
 
-- [ ] Implement `GreekProblem` and `solve` with support for:
+- [x] Implement `GreekProblem` and `solve` with support for:
 - [x] Finite differences (forward, backward, central)
 - [x] Forward AD
-- [ ] Analytic Greeks for Black-Scholes
-- [ ] Optional: AD for Monte Carlo methods
-- [ ] Plug Greeks into pricing pipeline with consistent API
+- [x] Analytic Greeks for Black-Scholes
+- [x] Optional: AD for Monte Carlo methods
+- [x] Plug Greeks into pricing pipeline with consistent API
 - [ ] Develop modular calibration system:
 - [ ] Residual-based calibration engine
 - [ ] Objective functions from market quotes
@@ -37,7 +37,7 @@
 
 ## PHASE 3.5 — Monte Carlo Enhancements (1 week)
 
-- [ ] Add antithetic variates toggle to `MonteCarlo` method
+- [x] Add antithetic variates toggle to `MonteCarlo` method
 - [ ] Implement control variates with BS analytical formulas
 - [ ] Add reproducibility features: seeded RNG + control panel
 - [ ] Refactor MC framework to support pluggable variance reduction via `MCStrategy`
