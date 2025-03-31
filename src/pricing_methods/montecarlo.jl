@@ -72,6 +72,13 @@ function sde_problem(::HestonDynamics, strategy::HestonBroadieKaya, m::HestonInp
     return NoiseProblem(noise, tspan)
 end
 
+function antithetic_sde_problem(d::PriceDynamics, s::SimulationStrategy, m::AbstractMarketInputs, tspan, seeds)
+    s_flipped = @set s.seeds = seeds
+    m_flipped = @set m.sigma = -m.sigma
+    return sde_problem(d, s_flipped, m_flipped, tspan)
+end
+
+
 # ------------------ Marginal Laws (optional) ------------------
 
 function marginal_law(::LognormalDynamics, m::BlackScholesInputs, t)
@@ -112,20 +119,53 @@ struct MonteCarlo{P<:PriceDynamics, S<:SimulationStrategy} <: AbstractPricingMet
 end
 
 function simulate_paths(method::MonteCarlo, market_inputs::I, T) where {I <: AbstractMarketInputs}
-    return montecarlo_solution(
-        sde_problem(method.dynamics, method.strategy, market_inputs, (0.0, T)),
-        method.strategy
-    )
+    strategy = method.strategy
+    dynamics = method.dynamics
+    tspan = (0.0, T)
+
+    antithetic = get(strategy.kwargs, :antithetic, false)
+
+    # Step 1: simulate original paths
+    normal_prob = sde_problem(dynamics, strategy, market_inputs, tspan)
+    normal_sol = montecarlo_solution(normal_prob, strategy)
+
+    if !antithetic
+        return normal_sol
+    end
+
+    # Step 2: simulate antithetic paths using same seeds, flipped sigma
+    seeds = normal_sol.seeds
+    antithetic_prob = antithetic_sde_problem(dynamics, strategy, market_inputs, tspan, seeds)
+    antithetic_sol = montecarlo_solution(antithetic_prob, strategy)
+    
+    # Step 3: combine both solutions
+    combined_paths = vcat(normal_sol.solutions, antithetic_sol.solutions)
+
+    # Create new EnsembleSolution with merged paths
+    return CustomEnsembleSolution(combined_paths, seeds)
 end
 
 function solve(prob::PricingProblem{VanillaOption{European, C, Spot}, I}, method::MonteCarlo) where {C, I <: AbstractMarketInputs}
     T = yearfrac(prob.market.referenceDate, prob.payoff.expiry)
+    strategy = method.strategy
+    dynamics = method.dynamics
+
     ens = simulate_paths(method, prob.market, T)
     paths = ens.solutions
 
-    terminal_prices = [get_terminal_value(p, method.dynamics, method.strategy) for p in paths]
-    payoffs = prob.payoff.(terminal_prices)
-    price = df(prob.market.rate, prob.payoff.expiry) * mean(payoffs)
+    is_antithetic = get(strategy.kwargs, :antithetic, false)
 
+    if is_antithetic
+        N = length(paths) ÷ 2
+        terminal_1 = [get_terminal_value(p, dynamics, strategy) for p in paths[1:N]]
+        terminal_2 = [get_terminal_value(p, dynamics, strategy) for p in paths[N+1:end]]
+        payoffs = [0.5 * (prob.payoff(x) + prob.payoff(y)) for (x, y) in zip(terminal_1, terminal_2)]
+    else
+        terminal_prices = [get_terminal_value(p, dynamics, strategy) for p in paths]
+        payoffs = prob.payoff.(terminal_prices)
+    end
+
+    price = df(prob.market.rate, prob.payoff.expiry) * mean(payoffs)
     return MonteCarloSolution(price, ens)
 end
+
