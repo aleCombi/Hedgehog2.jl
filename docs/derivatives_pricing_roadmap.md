@@ -37,7 +37,7 @@
 
 ## PHASE 3.5 — Monte Carlo Enhancements (1 week)
 
-- [x] Add antithetic variates toggle to `MonteCarlo` method
+- [ ] Add antithetic variates toggle to `MonteCarlo` method (Exact Black Scholes [x])
 - [ ] Implement control variates with BS analytical formulas
 - [ ] Add reproducibility features: seeded RNG + control panel
 - [ ] Refactor MC framework to support pluggable variance reduction via `MCStrategy`
