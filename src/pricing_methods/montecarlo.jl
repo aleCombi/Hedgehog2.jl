@@ -65,7 +65,13 @@ function sde_problem(::HestonDynamics, ::EulerMaruyama, m::HestonInputs, tspan)
     return HestonProblem(rate, m.κ, m.θ, m.σ, m.ρ, [m.spot, m.V0], tspan)
 end
 
-function get_antithetic_ensemble_problem(::PriceDynamics, ::EulerMaruyama, normal_sol::CustomEnsembleSolution)
+function sde_problem(::LognormalDynamics, ::EulerMaruyama, m::BlackScholesInputs, tspan)
+    @assert is_flat(m.rate) "Heston simulation requires flat rate curve"
+    rate = zero_rate(m.rate, 0.0)
+    return LogGBMProblem(rate, m.sigma, m.spot, tspan)
+end
+
+function get_antithetic_ensemble_problem(::PriceDynamics, ::EulerMaruyama, normal_sol::CustomEnsembleSolution, market_inputs)
     base_prob = normal_sol.solutions[1].prob
 
     antithetic_modify = function (_base_prob, _seed, i)
@@ -77,13 +83,20 @@ function get_antithetic_ensemble_problem(::PriceDynamics, ::EulerMaruyama, norma
     return CustomEnsembleProblem(base_prob, normal_sol.seeds, antithetic_modify)
 end
 
-function get_antithetic_ensemble_problem(d::LognormalDynamics , s::BlackScholesExact, normal_sol::CustomEnsembleSolution)
-    tspan = normal_sol.solutions[1].prob.tspan
+function get_antithetic_ensemble_problem(d::LognormalDynamics , s::BlackScholesExact, normal_sol::CustomEnsembleSolution, m::BlackScholesInputs)
+    tspan = (normal_sol.solutions[1].t[1], normal_sol.solutions[1].t[end])
     s_flipped = @set s.seeds = normal_sol.seeds
     m_flipped = @set m.sigma = -m.sigma
     flipped_problem = sde_problem(d, s_flipped, m_flipped, tspan)
+
+    antithetic_modify = function (_base_prob, _seed, i)
+        sol = normal_sol.solutions[i]
+        return remake(_base_prob; seed=_seed)
+    end
+
     return CustomEnsembleProblem(flipped_problem, normal_sol.seeds, antithetic_modify)
 end
+
 
 function sde_problem(::HestonDynamics, strategy::HestonBroadieKaya, m::HestonInputs, tspan)
     @assert is_flat(m.rate) "Heston simulation requires flat rate curve"
@@ -122,6 +135,7 @@ end
 # ------------------ Terminal Value Extractors ------------------
 
 get_terminal_value(path, ::HestonDynamics, ::HestonBroadieKaya) = exp(last(path)[1])
+get_terminal_value(path, ::LognormalDynamics, ::EulerMaruyama) = exp(last(path)[1])
 get_terminal_value(path, ::PriceDynamics, ::SimulationStrategy) = last(path) isa Number ? last(path) : last(path)[1]
 
 # ------------------ Monte Carlo Method ------------------
@@ -149,7 +163,7 @@ function simulate_paths(method::MonteCarlo, market_inputs::I, T) where {I <: Abs
     end
 
     # Step 2: simulate antithetic paths using same seeds, flipped sigma
-    antithetic_ensemble_prob = get_antithetic_ensemble_problem(dynamics, strategy, normal_sol)
+    antithetic_ensemble_prob = get_antithetic_ensemble_problem(dynamics, strategy, normal_sol, market_inputs)
     antithetic_sol = solve_custom_ensemble(antithetic_ensemble_prob; dt=dt)
 
     # Step 3: combine both solutions

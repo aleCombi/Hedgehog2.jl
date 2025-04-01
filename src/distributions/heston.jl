@@ -23,6 +23,21 @@ function HestonProblem(μ, κ, Θ, σ, ρ, u0, tspan; seed = UInt64(0), kwargs..
     return SDEProblem(sde_f, u0, (tspan[1], tspan[2]), noise=noise, seed=seed, kwargs...)
 end
 
+function LogGBMProblem(μ, σ, u0, tspan; seed = UInt64(0), kwargs...)
+    f = function (u, p, t)
+        return @. μ - 0.5 * σ^2  # Drift of log(S_t)
+    end
+    g = function (u, p, t)
+        return @. σ  # Constant diffusion for log(S_t)
+    end
+
+    noise = WienerProcess(tspan[1], 0.0)
+
+    sde_f = SDEFunction(f, g)
+    return SDEProblem(sde_f, u0, (tspan[1], tspan[2]), noise=noise, seed=seed, kwargs...)
+end
+
+
 """
     HestonNoise(μ, κ, θ, σ, ρ, t0, W0, Z0=nothing; kwargs...)
 
