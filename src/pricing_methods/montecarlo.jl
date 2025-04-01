@@ -59,10 +59,28 @@ function sde_problem(::LognormalDynamics, s::BlackScholesExact, market::BlackSch
     return NoiseProblem(noise, tspan; s.kwargs...)
 end
 
+function antithetic_sde_problem(d::LognormalDynamics, s::SimulationStrategy, m::BlackScholesInputs, tspan, normal_sol)
+    s_flipped = @set s.seeds = normal_sol.seeds
+    m_flipped = @set m.sigma = -m.sigma
+    return sde_problem(d, s_flipped, m_flipped, tspan)
+end
+
 function sde_problem(::HestonDynamics, ::EulerMaruyama, m::HestonInputs, tspan)
     @assert is_flat(m.rate) "Heston simulation requires flat rate curve"
     rate = zero_rate(m.rate, 0.0)
     return HestonProblem(rate, m.κ, m.θ, m.σ, m.ρ, [m.spot, m.V0], tspan)
+end
+
+function antithetic_sde_problem(d::PriceDynamics, s::EulerMaruyama, m::AbstractMarketInputs, tspan, normal_sol::CustomEnsembleSolution)
+    base_prob = original_sol.solutions[1].prob
+
+    antithetic_modify = function (_base_prob, _seed, i)
+        sol = original_sol.solutions[i]
+        flipped_noise = NoiseGrid(sol.W.t, -sol.W.W)
+        return remake(_base_prob; noise=flipped_noise)
+    end
+
+    return CustomEnsembleProblem(base_prob, normal_sol.seeds, antithetic_modify)
 end
 
 function sde_problem(::HestonDynamics, strategy::HestonBroadieKaya, m::HestonInputs, tspan)
@@ -71,13 +89,6 @@ function sde_problem(::HestonDynamics, strategy::HestonBroadieKaya, m::HestonInp
     noise = HestonNoise(rate, m.κ, m.θ, m.σ, m.ρ, 0.0, [log(m.spot), m.V0], Z0=nothing; strategy.kwargs...)
     return NoiseProblem(noise, tspan)
 end
-
-function antithetic_sde_problem(d::PriceDynamics, s::SimulationStrategy, m::AbstractMarketInputs, tspan, seeds)
-    s_flipped = @set s.seeds = seeds
-    m_flipped = @set m.sigma = -m.sigma
-    return sde_problem(d, s_flipped, m_flipped, tspan)
-end
-
 
 # ------------------ Marginal Laws (optional) ------------------
 
@@ -134,15 +145,14 @@ function simulate_paths(method::MonteCarlo, market_inputs::I, T) where {I <: Abs
     end
 
     # Step 2: simulate antithetic paths using same seeds, flipped sigma
-    seeds = normal_sol.seeds
-    antithetic_prob = antithetic_sde_problem(dynamics, strategy, market_inputs, tspan, seeds)
+    antithetic_prob = antithetic_sde_problem(dynamics, strategy, market_inputs, tspan, normal_sol)
     antithetic_sol = montecarlo_solution(antithetic_prob, strategy)
     
     # Step 3: combine both solutions
     combined_paths = vcat(normal_sol.solutions, antithetic_sol.solutions)
 
     # Create new EnsembleSolution with merged paths
-    return CustomEnsembleSolution(combined_paths, seeds)
+    return CustomEnsembleSolution(combined_paths, normal_sol.seeds)
 end
 
 function solve(prob::PricingProblem{VanillaOption{European, C, Spot}, I}, method::MonteCarlo) where {C, I <: AbstractMarketInputs}
