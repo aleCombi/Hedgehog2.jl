@@ -22,8 +22,9 @@ function solve_custom_ensemble(prob::CustomEnsembleProblem; dt, solver=EM(), tra
 
     Threads.@threads for i in 1:N
         seed = seeds[i]
+        pmod = remake(prob.base_problem; seed=seed)
         pmod = prob.modify(prob.base_problem, seed, i)
-        sols[i] = DifferentialEquations.solve(pmod, solver; dt=dt)
+        sols[i] = DifferentialEquations.solve(pmod, solver; dt=dt, save_noise=true)
     end
 
     return CustomEnsembleSolution(sols, seeds)

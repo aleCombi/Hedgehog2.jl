@@ -36,7 +36,7 @@ carr_madan_problem = PricingProblem(payoff, market_inputs)
 carr_madan_solution = solve(carr_madan_problem, carr_madan_method)
 
 # --- Monte Carlo Parameters ---
-trajectories = 100_000
+trajectories = 1_000
 steps = 500
 
 # --- Euler–Maruyama ---

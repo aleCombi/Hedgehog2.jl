@@ -59,28 +59,30 @@ function sde_problem(::LognormalDynamics, s::BlackScholesExact, market::BlackSch
     return NoiseProblem(noise, tspan; s.kwargs...)
 end
 
-function antithetic_sde_problem(d::LognormalDynamics, s::SimulationStrategy, m::BlackScholesInputs, tspan, normal_sol)
-    s_flipped = @set s.seeds = normal_sol.seeds
-    m_flipped = @set m.sigma = -m.sigma
-    return sde_problem(d, s_flipped, m_flipped, tspan)
-end
-
 function sde_problem(::HestonDynamics, ::EulerMaruyama, m::HestonInputs, tspan)
     @assert is_flat(m.rate) "Heston simulation requires flat rate curve"
     rate = zero_rate(m.rate, 0.0)
     return HestonProblem(rate, m.κ, m.θ, m.σ, m.ρ, [m.spot, m.V0], tspan)
 end
 
-function antithetic_sde_problem(d::PriceDynamics, s::EulerMaruyama, m::AbstractMarketInputs, tspan, normal_sol::CustomEnsembleSolution)
-    base_prob = original_sol.solutions[1].prob
+function get_antithetic_ensemble_problem(::PriceDynamics, ::EulerMaruyama, normal_sol::CustomEnsembleSolution)
+    base_prob = normal_sol.solutions[1].prob
 
     antithetic_modify = function (_base_prob, _seed, i)
-        sol = original_sol.solutions[i]
+        sol = normal_sol.solutions[i]
         flipped_noise = NoiseGrid(sol.W.t, -sol.W.W)
         return remake(_base_prob; noise=flipped_noise)
     end
 
     return CustomEnsembleProblem(base_prob, normal_sol.seeds, antithetic_modify)
+end
+
+function get_antithetic_ensemble_problem(d::LognormalDynamics , s::BlackScholesExact, normal_sol::CustomEnsembleSolution)
+    tspan = normal_sol.solutions[1].prob.tspan
+    s_flipped = @set s.seeds = normal_sol.seeds
+    m_flipped = @set m.sigma = -m.sigma
+    flipped_problem = sde_problem(d, s_flipped, m_flipped, tspan)
+    return CustomEnsembleProblem(flipped_problem, normal_sol.seeds, antithetic_modify)
 end
 
 function sde_problem(::HestonDynamics, strategy::HestonBroadieKaya, m::HestonInputs, tspan)
@@ -100,13 +102,13 @@ end
 
 function marginal_law(::HestonDynamics, m::HestonInputs, t)
     α = yearfrac(m.rate.reference_date, t)
-    return HestonDistribution(m.spot, m.V0, m.κ, m.θ, m.σ, m.ρ, m.rate, α)
+    rate = zero_rate(m.rate, t)
+    return HestonDistribution(m.spot, m.V0, m.κ, m.θ, m.σ, m.ρ, rate, α)
 end
 
 # ------------------ Ensemble Simulation Wrapper ------------------
 
-function montecarlo_solution(problem::Union{NoiseProblem, SDEProblem}, strategy::S) where {S <: SimulationStrategy}
-    dt = problem.tspan[end] / strategy.steps
+function get_ensemble_problem(problem::Union{NoiseProblem, SDEProblem}, strategy::S) where {S <: SimulationStrategy}
     N = strategy.trajectories
 
     seeds = strategy isa BlackScholesExact && strategy.seeds !== nothing ? strategy.seeds :
@@ -114,7 +116,7 @@ function montecarlo_solution(problem::Union{NoiseProblem, SDEProblem}, strategy:
 
     modify = (p, seed, _) -> remake(p; seed=seed)
     custom_prob = CustomEnsembleProblem(problem, collect(seeds), modify)
-    return solve_custom_ensemble(custom_prob; dt=dt)
+    return custom_prob
 end
 
 # ------------------ Terminal Value Extractors ------------------
@@ -133,21 +135,23 @@ function simulate_paths(method::MonteCarlo, market_inputs::I, T) where {I <: Abs
     strategy = method.strategy
     dynamics = method.dynamics
     tspan = (0.0, T)
+    dt = T / strategy.steps
 
     antithetic = get(strategy.kwargs, :antithetic, false)
 
     # Step 1: simulate original paths
     normal_prob = sde_problem(dynamics, strategy, market_inputs, tspan)
-    normal_sol = montecarlo_solution(normal_prob, strategy)
+    ensemble_prob = get_ensemble_problem(normal_prob, strategy)
+    normal_sol = solve_custom_ensemble(ensemble_prob; dt=dt)
 
     if !antithetic
         return normal_sol
     end
 
     # Step 2: simulate antithetic paths using same seeds, flipped sigma
-    antithetic_prob = antithetic_sde_problem(dynamics, strategy, market_inputs, tspan, normal_sol)
-    antithetic_sol = montecarlo_solution(antithetic_prob, strategy)
-    
+    antithetic_ensemble_prob = get_antithetic_ensemble_problem(dynamics, strategy, normal_sol)
+    antithetic_sol = solve_custom_ensemble(antithetic_ensemble_prob; dt=dt)
+
     # Step 3: combine both solutions
     combined_paths = vcat(normal_sol.solutions, antithetic_sol.solutions)
 

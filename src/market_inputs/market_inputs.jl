@@ -65,9 +65,9 @@ end
 Market data inputs for the Heston stochastic volatility model.
 
 # Fields
-- `referenceDate`: The base date for maturity calculation.
+- `referenceDate`: The base date for maturity calculation (in ticks).
 - `rate`: The risk-free interest rate (annualized).
-- `spot`: The current spot price of the underlying asset.
+- `spot`: The current spot price of the underlying.
 - `V0`: The initial variance of the underlying.
 - `κ`: The rate at which variance reverts to its long-term mean.
 - `θ`: The long-term mean of the variance.
@@ -77,7 +77,7 @@ Market data inputs for the Heston stochastic volatility model.
 Used for pricing under the Heston model and simulation of stochastic volatility paths.
 """
 struct HestonInputs <: AbstractMarketInputs
-    referenceDate
+    referenceDate::Real
     rate::RateCurve
     spot
     V0
@@ -88,7 +88,18 @@ struct HestonInputs <: AbstractMarketInputs
 end
 
 HestonInputs(
-    reference_date,
+    reference_date::TimeType,
+    rate::RateCurve,
+    spot,
+    V0,
+    κ,
+    θ,
+    σ,
+    ρ
+) = HestonInputs(to_ticks(reference_date), rate, spot, V0, κ, θ, σ, ρ)
+
+HestonInputs(
+    reference_date::TimeType,
     rate::Real,
     spot,
     V0,
@@ -96,4 +107,4 @@ HestonInputs(
     θ,
     σ,
     ρ
-) = HestonInputs(reference_date, FlatRateCurve(rate), spot, V0, κ, θ, σ, ρ)
+) = HestonInputs(reference_date, FlatRateCurve(rate; reference_date=reference_date), spot, V0, κ, θ, σ, ρ)

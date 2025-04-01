@@ -52,6 +52,7 @@ function solve(
     method::CarrMadan
 ) where {C, I <: AbstractMarketInputs}
 
+    println("started carr madan")
     if !is_flat(prob.market.rate)
         throw(ArgumentError("Carr–Madan pricing only supports flat rate curves."))
     end
