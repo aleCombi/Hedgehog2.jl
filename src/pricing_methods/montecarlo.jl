@@ -19,14 +19,14 @@ struct HestonBroadieKaya <: SimulationStrategy
     trajectories
     steps
     kwargs::NamedTuple
+    seeds::Union{Nothing, Vector{Int}}
 end
-
-HestonBroadieKaya(trajectories; kwargs...) = HestonBroadieKaya(trajectories, 1, (; kwargs...))
 
 struct EulerMaruyama <: SimulationStrategy
     trajectories
     steps
     kwargs::NamedTuple
+    seeds::Union{Nothing, Vector{Int}}
 end
 
 struct BlackScholesExact <: SimulationStrategy
@@ -36,7 +36,16 @@ struct BlackScholesExact <: SimulationStrategy
     seeds::Union{Nothing, Vector{Int}}
 end
 
-EulerMaruyama(trajectories, steps; kwargs...) = EulerMaruyama(trajectories, steps, (; kwargs...))
+HestonBroadieKaya(trajectories, steps=1; seeds=nothing, kwargs...) = begin
+    seeds === nothing && (seeds = Base.rand(1_000_000_000:2_000_000_000, trajectories))
+    HestonBroadieKaya(trajectories, steps, (; kwargs...), seeds)
+end
+
+EulerMaruyama(trajectories, steps=1; seeds=nothing, kwargs...) = begin
+    seeds === nothing && (seeds = Base.rand(1_000_000_000:2_000_000_000, trajectories))
+    EulerMaruyama(trajectories, steps, (; kwargs...), seeds)
+end
+
 BlackScholesExact(trajectories, steps=1; seeds=nothing, kwargs...) = begin
     seeds === nothing && (seeds = Base.rand(1_000_000_000:2_000_000_000, trajectories))
     BlackScholesExact(trajectories, steps, (; kwargs...), seeds)
@@ -68,7 +77,7 @@ end
 function sde_problem(::LognormalDynamics, ::EulerMaruyama, m::BlackScholesInputs, tspan)
     @assert is_flat(m.rate) "Heston simulation requires flat rate curve"
     rate = zero_rate(m.rate, 0.0)
-    return LogGBMProblem(rate, m.sigma, m.spot, tspan)
+    return LogGBMProblem(rate, m.sigma, log(m.spot), tspan)
 end
 
 function get_antithetic_ensemble_problem(::PriceDynamics, ::EulerMaruyama, normal_sol::CustomEnsembleSolution, market_inputs)
@@ -90,8 +99,7 @@ function get_antithetic_ensemble_problem(d::LognormalDynamics , s::BlackScholesE
     flipped_problem = sde_problem(d, s_flipped, m_flipped, tspan)
 
     antithetic_modify = function (_base_prob, _seed, i)
-        sol = normal_sol.solutions[i]
-        return remake(_base_prob; seed=_seed)
+        return _base_prob
     end
 
     return CustomEnsembleProblem(flipped_problem, normal_sol.seeds, antithetic_modify)
@@ -135,7 +143,7 @@ end
 # ------------------ Terminal Value Extractors ------------------
 
 get_terminal_value(path, ::HestonDynamics, ::HestonBroadieKaya) = exp(last(path)[1])
-get_terminal_value(path, ::LognormalDynamics, ::EulerMaruyama) = exp(last(path)[1])
+get_terminal_value(path, ::LognormalDynamics, ::EulerMaruyama) = exp(last(path))
 get_terminal_value(path, ::PriceDynamics, ::SimulationStrategy) = last(path) isa Number ? last(path) : last(path)[1]
 
 # ------------------ Monte Carlo Method ------------------

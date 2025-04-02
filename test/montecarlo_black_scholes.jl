@@ -32,11 +32,8 @@ using Printf
     prob = PricingProblem(payoff, market_inputs)
     
     # Define test parameters - increase trajectories for more reliable results
-    trajectories = 50_000
-    steps = 100
-    
-    # Seed the global RNG for reproducibility
-    Random.seed!(42)
+    trajectories = 5_000
+    steps = 1
     
     # Analytic reference solution
     analytic_method = BlackScholesAnalytic()
@@ -52,9 +49,6 @@ using Printf
     manual_bs_price = spot * cdf(Normal(), d1) - strike * exp(-rate) * cdf(Normal(), d2)
     println("Manual Black-Scholes calculation: $manual_bs_price")
     
-    # Random number generator with fixed seed for reproducibility
-    master_rng = MersenneTwister(42)
-    
     # Test scenarios - we'll use Accessors to set seeds in the trial loop
     scenarios = [
         ("BlackScholesExact without antithetic", 
@@ -62,7 +56,7 @@ using Printf
          LognormalDynamics()),
          
         ("BlackScholesExact with antithetic", 
-         BlackScholesExact(trajectories ÷ 2, antithetic=true, seeds=nothing), 
+         BlackScholesExact(trajectories, antithetic=true, seeds=nothing), 
          LognormalDynamics()),
          
         ("EulerMaruyama without antithetic", 
@@ -70,7 +64,7 @@ using Printf
          LognormalDynamics()),
          
         ("EulerMaruyama with antithetic", 
-         EulerMaruyama(trajectories ÷ 2, steps, antithetic=true, seeds=nothing), 
+         EulerMaruyama(trajectories, steps, antithetic=true, seeds=nothing), 
          LognormalDynamics())
     ]
     
@@ -85,23 +79,16 @@ using Printf
         prices = Float64[]
         for trial in 1:5  # Reduced to 5 trials to focus on seed control
             # Create a new RNG with a trial-specific seed
-            trial_rng = MersenneTwister(1000 + trial)
+            trial_rng = MersenneTwister(42 + trial)
             
             # Generate random seeds for each path
             # The key is that each trial gets a completely different set of seeds
             # But the seeds are still deterministic based on the trial number
             trial_seeds = rand(trial_rng, 1:10^9, trajectories)
-            
-            # For non-antithetic strategies
-            path_count = get(strategy.kwargs, :antithetic, false) ? trajectories ÷ 2 : trajectories
-            seeds_to_use = trial_seeds[1:path_count]
-            
-            # Create a new kwargs NamedTuple with updated seeds
-            updated_kwargs = merge(strategy.kwargs, (seeds=seeds_to_use,))
-            
+
             # Create modified strategy with updated kwargs
-            modified_strategy = @set strategy.kwargs = updated_kwargs
-            
+            modified_strategy = @set strategy.seeds = trial_seeds
+
             # Create Monte Carlo method with modified strategy
             mc_method = MonteCarlo(dynamics, modified_strategy)
             

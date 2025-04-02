@@ -17,13 +17,12 @@ end
 function solve_custom_ensemble(prob::CustomEnsembleProblem; dt, solver=EM(), trajectories=nothing)
     N = trajectories === nothing ? length(prob.seeds) : trajectories
     seeds = length(prob.seeds) == N ? prob.seeds : collect(1:N)
-
     sols = Vector{Any}(undef, N)
 
     Threads.@threads for i in 1:N
         seed = seeds[i]
         pmod = remake(prob.base_problem; seed=seed)
-        pmod = prob.modify(prob.base_problem, seed, i)
+        pmod = prob.modify(pmod, seed, i)
         sols[i] = DifferentialEquations.solve(pmod, solver; dt=dt, save_noise=true)
     end
 
