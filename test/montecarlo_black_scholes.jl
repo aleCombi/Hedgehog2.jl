@@ -32,7 +32,7 @@ using Printf
     prob = PricingProblem(payoff, market_inputs)
     
     # Define test parameters - increase trajectories for more reliable results
-    trajectories = 5_000
+    trajectories = 10_000
     steps = 1
     
     # Analytic reference solution
