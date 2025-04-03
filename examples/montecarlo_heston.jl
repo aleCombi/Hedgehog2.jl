@@ -40,13 +40,13 @@ trajectories = 1_000
 steps = 500
 
 # --- Euler–Maruyama ---
-euler_strategy = EulerMaruyama(trajectories, steps)
+euler_strategy = EulerMaruyama(trajectories, steps=steps)
 euler_method = MonteCarlo(dynamics, euler_strategy)
 euler_problem = PricingProblem(payoff, market_inputs)
 euler_solution = solve(euler_problem, euler_method)
 
 # --- Broadie–Kaya ---
-bk_strategy = HestonBroadieKaya(trajectories, steps=2)
+bk_strategy = HestonBroadieKaya(trajectories, steps=1)
 bk_method = MonteCarlo(dynamics, bk_strategy)
 bk_problem = PricingProblem(payoff, market_inputs)
 bk_solution = solve(bk_problem, bk_method)

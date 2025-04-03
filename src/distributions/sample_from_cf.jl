@@ -18,7 +18,7 @@ function sample_from_cf(rng, ϕ; n=5, kwargs...)
     initial_guess = normal_sample > 0 ? normal_sample : mean * 0.01
     max_guess = mean + 11*sqrt(σ²)
     # Fourier inversion to find the cdf, following Broadie Kaya 
-    h = π / (mean + n * √variance)
+    h = π / (mean + n * √σ²)
     cdf = x -> cdf_from_cf(ϕ, x, h; kwargs...)
     sample = inverse_cdf(cdf, u, initial_guess, max_guess; kwargs...)
     return sample
@@ -31,7 +31,7 @@ end
 
 Estimates the mean and variance from the characteristic function `ϕ_iter` using central differences.
 """
-function moments_from_cf(ϕ_iter::HestonCFIterator; h=1e-4)
+function moments_from_cf(ϕ_iter::HestonCFIterator; h=1e-2)
     θ_prev = nothing
 
     ϕp, θ_prev = evaluate_chf(ϕ_iter, h, θ_prev)

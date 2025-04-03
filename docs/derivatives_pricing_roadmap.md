@@ -37,12 +37,12 @@
 
 ## PHASE 3.5 — Monte Carlo Enhancements (1 week)
 
-- [ ] Add antithetic variates toggle to `MonteCarlo` method (Exact Black Scholes [x])
+- [x] Add antithetic variates toggle to `MonteCarlo` method (Discrete and Exact Black Scholes [x], Discrete and Exact Heston[x])
 - [ ] Implement control variates with BS analytical formulas
 - [ ] Add reproducibility features: seeded RNG + control panel
 - [ ] Refactor MC framework to support pluggable variance reduction via `MCStrategy`
 - [ ] Optional: add stratified / quasi-random sampling hooks
-- [ ] Unit tests: check variance reduction and correctness vs analytic prices
+- [x] Unit tests: check variance reduction and correctness vs analytic prices
 
 ## PHASE 4 — Structured Payoffs (2–3 weeks)
 

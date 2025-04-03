@@ -45,13 +45,11 @@ Constructs a custom `NoiseProcess` using the exact Heston distribution for the n
 Returns a `NoiseProcess` sampling from the Heston distribution at each timestep.
 """
 function HestonNoise(μ, κ, θ, σ, ρ, t0, W0, Z0 = nothing; kwargs...)
-    println(W0)
     @inline function Heston_dist(DW, W, dt, u, p, t, rng) #dist
         S, V = exp(W[end][1]), W[end][2]
-        println("price ", S)
-        println(V)
         heston_dist_at_t = HestonDistribution(S, V, κ, θ, σ, ρ, μ, dt)
-        return @fastmath rand(rng, heston_dist_at_t; kwargs...)  # Calls exact Heston sampler
+        S1, V1 = @fastmath rand(rng, heston_dist_at_t; kwargs...)  # Calls exact Heston sampler
+        return [S1 - W[end][1], V1 - W[end][2]]
     end
 
     return NoiseProcess{false}(t0, W0, Z0, Heston_dist, nothing)
@@ -88,7 +86,6 @@ function sample_V_T(rng::AbstractRNG, d::HestonDistribution)
     d = 4*κ*θ / σ^2  # Degrees of freedom
     λ = 4*κ * exp(-κ * T) * V0 / (σ^2 * (- expm1(-κ * T)))  # Noncentrality parameter
     c = σ^2 * (- expm1(-κ * T)) / (4*κ)  # Scaling factor
-
     V_T = c * Distributions.rand(rng, NoncentralChisq(d, λ))
     return V_T
 end
@@ -206,7 +203,7 @@ Useful for testing and diagnostics.
 """
 function rand(rng::AbstractRNG, d::HestonDistribution; antithetic=false, kwargs...)
     d1 = HestonDistribution(d.S0, d.V0, d.κ, d.θ, d.σ, d.ρ, d.r, d.T)
-    
+    # println(d)
     # Step 1: Sample V_T
     V_T = sample_V_T(rng, d1)
 

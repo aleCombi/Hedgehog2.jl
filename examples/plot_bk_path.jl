@@ -13,9 +13,9 @@ reference_date = Date(2020, 1, 1)
 # Heston parameters
 S0 = 1.0
 V0 = 0.010201
-κ = 6.21
+κ = 4
 θ = 0.019
-σ = 0.61
+σ = 0.15
 ρ = -0.7
 r = 0.0319
 
@@ -30,9 +30,8 @@ payoff = VanillaOption(strike, expiry, European(), Call(), Spot())
 prob = PricingProblem(payoff, market_inputs)
 
 # --- Monte Carlo with Broadie-Kaya ---
-Random.seed!(42)  # for reproducibility
 trajectories = 1
-steps = 20  # Increase steps for better visualization
+steps = 20 # Increase steps for better visualization
 
 # Create Broadie-Kaya strategy 
 strategy = HestonBroadieKaya(trajectories, steps=steps)

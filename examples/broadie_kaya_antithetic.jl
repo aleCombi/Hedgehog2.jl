@@ -40,11 +40,8 @@ println("Reference price (Carr-Madan): $reference_price")
 
 # --- Monte Carlo with Broadie-Kaya ---
 # Just a few paths for visualization
-trajectories = 10
+trajectories = 2000
 steps = 20
-
-# Set a seed for reproducibility
-Random.seed!(42)
 
 # Create Broadie-Kaya strategy with antithetic variates
 strategy = HestonBroadieKaya(trajectories ÷ 2, steps=steps, antithetic=true)
