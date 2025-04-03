@@ -60,11 +60,11 @@ using Printf
          LognormalDynamics()),
          
         ("EulerMaruyama without antithetic", 
-         EulerMaruyama(trajectories, steps, seeds=nothing), 
+         EulerMaruyama(trajectories, steps=steps, seeds=nothing), 
          LognormalDynamics()),
          
         ("EulerMaruyama with antithetic", 
-         EulerMaruyama(trajectories, steps, antithetic=true, seeds=nothing), 
+         EulerMaruyama(trajectories, steps=steps, antithetic=true, seeds=nothing), 
          LognormalDynamics())
     ]
     

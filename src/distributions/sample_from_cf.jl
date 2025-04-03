@@ -10,7 +10,6 @@ Uses moment-based heuristics for initial guesses and applies root-finding to inv
 function sample_from_cf(rng, ϕ; n=5, kwargs...) 
     # sample a uniform on [0,1]
     u = Distributions.rand(rng, Uniform(0,1))
-
     # calculate initial guess using the moments of the distribution (following Broadie-Kaya)
     mean, variance = moments_from_cf(ϕ)
     σ² = max(variance, 1e-12)  # tiny epsilon floor

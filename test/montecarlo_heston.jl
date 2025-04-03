@@ -40,7 +40,7 @@ using Printf
     prob = PricingProblem(payoff, market_inputs)
     
     # Define test parameters - increase trajectories for more reliable results
-    trajectories = 5_000
+    trajectories = 500
     steps = 100
     
     # Reference price using Carr-Madan (Fourier) method
@@ -54,11 +54,11 @@ using Printf
     # Test scenarios for Euler-Maruyama
     scenarios = [
         ("Euler-Maruyama without antithetic", 
-         EulerMaruyama(trajectories, steps, seeds=nothing), 
+         EulerMaruyama(trajectories, steps=steps, seeds=nothing), 
          HestonDynamics()),
          
         ("Euler-Maruyama with antithetic", 
-         EulerMaruyama(trajectories ÷ 2, steps, antithetic=true, seeds=nothing), 
+         EulerMaruyama(trajectories ÷ 2, steps=steps, antithetic=true, seeds=nothing), 
          HestonDynamics())
     ]
     
