@@ -45,9 +45,12 @@ Constructs a custom `NoiseProcess` using the exact Heston distribution for the n
 Returns a `NoiseProcess` sampling from the Heston distribution at each timestep.
 """
 function HestonNoise(μ, κ, θ, σ, ρ, t0, W0, Z0 = nothing; kwargs...)
+    println(W0)
     @inline function Heston_dist(DW, W, dt, u, p, t, rng) #dist
         S, V = exp(W[end][1]), W[end][2]
-        heston_dist_at_t = HestonDistribution(S, V, κ, θ, σ, ρ, μ, t + dt)
+        println("price ", S)
+        println(V)
+        heston_dist_at_t = HestonDistribution(S, V, κ, θ, σ, ρ, μ, dt)
         return @fastmath rand(rng, heston_dist_at_t; kwargs...)  # Calls exact Heston sampler
     end
 
@@ -196,11 +199,27 @@ function log_besseli_corrected(ν, z::Complex, θ_ref::Ref{Float64})
 end
 
 """
-    sample_log_S_T(V_T, integral_V, rng, d::HestonDistribution)
+    rand(rng, d::HestonDistribution; kwargs...)
 
-Samples `log(S_T)` given the terminal variance and integral of the variance path under the Heston model.
+Alternative sampling version returning `[log(S_T), V_T]` instead of `S_T`.
+Useful for testing and diagnostics.
 """
-function sample_log_S_T(V_T, integral_V, rng::AbstractRNG, d::HestonDistribution)
+function rand(rng::AbstractRNG, d::HestonDistribution; antithetic=false, kwargs...)
+    d1 = HestonDistribution(d.S0, d.V0, d.κ, d.θ, d.σ, d.ρ, d.r, d.T)
+    
+    # Step 1: Sample V_T
+    V_T = sample_V_T(rng, d1)
+
+    # Step 2: Sample ∫ V_t dt, conditional V0 and VT
+    integral_V = sample_integral_V(V_T, rng, d1; kwargs...)
+
+    # Step 3: Sample log(S_T) with antithetic option
+    log_S_T = sample_log_S_T(V_T, integral_V, rng, d1, antithetic=antithetic)
+
+    return [log_S_T, V_T]
+end
+
+function sample_log_S_T(V_T, integral_V, rng::AbstractRNG, d::HestonDistribution; antithetic=false)
     κ, θ, σ, ρ, V0, T, S0, r = d.κ, d.θ, d.σ, d.ρ, d.V0, d.T, d.S0, d.r
 
     # Compute conditional mean
@@ -209,30 +228,11 @@ function sample_log_S_T(V_T, integral_V, rng::AbstractRNG, d::HestonDistribution
     # Compute conditional variance
     sigma2 = (1 - ρ^2) * integral_V
 
-    # Sample log(S_T)
-    log_S_T = mu + sqrt(sigma2) * randn(rng)
+    # Generate random normal and apply antithetic if needed
+    Z = randn(rng)
+    log_S_T = mu + sqrt(sigma2) * (antithetic ? -Z : Z)
 
     return log_S_T
-end
-
-"""
-    rand(rng, d::HestonDistribution; kwargs...)
-
-Alternative sampling version returning `[log(S_T), V_T]` instead of `S_T`.
-Useful for testing and diagnostics.
-"""
-function rand(rng::AbstractRNG, d::HestonDistribution; kwargs...)
-    d1 = HestonDistribution(d.S0, d.V0, d.κ, d.θ, d.σ, d.ρ, d.r, d.T)
-    # Step 1: Sample V_T
-    V_T = sample_V_T(rng, d1)
-
-    # Step 2: Sample ∫ V_t dt, conditional V0 and VT
-    integral_V = sample_integral_V(V_T, rng, d1; kwargs...)
-
-    # Step 3: Sample log(S_T)
-    log_S_T = sample_log_S_T(V_T, integral_V, rng, d1)
-
-    return [log_S_T, V_T]
 end
 
 """

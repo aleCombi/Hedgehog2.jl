@@ -46,7 +46,7 @@ euler_problem = PricingProblem(payoff, market_inputs)
 euler_solution = solve(euler_problem, euler_method)
 
 # --- Broadie–Kaya ---
-bk_strategy = HestonBroadieKaya(trajectories, steps=1)
+bk_strategy = HestonBroadieKaya(trajectories, steps=2)
 bk_method = MonteCarlo(dynamics, bk_strategy)
 bk_problem = PricingProblem(payoff, market_inputs)
 bk_solution = solve(bk_problem, bk_method)
