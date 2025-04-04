@@ -43,8 +43,8 @@ function solve(
     price = if σ == 0
         D * prob.payoff(F)
     else
-        d1 = (log(F / K) + 0.5 * σ^2 * T) / (σ * sqrt(T))
-        d2 = d1 - σ * sqrt(T)
+        d1 = (log(F / K) .+ 0.5 * σ.^2 .* T) ./ (σ .* sqrt(T))
+        d2 = d1 .- σ .* sqrt(T)
         D * cp * (F * cdf(Normal(), cp * d1) - K * cdf(Normal(), cp * d2))
     end
 

@@ -37,4 +37,8 @@ include("greeks/greeks_problem.jl")
 include("distributions/heston.jl")
 include("distributions/sample_from_cf.jl")
 
+# calibration
+include("calibration/basket.jl")
+include("calibration/calibration.jl")
+
 end
