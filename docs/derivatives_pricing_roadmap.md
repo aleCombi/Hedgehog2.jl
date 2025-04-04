@@ -28,12 +28,12 @@
 - [x] Analytic Greeks for Black-Scholes
 - [x] Optional: AD for Monte Carlo methods
 - [x] Plug Greeks into pricing pipeline with consistent API
-- [ ] Develop modular calibration system:
-- [ ] Residual-based calibration engine
-- [ ] Objective functions from market quotes
-- [ ] Support for different pricer-model combinations
-- [ ] Heston calibration to implied volatility surface
-- [ ] Unit tests: Greeks accuracy vs known formulas, calibration residual shapes
+- [x] Develop modular calibration system:
+- [x] Residual-based calibration engine
+- [x] Objective functions from market quotes
+- [x] Support for different pricer-model combinations
+- [x] Heston calibration to implied volatility surface
+- [x] Unit tests: Greeks accuracy vs known formulas, calibration residual shapes
 
 ## PHASE 3.5 — Monte Carlo Enhancements (1 week)
 
