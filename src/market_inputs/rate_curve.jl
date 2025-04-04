@@ -3,7 +3,15 @@ import Dates: Date, value
 import Base: getindex
 import Accessors: set, @optic
 
-export RateCurve, df, zero_rate, forward_rate, spine_tenors, spine_zeros, FlatRateCurve, is_flat, ZeroRateSpineLens
+export RateCurve,
+    df,
+    zero_rate,
+    forward_rate,
+    spine_tenors,
+    spine_zeros,
+    FlatRateCurve,
+    is_flat,
+    ZeroRateSpineLens
 
 # -- Structs --
 
@@ -24,7 +32,8 @@ function RateCurve(
     reference_date::Real,
     tenors::AbstractVector,
     dfs;
-    interp = (u, t) -> LinearInterpolation(u, t; extrapolation=ExtrapolationType.Constant)
+    interp = (u, t) ->
+        LinearInterpolation(u, t; extrapolation = ExtrapolationType.Constant),
 )
     @assert length(tenors) == length(dfs) "Mismatched tenor/DF lengths"
     @assert issorted(tenors) "Tenors must be sorted"
@@ -38,12 +47,13 @@ function RateCurve(
     reference_date::Date,
     tenors::AbstractVector,
     dfs;
-    interp = (u, t) -> LinearInterpolation(u, t; extrapolation=ExtrapolationType.Constant)
+    interp = (u, t) ->
+        LinearInterpolation(u, t; extrapolation = ExtrapolationType.Constant),
 )
-    return RateCurve(to_ticks(reference_date), tenors, dfs; interp=interp)
+    return RateCurve(to_ticks(reference_date), tenors, dfs; interp = interp)
 end
 
-function RateCurve(reference_date::Date, itp::I, builder::F) where {I, F}
+function RateCurve(reference_date::Date, itp::I, builder::F) where {I,F}
     return RateCurve(to_ticks(reference_date), itp, builder)
 end
 
@@ -52,20 +62,16 @@ end
 df(curve::RateCurve, ticks::Real) =
     exp(-zero_rate(curve, ticks) * yearfrac(curve.reference_date, ticks))
 
-df(curve::RateCurve, t::Date) =
-    df(curve, to_ticks(t))
+df(curve::RateCurve, t::Date) = df(curve, to_ticks(t))
 
-df_yf(curve::RateCurve, yf::Real) =
-    exp(-zero_rate_yf(curve, yf) * yf)
+df_yf(curve::RateCurve, yf::Real) = exp(-zero_rate_yf(curve, yf) * yf)
 
 zero_rate(curve::RateCurve, ticks::Real) =
     curve.interpolator(yearfrac(curve.reference_date, ticks))
 
-zero_rate(curve::RateCurve, t::Date) =
-    zero_rate(curve, to_ticks(t))
+zero_rate(curve::RateCurve, t::Date) = zero_rate(curve, to_ticks(t))
 
-zero_rate_yf(curve::RateCurve, yf::Real) =
-    curve.interpolator(yf)
+zero_rate_yf(curve::RateCurve, yf::Real) = curve.interpolator(yf)
 
 # -- Forward Rates --
 
@@ -75,8 +81,11 @@ function forward_rate(curve::RateCurve, t1::Real, t2::Real)
     return log(df1 / df2) / (t2 - t1)
 end
 
-forward_rate(curve::RateCurve, d1::Date, d2::Date) =
-    forward_rate(curve, yearfrac(curve.reference_date, d1), yearfrac(curve.reference_date, d2))
+forward_rate(curve::RateCurve, d1::Date, d2::Date) = forward_rate(
+    curve,
+    yearfrac(curve.reference_date, d1),
+    yearfrac(curve.reference_date, d2),
+)
 
 # -- Spine Access --
 
@@ -85,8 +94,9 @@ spine_zeros(curve::RateCurve) = curve.interpolator.u
 
 # -- Flat Curve --
 
-function FlatRateCurve(r; reference_date=Date(0))
-    builder = (u, t) -> ConstantInterpolation(u, t; extrapolation=ExtrapolationType.Constant)
+function FlatRateCurve(r; reference_date = Date(0))
+    builder =
+        (u, t) -> ConstantInterpolation(u, t; extrapolation = ExtrapolationType.Constant)
     itp = builder([r], [0.0])
     return RateCurve(to_ticks(reference_date), itp, builder)
 end

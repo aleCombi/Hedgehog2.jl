@@ -2,7 +2,7 @@ module Hedgehog2
 
 using DifferentialEquations, ForwardDiff, Distributions, Accessors, Dates
 
-if false 
+if false
     include("../examples/includer.jl")
 end
 

@@ -11,8 +11,11 @@ end
 
 # Function to get the next ADR number
 function get_next_adr_number()
-    files = filter(x -> endswith(x, ".yaml"), readdir(ADR_DIR, join=true))
-    numbers = [parse(Int, match(r"adr-(\d+)", f).captures[1]) for f in files if occursin(r"adr-\d+", f)]
+    files = filter(x -> endswith(x, ".yaml"), readdir(ADR_DIR, join = true))
+    numbers = [
+        parse(Int, match(r"adr-(\d+)", f).captures[1]) for
+        f in files if occursin(r"adr-\d+", f)
+    ]
     return isempty(numbers) ? 1 : maximum(numbers) + 1
 end
 

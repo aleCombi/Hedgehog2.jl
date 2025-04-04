@@ -19,7 +19,8 @@ bs_market_inputs = BlackScholesInputs(reference_date, r, S0, sqrt(V0))
 # Define payoff
 expiry = reference_date + Day(365)
 strike = 100
-payoff = VanillaOption(strike, expiry, Hedgehog2.European(), Hedgehog2.Call(), Hedgehog2.Spot())
+payoff =
+    VanillaOption(strike, expiry, Hedgehog2.European(), Hedgehog2.Call(), Hedgehog2.Spot())
 
 # Define carr madan method
 boundary = 32

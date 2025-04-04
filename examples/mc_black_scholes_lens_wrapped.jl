@@ -9,7 +9,7 @@ using Accessors
 # Custom Ensemble Framework
 # --------------------------
 
-struct CustomEnsembleProblem{P, F}
+struct CustomEnsembleProblem{P,F}
     base_problem::P
     seeds::Vector{Int64}
     modify::F  # (base_problem, seed, index) -> new_problem
@@ -20,16 +20,21 @@ struct CustomEnsembleSolution{S}
     seeds::Vector{Int64}
 end
 
-function solve_custom_ensemble(prob::CustomEnsembleProblem; dt, solver=EM(), trajectories=nothing)
+function solve_custom_ensemble(
+    prob::CustomEnsembleProblem;
+    dt,
+    solver = EM(),
+    trajectories = nothing,
+)
     N = trajectories === nothing ? length(prob.seeds) : trajectories
     seeds = length(prob.seeds) == N ? prob.seeds : collect(1:N)
 
     sols = Vector{Any}(undef, N)
 
-    Threads.@threads for i in 1:N
+    Threads.@threads for i = 1:N
         seed = seeds[i]
         pmod = prob.modify(prob.base_problem, seed, i)
-        sols[i] = DifferentialEquations.solve(pmod, solver; dt=dt)
+        sols[i] = DifferentialEquations.solve(pmod, solver; dt = dt)
     end
 
     return CustomEnsembleSolution(sols, seeds)
@@ -39,7 +44,7 @@ end
 # GBM with NoiseProcess
 # --------------------------
 
-function build_noise_gbm_ensemble(μ, σ, S0, tspan; seeds=nothing)
+function build_noise_gbm_ensemble(μ, σ, S0, tspan; seeds = nothing)
     T_ = typeof(σ)
     μ = convert(T_, μ)
     S0 = convert(T_, S0)
@@ -51,7 +56,7 @@ function build_noise_gbm_ensemble(μ, σ, S0, tspan; seeds=nothing)
 
     N = seeds === nothing ? 100 : length(seeds)
     seeds = seeds === nothing ? collect(1:N) : seeds
-    modify = (prob, seed, i) -> remake(prob; seed=seed)
+    modify = (prob, seed, i) -> remake(prob; seed = seed)
     return CustomEnsembleProblem(base_prob, collect(seeds), modify)
 end
 
@@ -73,7 +78,7 @@ struct EnsembleProblemLens end
 
 function (lens::EnsembleProblemLens)(p::BSMonteCarloSetup)
     tspan = (0.0, p.T)
-    build_noise_gbm_ensemble(p.r, p.σ, p.S0, tspan; seeds=1:p.N)
+    build_noise_gbm_ensemble(p.r, p.σ, p.S0, tspan; seeds = 1:p.N)
 end
 
 function Accessors.set(p::BSMonteCarloSetup, ::EnsembleProblemLens, new_σ)
@@ -100,17 +105,17 @@ end
 # Usage Example with Lens
 # --------------------------
 
-params = BSMonteCarloSetup(100.0, 100.0, 0.01, 0.2, 1.0, 10_000, 1/250)
+params = BSMonteCarloSetup(100.0, 100.0, 0.01, 0.2, 1.0, 10_000, 1 / 250)
 lens = EnsembleProblemLens()
 
 # Get base ensemble problem
 base_prob = lens(params)
-sol = solve_custom_ensemble(base_prob; dt=params.dt)
+sol = solve_custom_ensemble(base_prob; dt = params.dt)
 
 # Get bumped ensemble by setting σ
 params_bumped = Accessors.set(params, lens, 0.25)
 bumped_prob = lens(params_bumped)
-sol_bumped = solve_custom_ensemble(bumped_prob; dt=params_bumped.dt)
+sol_bumped = solve_custom_ensemble(bumped_prob; dt = params_bumped.dt)
 
 # Extract payoffs and compute price and vega
 payoff = x -> max(x - params.K, 0.0)

@@ -37,23 +37,23 @@ reference_price = carr_madan_solution.price
 println("Reference price (Carr-Madan): $reference_price\n")
 
 # --- Function to run Monte Carlo trials ---
-function run_mc_trials(n_trials, trajectories, steps; use_antithetic=false)
+function run_mc_trials(n_trials, trajectories, steps; use_antithetic = false)
     prices = Float64[]
     times = Float64[]
-    for trial in 1:n_trials
+    for trial = 1:n_trials
         # Create Euler-Maruyama strategy
-        strategy = EulerMaruyama(trajectories, steps; antithetic=use_antithetic)
+        strategy = EulerMaruyama(trajectories, steps; antithetic = use_antithetic)
         method = MonteCarlo(HestonDynamics(), strategy)
-        
+
         # Measure time and solve
         time = @elapsed begin
             sol = solve(prob, method)
             push!(prices, sol.price)
         end
-        
+
         push!(times, time)
     end
-    
+
     return prices, times
 end
 
@@ -65,22 +65,23 @@ steps = 100
 println("Running experiments with $n_trials trials, $trajectories paths, $steps steps...")
 
 # Standard Monte Carlo
-std_prices, std_times = run_mc_trials(n_trials, trajectories, steps, use_antithetic=false)
+std_prices, std_times = run_mc_trials(n_trials, trajectories, steps, use_antithetic = false)
 
 # Antithetic Monte Carlo (same number of total paths)
-anti_prices, anti_times = run_mc_trials(n_trials, trajectories ÷ 2, steps, use_antithetic=true)
+anti_prices, anti_times =
+    run_mc_trials(n_trials, trajectories ÷ 2, steps, use_antithetic = true)
 
 # --- Compute metrics ---
 std_mean = mean(std_prices)
 std_error = std_mean - reference_price
 std_stdev = std(std_prices)
-std_rmse = sqrt(mean((std_prices .- reference_price).^2))
+std_rmse = sqrt(mean((std_prices .- reference_price) .^ 2))
 std_time = mean(std_times)
 
 anti_mean = mean(anti_prices)
 anti_error = anti_mean - reference_price
 anti_stdev = std(anti_prices)
-anti_rmse = sqrt(mean((anti_prices .- reference_price).^2))
+anti_rmse = sqrt(mean((anti_prices .- reference_price) .^ 2))
 anti_time = mean(anti_times)
 
 # --- Print results ---
@@ -88,15 +89,35 @@ println("\n=== Results ===")
 println("Metric               | Standard MC       | Antithetic MC      | Improvement")
 println("--------------------+-------------------+--------------------+-------------")
 @printf("Mean price           | %.6f          | %.6f          | -\n", std_mean, anti_mean)
-@printf("Bias                 | %.6f          | %.6f          | %.2fx\n", 
-        std_error, anti_error, abs(std_error)/max(abs(anti_error), 1e-10))
-@printf("Standard deviation   | %.6f          | %.6f          | %.2fx\n", 
-        std_stdev, anti_stdev, std_stdev/anti_stdev)
-@printf("RMSE                 | %.6f          | %.6f          | %.2fx\n", 
-        std_rmse, anti_rmse, std_rmse/anti_rmse)
-@printf("Avg. execution time  | %.3f s           | %.3f s           | %.2fx\n",
-        std_time, anti_time, std_time/anti_time)
+@printf(
+    "Bias                 | %.6f          | %.6f          | %.2fx\n",
+    std_error,
+    anti_error,
+    abs(std_error) / max(abs(anti_error), 1e-10)
+)
+@printf(
+    "Standard deviation   | %.6f          | %.6f          | %.2fx\n",
+    std_stdev,
+    anti_stdev,
+    std_stdev / anti_stdev
+)
+@printf(
+    "RMSE                 | %.6f          | %.6f          | %.2fx\n",
+    std_rmse,
+    anti_rmse,
+    std_rmse / anti_rmse
+)
+@printf(
+    "Avg. execution time  | %.3f s           | %.3f s           | %.2fx\n",
+    std_time,
+    anti_time,
+    std_time / anti_time
+)
 
 # --- Path distribution visualization (code) ---
-println("\nNote: To visualize the distribution of prices across trials, you can plot a histogram")
-println("of the price vectors 'std_prices' and 'anti_prices' to see the variance reduction effect.")
+println(
+    "\nNote: To visualize the distribution of prices across trials, you can plot a histogram",
+)
+println(
+    "of the price vectors 'std_prices' and 'anti_prices' to see the variance reduction effect.",
+)

@@ -1,12 +1,12 @@
 using Dates
 using Accessors
-using Roots 
+using Roots
 
 export RectVolSurface, spine_strikes, spine_tenors, spine_vols, get_vol, Interpolator2D
 
 import DataInterpolations: LinearInterpolation, ExtrapolationType
 
-struct Interpolator2D{XVec, YVec, YInterp, XInterpFunc}
+struct Interpolator2D{XVec,YVec,YInterp,XInterpFunc}
     x_vals::XVec                        # Grid in x-direction (e.g., expiry)
     y_vals::YVec                        # Grid in y-direction (e.g., strike)
     y_interps::Vector{YInterp}         # Interpolators in y, one per x
@@ -27,14 +27,14 @@ function Interpolator2D(
 
     # Interpolators along y-direction (row-wise)
     y_interps = [
-        interp_y(view(values, i, :), y_vals; extrapolation=extrap_y)
-        for i in eachindex(x_vals)
+        interp_y(view(values, i, :), y_vals; extrapolation = extrap_y) for
+        i in eachindex(x_vals)
     ]
 
     # Closure: build interpolator along x-direction at a given y
     function build_x_interp(y::Real)
         vals_at_y = [itp(y) for itp in y_interps]
-        return interp_x(vals_at_y, x_vals; extrapolation=extrap_x)
+        return interp_x(vals_at_y, x_vals; extrapolation = extrap_x)
     end
 
     return Interpolator2D(x_vals, y_vals, y_interps, build_x_interp)
@@ -47,7 +47,7 @@ function Base.getindex(itp::Interpolator2D, x::Real, y::Real)
 end
 
 struct RectVolSurface
-    reference_date
+    reference_date::Any
     interpolator::Interpolator2D
 end
 

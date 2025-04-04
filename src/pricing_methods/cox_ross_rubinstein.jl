@@ -23,7 +23,7 @@ where:
 - `u = exp(σ√ΔT)` is the up-move factor,
 - `ΔT` is the time step duration in years.
 """
-struct CoxRossRubinsteinMethod <: AbstractPricingMethod 
+struct CoxRossRubinsteinMethod <: AbstractPricingMethod
     steps::Int
 end
 
@@ -54,7 +54,13 @@ Returns the value at a given node in the binomial tree for an American option.
 # Returns
 - The maximum between the continuation value and the intrinsic value of the option (early exercise is considered).
 """
-function binomial_tree_value(step, discounted_continuation, underlying_at_i, payoff, ::American)
+function binomial_tree_value(
+    step,
+    discounted_continuation,
+    underlying_at_i,
+    payoff,
+    ::American,
+)
     return max.(discounted_continuation, payoff(underlying_at_i(step)))
 end
 
@@ -72,7 +78,11 @@ Computes the underlying asset price at a given step when pricing an option on th
 - The estimated spot price, derived by discounting the forward price.
 """
 function binomial_tree_underlying(time_step, forward, rate, delta_time, ::Spot)
-    return exp(-zero_rate(rate, add_yearfrac(rate.reference_date, time_step* delta_time)) * time_step* delta_time) * forward
+    return exp(
+        -zero_rate(rate, add_yearfrac(rate.reference_date, time_step * delta_time)) *
+        time_step *
+        delta_time,
+    ) * forward
 end
 
 """
@@ -90,12 +100,16 @@ function binomial_tree_underlying(_, forward, _, _, ::Forward)
 end
 
 function solve(
-    prob::PricingProblem{VanillaOption{E, C, U}, M},
-    method::CoxRossRubinsteinMethod
-) where {E, C, U, M <: AbstractMarketInputs}
+    prob::PricingProblem{VanillaOption{E,C,U},M},
+    method::CoxRossRubinsteinMethod,
+) where {E,C,U,M<:AbstractMarketInputs}
 
     if !is_flat(prob.market.rate)
-        throw(ArgumentError("For now Cox Ross Rubinstein pricing only supports flat rate curves. The implementation has to be checked for general rate curves."))
+        throw(
+            ArgumentError(
+                "For now Cox Ross Rubinstein pricing only supports flat rate curves. The implementation has to be checked for general rate curves.",
+            ),
+        )
     end
     payoff = prob.payoff
     market_inputs = prob.market
@@ -107,15 +121,27 @@ function solve(
     u = exp(market_inputs.sigma * sqrt(ΔT))
 
     forward_at_i(i) = forward * u .^ (-i:2:i)
-    underlying_at_i(i) = binomial_tree_underlying(i, forward_at_i(i), market_inputs.rate, ΔT, payoff.underlying)
+    underlying_at_i(i) = binomial_tree_underlying(
+        i,
+        forward_at_i(i),
+        market_inputs.rate,
+        ΔT,
+        payoff.underlying,
+    )
     p = 1 / (1 + u)
 
     value = payoff.(forward_at_i(steps))
 
-    for step in (steps-1):-1:0
+    for step = (steps-1):-1:0
         continuation = p * value[2:end] + (1 - p) * value[1:end-1]
         discount_factor = exp(-zero_rate(market_inputs.rate, payoff.expiry) * ΔT)
-        value = binomial_tree_value(step, discount_factor * continuation, underlying_at_i, payoff, payoff.exercise_style)
+        value = binomial_tree_value(
+            step,
+            discount_factor * continuation,
+            underlying_at_i,
+            payoff,
+            payoff.exercise_style,
+        )
     end
 
     return CRRSolution(value[1])

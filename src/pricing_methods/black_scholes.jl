@@ -20,7 +20,7 @@ struct BlackScholesAnalytic <: AbstractPricingMethod end
 Returns the assumed lognormal price dynamics for the Black-Scholes model.
 """
 function log_dynamics(::BlackScholesAnalytic)
-  return LognormalDynamics()
+    return LognormalDynamics()
 end
 
 """
@@ -30,9 +30,9 @@ Computes the price of a European vanilla option under Black-Scholes.
 Returns an `AnalyticSolution` with the price.
 """
 function solve(
-    prob::PricingProblem{VanillaOption{European, A, B}, BlackScholesInputs},
-    ::BlackScholesAnalytic
-) where {A, B}
+    prob::PricingProblem{VanillaOption{European,A,B},BlackScholesInputs},
+    ::BlackScholesAnalytic,
+) where {A,B}
 
     K = prob.payoff.strike
     σ = prob.market.sigma
@@ -43,7 +43,7 @@ function solve(
     price = if σ == 0
         D * prob.payoff(F)
     else
-        d1 = (log(F / K) .+ 0.5 * σ.^2 .* T) ./ (σ .* sqrt(T))
+        d1 = (log(F / K) .+ 0.5 * σ .^ 2 .* T) ./ (σ .* sqrt(T))
         d2 = d1 .- σ .* sqrt(T)
         D * cp * (F * cdf(Normal(), cp * d1) - K * cdf(Normal(), cp * d2))
     end
@@ -52,19 +52,25 @@ function solve(
 end
 
 # Define the calibration problem
-struct BlackScholesCalibrationProblem{P<:PricingProblem, M}
-    prob::P 
+struct BlackScholesCalibrationProblem{P<:PricingProblem,M}
+    prob::P
     method::M
-    price_target
+    price_target::Any
 end
 
-function solve(calib::BlackScholesCalibrationProblem; initial_guess=0.2, lower=1e-6, upper=5.0, kwargs...)
+function solve(
+    calib::BlackScholesCalibrationProblem;
+    initial_guess = 0.2,
+    lower = 1e-6,
+    upper = 5.0,
+    kwargs...,
+)
     function calibration_function(σ, p)
         market = calib.prob.market
         new_market = @set market.sigma = σ
         new_prob = PricingProblem(calib.prob.payoff, new_market)
         sol = solve(new_prob, calib.method)
-        return sol.price - calib.price_target 
+        return sol.price - calib.price_target
     end
 
     problem = NonlinearProblem(calibration_function, initial_guess)
@@ -80,12 +86,12 @@ function RectVolSurface(
     tenors::Vector{<:Period},
     strikes::Vector{<:Real},
     prices::Matrix{<:Real};
-    call_put_matrix::Union{Nothing, AbstractMatrix} = nothing,
+    call_put_matrix::Union{Nothing,AbstractMatrix} = nothing,
     interp_strike = LinearInterpolation,
     interp_time = LinearInterpolation,
     extrap_strike = ExtrapolationType.Constant,
     extrap_time = ExtrapolationType.Constant,
-    kwargs...
+    kwargs...,
 )
     nrows, ncols = length(tenors), length(strikes)
     @assert size(prices) == (nrows, ncols) "Price matrix size must match (length(tenors), length(strikes))"
@@ -100,11 +106,11 @@ function RectVolSurface(
     # Calibrate implied vols
     vols = Matrix{Float64}(undef, nrows, ncols)
 
-    for i in 1:nrows, j in 1:ncols
+    for i = 1:nrows, j = 1:ncols
         expiry = reference_date + tenors[i]
         strike = strikes[j]
-        cp     = call_put_matrix[i, j]
-        price  = prices[i, j]
+        cp = call_put_matrix[i, j]
+        price = prices[i, j]
 
         payoff = VanillaOption(strike, expiry, European(), cp, Spot())
         market = BlackScholesInputs(reference_date, rate, spot, 0.2)
@@ -112,7 +118,7 @@ function RectVolSurface(
         prob = BlackScholesCalibrationProblem(
             PricingProblem(payoff, market),
             BlackScholesAnalytic(),
-            price
+            price,
         )
 
         sol = solve(prob; kwargs...)
@@ -128,8 +134,8 @@ function RectVolSurface(
         strikes,
         vols;
         interp_strike = interp_strike,
-        interp_time   = interp_time,
+        interp_time = interp_time,
         extrap_strike = extrap_strike,
-        extrap_time   = extrap_time,
+        extrap_time = extrap_time,
     )
 end

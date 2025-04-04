@@ -15,19 +15,23 @@ struct AnalyticGreek <: GreekMethod end
 struct ForwardAD <: GreekMethod end
 
 struct FiniteDifference{S<:FDScheme} <: GreekMethod
-    bump
+    bump::Any
     scheme::S
 end
 
 FiniteDifference(bump) = FiniteDifference(bump, FDCentral())
 
 # First-order GreekProblem
-struct GreekProblem{P, L}
+struct GreekProblem{P,L}
     pricing_problem::P
     wrt::L  # accessor (from Accessors.jl)
 end
 
-function solve(gprob::GreekProblem, ::ForwardAD, pricing_method::P) where P<:AbstractPricingMethod
+function solve(
+    gprob::GreekProblem,
+    ::ForwardAD,
+    pricing_method::P,
+) where {P<:AbstractPricingMethod}
     prob = gprob.pricing_problem
     lens = gprob.wrt
 
@@ -65,7 +69,11 @@ function compute_fd_derivative(::FDCentral, prob, lens, ε, pricing_method)
     return (v_up - v_down) / (2ε)
 end
 
-function solve(gprob::GreekProblem, method::FiniteDifference{S}, pricing_method::P) where {S<:FDScheme, P<:AbstractPricingMethod}
+function solve(
+    gprob::GreekProblem,
+    method::FiniteDifference{S},
+    pricing_method::P,
+) where {S<:FDScheme,P<:AbstractPricingMethod}
     prob = gprob.pricing_problem
     lens = gprob.wrt
     ε = method.bump
@@ -75,13 +83,17 @@ function solve(gprob::GreekProblem, method::FiniteDifference{S}, pricing_method:
 end
 
 # Second-order GreekProblem
-struct SecondOrderGreekProblem{P, L1, L2}
+struct SecondOrderGreekProblem{P,L1,L2}
     pricing_problem::P
     wrt1::L1
     wrt2::L2
 end
 
-function solve(gprob::SecondOrderGreekProblem, ::ForwardAD, pricing_method::P) where P<:AbstractPricingMethod
+function solve(
+    gprob::SecondOrderGreekProblem,
+    ::ForwardAD,
+    pricing_method::P,
+) where {P<:AbstractPricingMethod}
     prob = gprob.pricing_problem
     lens1, lens2 = gprob.wrt1, gprob.wrt2
     x₀, y₀ = lens1(prob), lens2(prob)
@@ -99,7 +111,11 @@ function solve(gprob::SecondOrderGreekProblem, ::ForwardAD, pricing_method::P) w
     return (greek = deriv,)
 end
 
-function solve(gprob::SecondOrderGreekProblem, method::FiniteDifference, pricing_method::P) where P<:AbstractPricingMethod
+function solve(
+    gprob::SecondOrderGreekProblem,
+    method::FiniteDifference,
+    pricing_method::P,
+) where {P<:AbstractPricingMethod}
     prob = gprob.pricing_problem
     lens1, lens2 = gprob.wrt1, gprob.wrt2
     ε = method.bump
@@ -109,8 +125,8 @@ function solve(gprob::SecondOrderGreekProblem, method::FiniteDifference, pricing
     f = (x, y) -> solve(set(set(prob, lens1, x), lens2, y), pricing_method).price
 
     if lens1 === lens2
-        f_plus  = f(x₀ + ε, y₀ + ε)
-        f_0     = f(x₀, y₀)
+        f_plus = f(x₀ + ε, y₀ + ε)
+        f_0 = f(x₀, y₀)
         f_minus = f(x₀ - ε, y₀ - ε)
         deriv = (f_plus - 2f_0 + f_minus) / (ε^2)
     else
@@ -124,9 +140,14 @@ function solve(gprob::SecondOrderGreekProblem, method::FiniteDifference, pricing
     return (greek = deriv,)
 end
 
-function solve(gprob::GreekProblem{
-PricingProblem{VanillaOption{European, A, B}, BlackScholesInputs},
-    <:Any}, ::AnalyticGreek, ::BlackScholesAnalytic) where {A, B}
+function solve(
+    gprob::GreekProblem{
+        PricingProblem{VanillaOption{European,A,B},BlackScholesInputs},
+        <:Any,
+    },
+    ::AnalyticGreek,
+    ::BlackScholesAnalytic,
+) where {A,B}
     prob = gprob.pricing_problem
     lens = gprob.wrt
     inputs = prob.market
@@ -153,7 +174,7 @@ PricingProblem{VanillaOption{European, A, B}, BlackScholesInputs},
     elseif lens === @optic _.market.sigma
         # Vega = ∂V/∂σ = D · F · φ(d1) · √T
         D * F * ϕ(d1) * √T
-    
+
     elseif lens === @optic _.payoff.expiry
         @assert is_flat(prob.market.rate)
 
@@ -168,11 +189,7 @@ PricingProblem{VanillaOption{European, A, B}, BlackScholesInputs},
     return (greek = greek,)
 end
 
-function solve(
-    gprob::SecondOrderGreekProblem,
-    ::AnalyticGreek,
-    ::BlackScholesAnalytic
-)
+function solve(gprob::SecondOrderGreekProblem, ::AnalyticGreek, ::BlackScholesAnalytic)
     prob = gprob.pricing_problem
     lens1 = gprob.wrt1
     lens2 = gprob.wrt2

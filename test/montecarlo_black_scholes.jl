@@ -16,7 +16,7 @@ using Printf
     rate = 0.05
     spot = 100.0
     sigma = 0.20
-    
+
     # Print parameter configuration for debugging
     println("Test Parameters:")
     println("  Spot: $spot")
@@ -25,62 +25,67 @@ using Printf
     println("  Volatility: $sigma")
     println("  Time to maturity: 1 year")
     println("  Option type: European Call")
-    
+
     # Define payoff and market inputs
     payoff = VanillaOption(strike, expiry, European(), Call(), Spot())
     market_inputs = BlackScholesInputs(reference_date, rate, spot, sigma)
     prob = PricingProblem(payoff, market_inputs)
-    
+
     # Define test parameters - increase trajectories for more reliable results
     trajectories = 10_000
     steps = 1
-    
+
     # Analytic reference solution
     analytic_method = BlackScholesAnalytic()
     analytic_sol = solve(prob, analytic_method)
     reference_price = analytic_sol.price
-    
+
     # Print reference price for debugging
     println("Reference price (BlackScholesAnalytic): $reference_price")
-    
+
     # Double-check with manual Black-Scholes formula calculation
-    d1 = (log(spot/strike) + (rate + 0.5*sigma^2)) / (sigma)
+    d1 = (log(spot / strike) + (rate + 0.5 * sigma^2)) / (sigma)
     d2 = d1 - sigma
     manual_bs_price = spot * cdf(Normal(), d1) - strike * exp(-rate) * cdf(Normal(), d2)
     println("Manual Black-Scholes calculation: $manual_bs_price")
-    
+
     # Test scenarios - we'll use Accessors to set seeds in the trial loop
     scenarios = [
-        ("BlackScholesExact without antithetic", 
-         BlackScholesExact(trajectories, seeds=nothing), 
-         LognormalDynamics()),
-         
-        ("BlackScholesExact with antithetic", 
-         BlackScholesExact(trajectories, antithetic=true, seeds=nothing), 
-         LognormalDynamics()),
-         
-        ("EulerMaruyama without antithetic", 
-         EulerMaruyama(trajectories, steps=steps, seeds=nothing), 
-         LognormalDynamics()),
-         
-        ("EulerMaruyama with antithetic", 
-         EulerMaruyama(trajectories, steps=steps, antithetic=true, seeds=nothing), 
-         LognormalDynamics())
+        (
+            "BlackScholesExact without antithetic",
+            BlackScholesExact(trajectories, seeds = nothing),
+            LognormalDynamics(),
+        ),
+        (
+            "BlackScholesExact with antithetic",
+            BlackScholesExact(trajectories, antithetic = true, seeds = nothing),
+            LognormalDynamics(),
+        ),
+        (
+            "EulerMaruyama without antithetic",
+            EulerMaruyama(trajectories, steps = steps, seeds = nothing),
+            LognormalDynamics(),
+        ),
+        (
+            "EulerMaruyama with antithetic",
+            EulerMaruyama(trajectories, steps = steps, antithetic = true, seeds = nothing),
+            LognormalDynamics(),
+        ),
     ]
-    
+
     results = Dict()
 
     # Run all scenarios
     for (scenario_name, strategy, dynamics) in scenarios
         # Print current scenario for debugging
         println("Running scenario: ", scenario_name)
-        
+
         # Execute multiple trials to measure variance, with DIFFERENT seeds per trial
         prices = Float64[]
-        for trial in 1:5  # Reduced to 5 trials to focus on seed control
+        for trial = 1:5  # Reduced to 5 trials to focus on seed control
             # Create a new RNG with a trial-specific seed
             trial_rng = MersenneTwister(42 + trial)
-            
+
             # Generate random seeds for each path
             # The key is that each trial gets a completely different set of seeds
             # But the seeds are still deterministic based on the trial number
@@ -91,64 +96,69 @@ using Printf
 
             # Create Monte Carlo method with modified strategy
             mc_method = MonteCarlo(dynamics, modified_strategy)
-            
+
             # Solve with current seed
             sol = solve(prob, mc_method)
             push!(prices, sol.price)
-            
+
             # Print diagnostic info
             println("  Trial $trial: Price = $(sol.price)")
         end
-        
+
         # Calculate statistics
         mean_price = mean(prices)
         price_variance = var(prices)
         error = abs(mean_price - reference_price)
         rel_error = error / reference_price
-        
+
         # Store results
         results[scenario_name] = (
             mean_price = mean_price,
             reference_price = reference_price,
             error = error,
             rel_error = rel_error,
-            variance = price_variance
+            variance = price_variance,
         )
-        
+
         # Test the result with a more generous tolerance 
         # (Monte Carlo will have some error, especially with fewer trials)
-        @test isapprox(mean_price, reference_price, rtol=0.02)
+        @test isapprox(mean_price, reference_price, rtol = 0.02)
     end
-    
+
     # Compare variance reduction for antithetic variants
-    if haskey(results, "BlackScholesExact without antithetic") && 
+    if haskey(results, "BlackScholesExact without antithetic") &&
        haskey(results, "BlackScholesExact with antithetic")
         std_var = results["BlackScholesExact without antithetic"].variance
         anti_var = results["BlackScholesExact with antithetic"].variance
         var_reduction = std_var / anti_var
-        
+
         @info "Variance reduction (BlackScholesExact): $(var_reduction)×"
         @test var_reduction > 1.0  # Antithetic should reduce variance
     end
-    
-    if haskey(results, "EulerMaruyama without antithetic") && 
+
+    if haskey(results, "EulerMaruyama without antithetic") &&
        haskey(results, "EulerMaruyama with antithetic")
         std_var = results["EulerMaruyama without antithetic"].variance
         anti_var = results["EulerMaruyama with antithetic"].variance
         var_reduction = std_var / anti_var
-        
+
         @info "Variance reduction (EulerMaruyama): $(var_reduction)×"
         @test var_reduction > 1.0  # Antithetic should reduce variance
     end
-    
+
     # Print summary
     println("\n=== Black-Scholes Monte Carlo Test Results ===")
     println("Reference price (Analytic): $reference_price")
     println("Scenario                    | Price      | Rel Error | Variance")
     println("----------------------------|------------|-----------|----------")
-    
+
     for (name, res) in results
-        @printf("%-28s | %.6f | %.6f | %.2e\n", 
-                name, res.mean_price, res.rel_error, res.variance)
+        @printf(
+            "%-28s | %.6f | %.6f | %.2e\n",
+            name,
+            res.mean_price,
+            res.rel_error,
+            res.variance
+        )
     end
 end

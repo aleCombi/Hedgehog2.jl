@@ -1,6 +1,6 @@
 using Dates, Distributions
 import Integrals
-export CarrMadan 
+export CarrMadan
 
 """
     CarrMadan <: AbstractPricingMethod
@@ -17,10 +17,10 @@ of the characteristic function of the log-price under the risk-neutral measure.
 - `kwargs`: Additional keyword arguments passed to the integral solver.
 """
 struct CarrMadan <: AbstractPricingMethod
-    α 
-    bound
-    dynamics
-    kwargs # integral keyword arguments
+    α::Any
+    bound::Any
+    dynamics::Any
+    kwargs::Any # integral keyword arguments
 end
 
 """
@@ -28,7 +28,7 @@ end
 
 Returns the log-price dynamics (distribution) used in the Carr-Madan method.
 """
-function log_dynamics(m::CarrMadan) 
+function log_dynamics(m::CarrMadan)
     return m.distribution
 end
 
@@ -43,19 +43,19 @@ Constructs a `CarrMadan` method with optional integration settings for `quadgk`.
 - `dynamics`: The price dynamics (must support `marginal_law`).
 - `kwargs...`: Additional keyword arguments for `quadgk`.
 """
-function CarrMadan(α, bound, dynamics; kwargs...) 
+function CarrMadan(α, bound, dynamics; kwargs...)
     return CarrMadan(α, bound, dynamics, Dict(kwargs...))
 end
 
 function solve(
-    prob::PricingProblem{VanillaOption{European, C, Spot}, I},
-    method::CarrMadan
-) where {C, I <: AbstractMarketInputs}
+    prob::PricingProblem{VanillaOption{European,C,Spot},I},
+    method::CarrMadan,
+) where {C,I<:AbstractMarketInputs}
 
     if !is_flat(prob.market.rate)
         throw(ArgumentError("Carr–Madan pricing only supports flat rate curves."))
     end
-        
+
     K = prob.payoff.strike
     r = prob.market.rate
     S = prob.market.spot
@@ -65,7 +65,8 @@ function solve(
 
     logK = log(K)
     damp = exp(-method.α * logK) / (2π)
-    integrand(v, p) = damp * call_transform(r, prob.payoff.expiry, ϕ, v, method) * exp(-im * v * logK)
+    integrand(v, p) =
+        damp * call_transform(r, prob.payoff.expiry, ϕ, v, method) * exp(-im * v * logK)
 
     iprob = IntegralProblem(integrand, -method.bound, method.bound, nothing)
     integral_result = Integrals.solve(iprob, Integrals.HCubatureJL(); method.kwargs...)

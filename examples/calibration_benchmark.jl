@@ -5,12 +5,25 @@ reference_date = Date(2020, 1, 1)
 S0 = 100.0
 true_params = (v0 = 0.010201, κ = 6.21, θ = 0.019, σ = 0.61, ρ = -0.7)
 r = 0.0319
-market_inputs = HestonInputs(reference_date, r, S0, true_params.v0, true_params.κ, true_params.θ, true_params.σ, true_params.ρ)
+market_inputs = HestonInputs(
+    reference_date,
+    r,
+    S0,
+    true_params.v0,
+    true_params.κ,
+    true_params.θ,
+    true_params.σ,
+    true_params.ρ,
+)
 
 # --- Payoffs
 strikes = collect(60.0:5.0:140.0)
 expiries = [reference_date + Day(d) for d in (90, 180, 365)]
-payoffs = [VanillaOption(K, expiry, European(), Call(), Spot()) for K in strikes, expiry in expiries] |> vec
+payoffs =
+    [
+        VanillaOption(K, expiry, European(), Call(), Spot()) for K in strikes,
+        expiry in expiries
+    ] |> vec
 
 # --- Quotes from Heston model
 α, boundary = 1.0, 32.0
@@ -34,12 +47,18 @@ calib_problem = Hedgehog2.CalibrationProblem(
     method_heston,
     accessors,
     quotes,
-    initial_guess
+    initial_guess,
 )
 
 # --- Run benchmark
 println("\nBenchmarking AutoForwardDiff()...")
-@btime solve($calib_problem, Hedgehog2.OptimizerAlgo(AutoForwardDiff(), Optimization.LBFGS()))
+@btime solve(
+    $calib_problem,
+    Hedgehog2.OptimizerAlgo(AutoForwardDiff(), Optimization.LBFGS()),
+)
 
 println("\nBenchmarking AutoFiniteDiff()...")
-@btime solve($calib_problem, Hedgehog2.OptimizerAlgo(AutoFiniteDiff(), Optimization.LBFGS()))
+@btime solve(
+    $calib_problem,
+    Hedgehog2.OptimizerAlgo(AutoFiniteDiff(), Optimization.LBFGS()),
+)

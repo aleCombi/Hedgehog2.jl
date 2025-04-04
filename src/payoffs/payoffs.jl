@@ -75,7 +75,7 @@ struct Call <: AbstractCallPut end
 
 Returns the call-put indicator for a call option (+1).
 """
-function (call_put::Call)() 
+function (call_put::Call)()
     return 1.0
 end
 
@@ -84,7 +84,7 @@ end
 
 Returns the call-put indicator for a put option (-1).
 """
-function (call_put::Put)() 
+function (call_put::Put)()
     return -1.0
 end
 
@@ -100,9 +100,14 @@ A vanilla option with specified exercise style, call/put type, and underlying ty
 - `call_put`: Instance of `Call` or `Put`.
 - `underlying`: Either `Spot` or `Forward`.
 """
-struct VanillaOption{E,C,U} <: AbstractPayoff where {E<:AbstractExerciseStyle, C <: AbstractCallPut, U<: Underlying}
-    strike
-    expiry::Real
+struct VanillaOption{E,C,U} <: AbstractPayoff where {
+    T<:Real,
+    E<:AbstractExerciseStyle,
+    C<:AbstractCallPut,
+    U<:Underlying,
+}
+    strike::T
+    expiry::T
     exercise_style::E
     call_put::C
     underlying::U
@@ -113,10 +118,10 @@ function VanillaOption(
     expiry_date::TimeType,
     exercise_style::E,
     call_put::C,
-    underlying::U
-) where {E<:AbstractExerciseStyle, C<:AbstractCallPut, U<:Underlying}
+    underlying::U,
+) where {E<:AbstractExerciseStyle,C<:AbstractCallPut,U<:Underlying}
     expiry_ticks = to_ticks(expiry_date)
-    return VanillaOption{E, C, U}(strike, expiry_ticks, exercise_style, call_put, underlying)
+    return VanillaOption{E,C,U}(strike, expiry_ticks, exercise_style, call_put, underlying)
 end
 
 """
@@ -146,7 +151,7 @@ Returns the call price unchanged (no transformation needed).
 - `S`: Spot price.
 - `T`: Time to expiry.
 """
-function parity_transform(call_price, opt::VanillaOption{E, Call, U}, S) where {E, U}
+function parity_transform(call_price, opt::VanillaOption{E,Call,U}, S) where {E,U}
     return call_price
 end
 
@@ -164,6 +169,6 @@ Applies put-call parity to derive the put price from the call price.
 # Returns
 - The corresponding put price using: `put = call - S + K * exp(-rT)`.
 """
-function parity_transform(call_price, opt::VanillaOption{E, Put, U}, S) where {E, U}
+function parity_transform(call_price, opt::VanillaOption{E,Put,U}, S) where {E,U}
     return call_price - S + opt.strike * exp(-opt.expiry)
 end

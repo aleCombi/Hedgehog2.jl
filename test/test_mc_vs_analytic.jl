@@ -34,7 +34,8 @@ using Random
     trajectories = 100_000
     rng = MersenneTwister(42)
     seeds = rand(rng, 1:10^9, trajectories)
-    mc_method = MonteCarlo(LognormalDynamics(), BlackScholesExact(trajectories; seeds=seeds))
+    mc_method =
+        MonteCarlo(LognormalDynamics(), BlackScholesExact(trajectories; seeds = seeds))
     analytic_method = BlackScholesAnalytic()
 
     # --------------------------
@@ -42,7 +43,7 @@ using Random
     # --------------------------
     price_mc = solve(prob, mc_method).price
     price_an = solve(prob, analytic_method).price
-    @test isapprox(price_mc, price_an; rtol=3e-2)
+    @test isapprox(price_mc, price_an; rtol = 3e-2)
 
     # --------------------------
     # Delta
@@ -50,7 +51,7 @@ using Random
     gprob = GreekProblem(prob, spot_lens)
     delta_mc = solve(gprob, ForwardAD(), mc_method).greek
     delta_an = solve(gprob, AnalyticGreek(), analytic_method).greek
-    @test isapprox(delta_mc, delta_an; rtol=3e-2)
+    @test isapprox(delta_mc, delta_an; rtol = 3e-2)
 
     # --------------------------
     # Gamma (FD due to AD instability)
@@ -58,7 +59,7 @@ using Random
     gprob2 = SecondOrderGreekProblem(prob, spot_lens, spot_lens)
     gamma_mc = solve(gprob2, FiniteDifference(1E-1), mc_method).greek
     gamma_an = solve(gprob2, AnalyticGreek(), analytic_method).greek
-    @test isapprox(gamma_mc, gamma_an; rtol=2e-1)
+    @test isapprox(gamma_mc, gamma_an; rtol = 2e-1)
 
     # --------------------------
     # Vega
@@ -66,7 +67,7 @@ using Random
     gprob = GreekProblem(prob, vol_lens)
     vega_mc = solve(gprob, ForwardAD(), mc_method).greek
     vega_an = solve(gprob, AnalyticGreek(), analytic_method).greek
-    @test isapprox(vega_mc, vega_an; rtol=1e-1)
+    @test isapprox(vega_mc, vega_an; rtol = 1e-1)
 
     # --------------------------
     # Rho (flat curve, first zero rate)
@@ -74,5 +75,5 @@ using Random
     gprob = GreekProblem(prob, rate_lens)
     rho_mc = solve(gprob, ForwardAD(), mc_method).greek
     rho_an = solve(gprob, ForwardAD(), analytic_method).greek
-    @test isapprox(rho_mc, rho_an; rtol=1e-2)
+    @test isapprox(rho_mc, rho_an; rtol = 1e-2)
 end

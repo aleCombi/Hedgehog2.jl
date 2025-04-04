@@ -1,4 +1,5 @@
-using Distributions, Random, SpecialFunctions, Roots, DifferentialEquations, Random, StaticArrays
+using Distributions,
+    Random, SpecialFunctions, Roots, DifferentialEquations, Random, StaticArrays
 
 """
     HestonProblem(μ, κ, Θ, σ, ρ, u0, tspan; seed=UInt64(0), kwargs...)
@@ -20,7 +21,14 @@ function HestonProblem(μ, κ, Θ, σ, ρ, u0, tspan; seed = UInt64(0), kwargs..
     noise = CorrelatedWienerProcess(Γ, tspan[1], zeros(2))
 
     sde_f = SDEFunction(f, g)
-    return SDEProblem(sde_f, u0, (tspan[1], tspan[2]), noise=noise, seed=seed, kwargs...)
+    return SDEProblem(
+        sde_f,
+        u0,
+        (tspan[1], tspan[2]),
+        noise = noise,
+        seed = seed,
+        kwargs...,
+    )
 end
 
 function LogGBMProblem(μ, σ, u0, tspan; seed = UInt64(0), kwargs...)
@@ -34,7 +42,14 @@ function LogGBMProblem(μ, σ, u0, tspan; seed = UInt64(0), kwargs...)
     noise = WienerProcess(tspan[1], 0.0)
 
     sde_f = SDEFunction(f, g)
-    return SDEProblem(sde_f, u0, (tspan[1], tspan[2]), noise=noise, seed=seed, kwargs...)
+    return SDEProblem(
+        sde_f,
+        u0,
+        (tspan[1], tspan[2]),
+        noise = noise,
+        seed = seed,
+        kwargs...,
+    )
 end
 
 
@@ -65,14 +80,14 @@ Fields:
 - `r`, `T`: risk-free rate and maturity
 """
 struct HestonDistribution <: ContinuousMultivariateDistribution
-    S0
-    V0
-    κ
-    θ
-    σ
-    ρ
-    r
-    T
+    S0::Any
+    V0::Any
+    κ::Any
+    θ::Any
+    σ::Any
+    ρ::Any
+    r::Any
+    T::Any
 end
 
 """
@@ -83,9 +98,9 @@ Samples the terminal variance `V_T` from the noncentral chi-squared distribution
 function sample_V_T(rng::AbstractRNG, d::HestonDistribution)
     κ, θ, σ, V0, T = d.κ, d.θ, d.σ, d.V0, d.T
 
-    d = 4*κ*θ / σ^2  # Degrees of freedom
-    λ = 4*κ * exp(-κ * T) * V0 / (σ^2 * (- expm1(-κ * T)))  # Noncentrality parameter
-    c = σ^2 * (- expm1(-κ * T)) / (4*κ)  # Scaling factor
+    d = 4 * κ * θ / σ^2  # Degrees of freedom
+    λ = 4 * κ * exp(-κ * T) * V0 / (σ^2 * (-expm1(-κ * T)))  # Noncentrality parameter
+    c = σ^2 * (-expm1(-κ * T)) / (4 * κ)  # Scaling factor
     V_T = c * Distributions.rand(rng, NoncentralChisq(d, λ))
     return V_T
 end
@@ -138,7 +153,7 @@ end
 Evaluates the characteristic function at point `a`, unwrapping the angle using `θ_prev` to ensure continuity.
 Returns the characteristic function value and updated unwrapped angle.
 """
-function evaluate_chf(iter::HestonCFIterator, a::Real, θ_prev::Union{Nothing, Float64})
+function evaluate_chf(iter::HestonCFIterator, a::Real, θ_prev::Union{Nothing,Float64})
     κ, θ, σ, V0, T = iter.dist.κ, iter.dist.θ, iter.dist.σ, iter.dist.V0, iter.dist.T
     ν = iter.ν
     ζκ, ηκ, logIκ = iter.ζκ, iter.ηκ, iter.logIκ
@@ -201,7 +216,7 @@ end
 Alternative sampling version returning `[log(S_T), V_T]` instead of `S_T`.
 Useful for testing and diagnostics.
 """
-function rand(rng::AbstractRNG, d::HestonDistribution; antithetic=false, kwargs...)
+function rand(rng::AbstractRNG, d::HestonDistribution; antithetic = false, kwargs...)
     d1 = HestonDistribution(d.S0, d.V0, d.κ, d.θ, d.σ, d.ρ, d.r, d.T)
     # println(d)
     # Step 1: Sample V_T
@@ -211,16 +226,24 @@ function rand(rng::AbstractRNG, d::HestonDistribution; antithetic=false, kwargs.
     integral_V = sample_integral_V(V_T, rng, d1; kwargs...)
 
     # Step 3: Sample log(S_T) with antithetic option
-    log_S_T = sample_log_S_T(V_T, integral_V, rng, d1, antithetic=antithetic)
+    log_S_T = sample_log_S_T(V_T, integral_V, rng, d1, antithetic = antithetic)
 
     return [log_S_T, V_T]
 end
 
-function sample_log_S_T(V_T, integral_V, rng::AbstractRNG, d::HestonDistribution; antithetic=false)
+function sample_log_S_T(
+    V_T,
+    integral_V,
+    rng::AbstractRNG,
+    d::HestonDistribution;
+    antithetic = false,
+)
     κ, θ, σ, ρ, V0, T, S0, r = d.κ, d.θ, d.σ, d.ρ, d.V0, d.T, d.S0, d.r
 
     # Compute conditional mean
-    mu = log(S0) + r*T - 0.5*integral_V + (ρ/σ)*(V_T - V0 - κ*θ*T + κ*integral_V)
+    mu =
+        log(S0) + r * T - 0.5 * integral_V +
+        (ρ / σ) * (V_T - V0 - κ * θ * T + κ * integral_V)
 
     # Compute conditional variance
     sigma2 = (1 - ρ^2) * integral_V
@@ -243,7 +266,9 @@ function cf(d::HestonDistribution, u)
     d1 = sqrt((κ - ρ * σ * im * u)^2 + σ^2 * (im * u + u^2))
     g = (κ - ρ * σ * im * u - d1) / (κ - ρ * σ * im * u + d1)
 
-    C = (κ * θ / σ^2) * ((κ - ρ * σ * im * u - d1) * T - 2 * log((1 - g * exp(-d1 * T)) / (1 - g)))
+    C =
+        (κ * θ / σ^2) *
+        ((κ - ρ * σ * im * u - d1) * T - 2 * log((1 - g * exp(-d1 * T)) / (1 - g)))
     D = ((κ - ρ * σ * im * u - d1) / σ^2) * ((1 - exp(-d1 * T)) / (1 - g * exp(-d1 * T)))
 
     return exp(C + D * V0 + im * u * log(S0) + im * u * r * T)

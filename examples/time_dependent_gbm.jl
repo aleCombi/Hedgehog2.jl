@@ -18,7 +18,7 @@ end
 process_const = GBMTimeDependent(
     0.05,          # Drift
     σ_const,       # Constant volatility function
-    mean_σ²_const  # Integral of σ²(t)
+    mean_σ²_const,  # Integral of σ²(t)
 )
 
 # Get SDE function
@@ -29,12 +29,12 @@ u0 = [1.0]
 tspan = (0.0, 2.0)
 
 
-sde_problem_td = SDEProblem(sde_func_const, u0, tspan, seed=12)
+sde_problem_td = SDEProblem(sde_func_const, u0, tspan, seed = 12)
 sol_td = solve(sde_problem_td)
 plot(sol_td)
 
 process_gbm = GBMProcess(0.05, 0.2)
 sde_func = get_sde_function(process_gbm)
-sde_problem = SDEProblem(sde_func, u0, tspan, seed=12)
+sde_problem = SDEProblem(sde_func, u0, tspan, seed = 12)
 sol = solve(sde_problem)
 plot!(sol)

@@ -14,7 +14,7 @@ payoff = VanillaOption(strike, expiry, European(), Call(), Spot())
 
 # -- Pricing problem
 pp = PricingProblem(payoff, market)
-pricing_method =BlackScholesAnalytic()
+pricing_method = BlackScholesAnalytic()
 # Generate market quote
 price = solve(pp, pricing_method).price  # True model price
 
@@ -23,7 +23,7 @@ calib_problem = Hedgehog2.CalibrationProblem(
     Hedgehog2.BasketPricingProblem([payoff], market),
     pricing_method,
     [@optic _.market.sigma],
-    [price]
+    [price],
 )
 
 # Run calibration starting from wrong sigma

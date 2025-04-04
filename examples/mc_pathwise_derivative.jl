@@ -22,13 +22,13 @@ function terminal_value(σ_val::Real)
     t0_ = convert(T_, t0)
 
     proc = GeometricBrownianMotionProcess(μ_, σ_val, t0_, W0_)
-    prob = NoiseProblem(proc, tspan; seed=seed)
-    sol = DifferentialEquations.solve(prob, EM(); dt=dt)
+    prob = NoiseProblem(proc, tspan; seed = seed)
+    sol = DifferentialEquations.solve(prob, EM(); dt = dt)
     return sol.u[end]
 end
 
 # --- Finite difference
-function finite_difference(f, x; ε=1e-5)
+function finite_difference(f, x; ε = 1e-5)
     (f(x + ε) - f(x - ε)) / (2ε)
 end
 
@@ -43,11 +43,17 @@ println("∂Value/∂σ (FD): ", grad_fd)
 
 # --- Plot
 σ_bumped = σ + 0.05
-sol = DifferentialEquations.solve(NoiseProblem(GeometricBrownianMotionProcess(μ, σ, t0, W0), tspan; seed=seed), dt=dt)
-sol_bumped = DifferentialEquations.solve(NoiseProblem(GeometricBrownianMotionProcess(μ, σ_bumped, t0, W0), tspan; seed=seed), dt=dt)
+sol = DifferentialEquations.solve(
+    NoiseProblem(GeometricBrownianMotionProcess(μ, σ, t0, W0), tspan; seed = seed),
+    dt = dt,
+)
+sol_bumped = DifferentialEquations.solve(
+    NoiseProblem(GeometricBrownianMotionProcess(μ, σ_bumped, t0, W0), tspan; seed = seed),
+    dt = dt,
+)
 
-plot(sol.t, sol.u, label="σ = $σ", linewidth=2)
-plot!(sol_bumped.t, sol_bumped.u, label="σ = $σ_bumped", linestyle=:dash, linewidth=2)
+plot(sol.t, sol.u, label = "σ = $σ", linewidth = 2)
+plot!(sol_bumped.t, sol_bumped.u, label = "σ = $σ_bumped", linestyle = :dash, linewidth = 2)
 xlabel!("Time")
 ylabel!("GBM Value")
 title!("GBM: Vol Bump and Pathwise Sensitivity")

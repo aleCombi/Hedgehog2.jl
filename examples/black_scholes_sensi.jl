@@ -84,15 +84,14 @@ zero_deltas = [
     solve(
         GreekProblem(curve_prob, ZeroRateSpineLens(i)),
         greek_method,
-        pricing_method
-    ).greek
-    for i in 1:spine_len
+        pricing_method,
+    ).greek for i = 1:spine_len
 ]
 
 # Print result
 for (i, d) in enumerate(zero_deltas)
     t = spine_tenors(rate_curve)[i]
-    println("Tenor $(t)y: ∂Price/∂z[$i] = ", round(d, sigdigits=6))
+    println("Tenor $(t)y: ∂Price/∂z[$i] = ", round(d, sigdigits = 6))
 end
 
 vega_an = solve(gprob, AnalyticGreek(), bs_method).greek

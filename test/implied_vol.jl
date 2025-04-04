@@ -21,22 +21,26 @@ using DataInterpolations
     # Step 2: Invert to implied vol
     dummy_inputs = BlackScholesInputs(reference_date, r, spot, 999.0)  # unused vol
     pricing_problem_new = PricingProblem(payoff, dummy_inputs)
-    calib_problem = Hedgehog2.BlackScholesCalibrationProblem(pricing_problem_new, BlackScholesAnalytic(), price)
+    calib_problem = Hedgehog2.BlackScholesCalibrationProblem(
+        pricing_problem_new,
+        BlackScholesAnalytic(),
+        price,
+    )
     implied_vol = solve(calib_problem).u
 
-    @test isapprox(implied_vol, true_vol; atol=1e-8)
+    @test isapprox(implied_vol, true_vol; atol = 1e-8)
 end
 
 @testset "Vol Surface Inversion Consistency (DateTime-safe)" begin
     # --- Grid definitions
-    tenors  = [0.25, 0.5, 1.0, 2.0]
+    tenors = [0.25, 0.5, 1.0, 2.0]
     strikes = [80.0, 90.0, 100.0, 110.0]
 
     vols = [
-        0.22  0.21  0.20  0.19;
-        0.23  0.22  0.21  0.20;
-        0.25  0.24  0.23  0.22;
-        0.28  0.27  0.26  0.25
+        0.22 0.21 0.20 0.19
+        0.23 0.22 0.21 0.20
+        0.25 0.24 0.23 0.22
+        0.28 0.27 0.26 0.25
     ]
 
     reference_date = DateTime(2020, 1, 1)
@@ -48,7 +52,7 @@ end
     nrows, ncols = size(vols)
     recomputed_prices = zeros(nrows, ncols)
 
-    for i in 1:nrows, j in 1:ncols
+    for i = 1:nrows, j = 1:ncols
         T = tenors[i]
         K = strikes[j]
         σ = get_vol(vol_surface, T, K)
@@ -78,11 +82,11 @@ end
         extrap_time = ExtrapolationType.Constant,
     )
 
-    for i in 1:nrows, j in 1:ncols
+    for i = 1:nrows, j = 1:ncols
         T = tenors[i]
         K = strikes[j]
         original = vols[i, j]
         recovered = get_vol(inverted_surface, T, K)
-        @test isapprox(original, recovered; atol=1e-6)
+        @test isapprox(original, recovered; atol = 1e-6)
     end
 end

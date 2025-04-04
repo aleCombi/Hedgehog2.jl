@@ -31,13 +31,13 @@ function terminal_value_sde(σ_val::Real)
     u0 = [W0_]
     p = [μ_, σ_val]
 
-    prob = SDEProblem(drift!, diffusion!, u0, tspan, p; seed=seed)
-    sol = DifferentialEquations.solve(prob, EM(); dt=dt)
+    prob = SDEProblem(drift!, diffusion!, u0, tspan, p; seed = seed)
+    sol = DifferentialEquations.solve(prob, EM(); dt = dt)
     return sol.u[end][1]
 end
 
 # --- Finite difference
-function finite_difference(f, x; ε=1e-5)
+function finite_difference(f, x; ε = 1e-5)
     (f(x + ε) - f(x - ε)) / (2ε)
 end
 
@@ -52,14 +52,20 @@ println("∂Value/∂σ (FD): ", grad_fd)
 
 # --- Plot
 σ_bumped = σ + 0.05
-prob = SDEProblem(drift!, diffusion!, [W0], tspan, [μ, σ]; seed=seed)
-prob_bumped = SDEProblem(drift!, diffusion!, [W0], tspan, [μ, σ_bumped]; seed=seed)
+prob = SDEProblem(drift!, diffusion!, [W0], tspan, [μ, σ]; seed = seed)
+prob_bumped = SDEProblem(drift!, diffusion!, [W0], tspan, [μ, σ_bumped]; seed = seed)
 
-sol = DifferentialEquations.solve(prob, EM(); dt=dt)
-sol_bumped = DifferentialEquations.solve(prob_bumped, EM(); dt=dt)
+sol = DifferentialEquations.solve(prob, EM(); dt = dt)
+sol_bumped = DifferentialEquations.solve(prob_bumped, EM(); dt = dt)
 
-plot(sol.t, first.(sol.u), label="σ = $σ", linewidth=2)
-plot!(sol_bumped.t, first.(sol_bumped.u), label="σ = $σ_bumped", linestyle=:dash, linewidth=2)
+plot(sol.t, first.(sol.u), label = "σ = $σ", linewidth = 2)
+plot!(
+    sol_bumped.t,
+    first.(sol_bumped.u),
+    label = "σ = $σ_bumped",
+    linestyle = :dash,
+    linewidth = 2,
+)
 xlabel!("Time")
 ylabel!("GBM Value")
 title!("GBM (SDE): Vol Bump and Pathwise Sensitivity")

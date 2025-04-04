@@ -23,24 +23,20 @@ This struct encapsulates the necessary inputs for pricing derivatives under the 
 struct BlackScholesInputs <: AbstractMarketInputs
     referenceDate::Real
     rate::RateCurve
-    spot
-    sigma
+    spot::Any
+    sigma::Any
 end
 
-BlackScholesInputs(
-    reference_date::TimeType,
-    rate::RateCurve,
-    spot,
-    sigma
-) = BlackScholesInputs(to_ticks(reference_date), rate, spot, sigma)
+BlackScholesInputs(reference_date::TimeType, rate::RateCurve, spot, sigma) =
+    BlackScholesInputs(to_ticks(reference_date), rate, spot, sigma)
 
 
-BlackScholesInputs(
-    reference_date::TimeType,
-    rate::Real,
+BlackScholesInputs(reference_date::TimeType, rate::Real, spot, sigma) = BlackScholesInputs(
+    reference_date,
+    FlatRateCurve(rate; reference_date = reference_date),
     spot,
-    sigma
-) = BlackScholesInputs(reference_date, FlatRateCurve(rate; reference_date=reference_date), spot, sigma)
+    sigma,
+)
 
 # in distribution.jl t is Real, hence we need to redefine it.
 """
@@ -55,7 +51,7 @@ Computes the characteristic function of a normal distribution `d` evaluated at `
 # Returns
 - The characteristic function value `E[e^{itX}]`.
 """
-function cf(d::Normal, t) 
+function cf(d::Normal, t)
     return exp(im * t * d.μ - d.σ^2 / 2 * t^2)
 end
 
@@ -79,32 +75,24 @@ Used for pricing under the Heston model and simulation of stochastic volatility 
 struct HestonInputs <: AbstractMarketInputs
     referenceDate::Real
     rate::RateCurve
-    spot
-    V0
-    κ
-    θ
-    σ
-    ρ
+    spot::Any
+    V0::Any
+    κ::Any
+    θ::Any
+    σ::Any
+    ρ::Any
 end
 
-HestonInputs(
-    reference_date::TimeType,
-    rate::RateCurve,
-    spot,
-    V0,
-    κ,
-    θ,
-    σ,
-    ρ
-) = HestonInputs(to_ticks(reference_date), rate, spot, V0, κ, θ, σ, ρ)
+HestonInputs(reference_date::TimeType, rate::RateCurve, spot, V0, κ, θ, σ, ρ) =
+    HestonInputs(to_ticks(reference_date), rate, spot, V0, κ, θ, σ, ρ)
 
-HestonInputs(
-    reference_date::TimeType,
-    rate::Real,
+HestonInputs(reference_date::TimeType, rate::Real, spot, V0, κ, θ, σ, ρ) = HestonInputs(
+    reference_date,
+    FlatRateCurve(rate; reference_date = reference_date),
     spot,
     V0,
     κ,
     θ,
     σ,
-    ρ
-) = HestonInputs(reference_date, FlatRateCurve(rate; reference_date=reference_date), spot, V0, κ, θ, σ, ρ)
+    ρ,
+)

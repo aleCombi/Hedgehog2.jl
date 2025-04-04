@@ -59,7 +59,8 @@ vega_naive = (price_up - price_dn) / (2ε)
 # --------------------------
 price_analytic = solve(prob, analytic_method).price
 price_mc_seeded = solve(prob, mc_method_seeded).price
-price_mc_naive = solve(prob, MonteCarlo(LognormalDynamics(), BlackScholesExact(trajectories))).price
+price_mc_naive =
+    solve(prob, MonteCarlo(LognormalDynamics(), BlackScholesExact(trajectories))).price
 
 # --------------------------
 # Print Comparison
@@ -68,12 +69,21 @@ println("Greek Comparison: Vega (Black-Scholes)")
 @printf("Analytic Vega        = %.6f\n", vega_analytic)
 @printf("Monte Carlo (Seeded) = %.6f\n", vega_mc_fd_seeded)
 @printf("Monte Carlo (Naive)  = %.6f\n", vega_naive)
-@printf("RelError Seeded      = %.4e\n", abs(vega_mc_fd_seeded - vega_analytic) / vega_analytic)
+@printf(
+    "RelError Seeded      = %.4e\n",
+    abs(vega_mc_fd_seeded - vega_analytic) / vega_analytic
+)
 @printf("RelError Naive       = %.4e\n", abs(vega_naive - vega_analytic) / vega_analytic)
 
 println("\nPrice Comparison:")
 @printf("Analytic Price       = %.6f\n", price_analytic)
 @printf("Monte Carlo (Seeded) = %.6f\n", price_mc_seeded)
 @printf("Monte Carlo (Naive)  = %.6f\n", price_mc_naive)
-@printf("RelError Seeded      = %.4e\n", abs(price_mc_seeded - price_analytic) / price_analytic)
-@printf("RelError Naive       = %.4e\n", abs(price_mc_naive - price_analytic) / price_analytic)
+@printf(
+    "RelError Seeded      = %.4e\n",
+    abs(price_mc_seeded - price_analytic) / price_analytic
+)
+@printf(
+    "RelError Naive       = %.4e\n",
+    abs(price_mc_naive - price_analytic) / price_analytic
+)

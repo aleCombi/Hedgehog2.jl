@@ -38,13 +38,27 @@ gbm = gbm_problem()
 heston = heston_problem()
 
 # Plot GBM
-sol_gbm = solve(gbm, EM(), dt=0.01)  # Euler-Maruyama solver
-gbm_plot = plot(sol_gbm, plot_analytic = true, label="GBM Path", xlabel="Time", ylabel="Stock Price", lw=2)
+sol_gbm = solve(gbm, EM(), dt = 0.01)  # Euler-Maruyama solver
+gbm_plot = plot(
+    sol_gbm,
+    plot_analytic = true,
+    label = "GBM Path",
+    xlabel = "Time",
+    ylabel = "Stock Price",
+    lw = 2,
+)
 
 # Plot Heston
-sol_heston = solve(heston, EM(), dt=0.01)  # Euler-Maruyama solver
-plot(sol_heston.t, [u[1] for u in sol_heston.u], label="Heston Stock Price", xlabel="Time", ylabel="Stock Price", lw=2)
-plot(sol_heston.t, [u[2] for u in sol_heston.u], label="Variance", lw=2)
+sol_heston = solve(heston, EM(), dt = 0.01)  # Euler-Maruyama solver
+plot(
+    sol_heston.t,
+    [u[1] for u in sol_heston.u],
+    label = "Heston Stock Price",
+    xlabel = "Time",
+    ylabel = "Stock Price",
+    lw = 2,
+)
+plot(sol_heston.t, [u[2] for u in sol_heston.u], label = "Variance", lw = 2)
 
 # ensemble GBM for 1000 trajectories
 ensembleprob = EnsembleProblem(gbm)

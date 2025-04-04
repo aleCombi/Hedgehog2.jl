@@ -23,5 +23,5 @@
     # Analytical Black-Scholes method
     bs_solution = solve(prob, BlackScholesAnalytic())
 
-    @test isapprox(carr_madan_solution.price, bs_solution.price; atol=1e-6)
+    @test isapprox(carr_madan_solution.price, bs_solution.price; atol = 1e-6)
 end

@@ -48,5 +48,4 @@ This version is AD-compatible.
 add_yearfrac(t::Real, yf::Real) = t + yf * MILLISECONDS_IN_YEAR_365
 
 # Date-based (returns DateTime)
-add_yearfrac(t::TimeType, yf::Real) =
-    Dates.epochms2datetime(add_yearfrac(to_ticks(t), yf))
+add_yearfrac(t::TimeType, yf::Real) = Dates.epochms2datetime(add_yearfrac(to_ticks(t), yf))

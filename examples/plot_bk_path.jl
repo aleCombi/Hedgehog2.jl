@@ -34,7 +34,7 @@ trajectories = 1
 steps = 20 # Increase steps for better visualization
 
 # Create Broadie-Kaya strategy 
-strategy = HestonBroadieKaya(trajectories, steps=steps)
+strategy = HestonBroadieKaya(trajectories, steps = steps)
 bk_method = MonteCarlo(HestonDynamics(), strategy)
 
 # Solve to get the path
@@ -55,33 +55,35 @@ variances = [p[2] for p in path.u]
 
 # --- Create visualization ---
 p1 = plot(
-    time_points, stock_prices,
-    linewidth=2,
-    title="Heston Model: Stock Price Path (Broadie-Kaya)",
-    xlabel="Time (years)",
-    ylabel="Stock Price",
-    legend=false,
-    color=:blue
+    time_points,
+    stock_prices,
+    linewidth = 2,
+    title = "Heston Model: Stock Price Path (Broadie-Kaya)",
+    xlabel = "Time (years)",
+    ylabel = "Stock Price",
+    legend = false,
+    color = :blue,
 )
 
 p2 = plot(
-    time_points, variances,
-    linewidth=2,
-    title="Heston Model: Variance Path",
-    xlabel="Time (years)",
-    ylabel="Variance",
-    legend=false,
-    color=:red
+    time_points,
+    variances,
+    linewidth = 2,
+    title = "Heston Model: Variance Path",
+    xlabel = "Time (years)",
+    ylabel = "Variance",
+    legend = false,
+    color = :red,
 )
 
-combined_plot = plot(p1, p2, layout=(2,1), size=(800, 600))
+combined_plot = plot(p1, p2, layout = (2, 1), size = (800, 600))
 display(combined_plot)
 
 # Calculate path statistics
 if length(stock_prices) > 2
     log_returns = diff(log.(stock_prices))
     volatility = sqrt(252) * std(log_returns)  # Annualized volatility
-    
+
     println("\n=== Path Statistics ===")
     println("Initial stock price: $S0")
     println("Initial variance: $V0")

@@ -7,13 +7,13 @@ times_std = Float64[]
 times_anti = Float64[]
 trajectories = 10000
 
-for trial in 1:n_trials
+for trial = 1:n_trials
     seed = 1_000_000 + trial
 
-    strat_std  = BlackScholesExact(2 * trajectories, seed=seed)
-    strat_anti = BlackScholesExact(trajectories, seed=seed, antithetic=true)
+    strat_std = BlackScholesExact(2 * trajectories, seed = seed)
+    strat_anti = BlackScholesExact(trajectories, seed = seed, antithetic = true)
 
-    method_std  = MonteCarlo(dynamics, strat_std)
+    method_std = MonteCarlo(dynamics, strat_std)
     method_anti = MonteCarlo(dynamics, strat_anti)
 
     time_std = @elapsed begin
@@ -33,28 +33,36 @@ end
 # --- Compute Metrics
 true_price = solution_analytic.price
 
-var_std  = var(prices_std)
+var_std = var(prices_std)
 var_anti = var(prices_anti)
 
-mse_std  = mean((prices_std .- true_price).^2)
-mse_anti = mean((prices_anti .- true_price).^2)
+mse_std = mean((prices_std .- true_price) .^ 2)
+mse_anti = mean((prices_anti .- true_price) .^ 2)
 
-mean_time_std  = mean(times_std)
+mean_time_std = mean(times_std)
 mean_time_anti = mean(times_anti)
 
-vr_ratio  = var_std / var_anti
+vr_ratio = var_std / var_anti
 mse_ratio = mse_std / mse_anti
 time_ratio = mean_time_std / mean_time_anti
 
 # --- Print Report
-println("Variance (standard MC):    ", round(var_std, digits=8))
-println("Variance (antithetic MC):  ", round(var_anti, digits=8))
-println("Variance reduction:        ", round(vr_ratio, digits=3), "×\n")
+println("Variance (standard MC):    ", round(var_std, digits = 8))
+println("Variance (antithetic MC):  ", round(var_anti, digits = 8))
+println("Variance reduction:        ", round(vr_ratio, digits = 3), "×\n")
 
-println("MSE (standard MC):         ", round(mse_std, digits=8))
-println("MSE (antithetic MC):       ", round(mse_anti, digits=8))
-println("MSE reduction:             ", round(mse_ratio, digits=3), "×\n")
+println("MSE (standard MC):         ", round(mse_std, digits = 8))
+println("MSE (antithetic MC):       ", round(mse_anti, digits = 8))
+println("MSE reduction:             ", round(mse_ratio, digits = 3), "×\n")
 
-println("Mean execution time (standard MC):   ", round(mean_time_std*1000, digits=3), " ms")
-println("Mean execution time (antithetic MC): ", round(mean_time_anti*1000, digits=3), " ms")
-println("Time ratio (std / antithetic):       ", round(time_ratio, digits=3), "×")
+println(
+    "Mean execution time (standard MC):   ",
+    round(mean_time_std * 1000, digits = 3),
+    " ms",
+)
+println(
+    "Mean execution time (antithetic MC): ",
+    round(mean_time_anti * 1000, digits = 3),
+    " ms",
+)
+println("Time ratio (std / antithetic):       ", round(time_ratio, digits = 3), "×")

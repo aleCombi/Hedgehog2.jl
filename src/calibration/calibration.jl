@@ -10,18 +10,23 @@ should be calibrated using Accessors.jl access paths.
 - `pricing_problem`: The basket of payoffs with shared market input.
 - `accessors`: A vector of accessor functions specifying which fields to calibrate.
 """
-struct CalibrationProblem{P<:AbstractPayoff, M<:AbstractMarketInputs, A<:AbstractPricingMethod, Accessor}
-    pricing_problem::BasketPricingProblem{P, M}
+struct CalibrationProblem{
+    P<:AbstractPayoff,
+    M<:AbstractMarketInputs,
+    A<:AbstractPricingMethod,
+    Accessor,
+}
+    pricing_problem::BasketPricingProblem{P,M}
     pricing_method::A
     accessors::Vector{Accessor}
-    quotes
-    initial_guess
+    quotes::Any
+    initial_guess::Any
 end
 
 abstract type CalibrationAlgo end
 struct OptimizerAlgo <: CalibrationAlgo
-    diff # AutoForwardDiff()
-    optim_algo #Optimization.LBFGS()
+    diff::Any # AutoForwardDiff()
+    optim_algo::Any #Optimization.LBFGS()
 end
 
 function OptimizerAlgo()
@@ -39,7 +44,7 @@ function solve(calib::CalibrationProblem, calib_algo::CalibrationAlgo; kwargs...
         updated_problem = foldl(
             (prob, (lens, val)) -> set(prob, lens, val),
             zip(calib.accessors, x),
-            init = basket_prob
+            init = basket_prob,
         )
 
         # Solve updated problem

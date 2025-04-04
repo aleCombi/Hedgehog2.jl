@@ -14,18 +14,22 @@ using DataInterpolations
     expected_zr = @. -log(dfs) / tenors
 
     # Build the curve using the new builder function format
-    curve = Hedgehog2.RateCurve(ref_date, tenors, dfs;
-        interp = (u, t) -> LinearInterpolation(u, t; extrapolation=ExtrapolationType.Constant)
+    curve = Hedgehog2.RateCurve(
+        ref_date,
+        tenors,
+        dfs;
+        interp = (u, t) ->
+            LinearInterpolation(u, t; extrapolation = ExtrapolationType.Constant),
     )
 
     # Test discount factors at each tenor
     for (t, df_expected) in zip(tenors, dfs)
-        @test isapprox(Hedgehog2.df_yf(curve, t), df_expected; atol=1e-12)
+        @test isapprox(Hedgehog2.df_yf(curve, t), df_expected; atol = 1e-12)
     end
 
     # Test zero rates at each tenor
     for (t, zr_expected) in zip(tenors, expected_zr)
-        @test isapprox(Hedgehog2.zero_rate_yf(curve, t), zr_expected; atol=1e-12)
+        @test isapprox(Hedgehog2.zero_rate_yf(curve, t), zr_expected; atol = 1e-12)
     end
 end
 
@@ -35,8 +39,8 @@ end
 
     # Check scalar zero_rate and df
     for t in [0.1, 1.0, 5.0]
-        @test isapprox(Hedgehog2.zero_rate_yf(curve, t), r; atol=1e-12)
-        @test isapprox(Hedgehog2.df_yf(curve, t), exp(-r * t); atol=1e-12)
+        @test isapprox(Hedgehog2.zero_rate_yf(curve, t), r; atol = 1e-12)
+        @test isapprox(Hedgehog2.df_yf(curve, t), exp(-r * t); atol = 1e-12)
     end
 
     # Check vectorized input
@@ -45,15 +49,15 @@ end
     expected_df = @. exp(-r * ts)
 
     @test Hedgehog2.zero_rate_yf.(Ref(curve), ts) == expected_zr
-    @test isapprox.(Hedgehog2.df_yf.(Ref(curve), ts), expected_df; atol=1e-6) |> all
+    @test isapprox.(Hedgehog2.df_yf.(Ref(curve), ts), expected_df; atol = 1e-6) |> all
 
     # Check Date input
     t0 = Date(2025, 1, 1)
     t1 = Date(2026, 1, 1)
     τ = Dates.value(t1 - t0) / 365
 
-    curve = Hedgehog2.FlatRateCurve(r; reference_date=t0)
+    curve = Hedgehog2.FlatRateCurve(r; reference_date = t0)
 
-    @test isapprox(Hedgehog2.zero_rate(curve, t1), r; atol=1e-12)
-    @test isapprox(Hedgehog2.df(curve, t1), exp(-r * τ); atol=1e-12)
+    @test isapprox(Hedgehog2.zero_rate(curve, t1), r; atol = 1e-12)
+    @test isapprox(Hedgehog2.df(curve, t1), exp(-r * τ); atol = 1e-12)
 end

@@ -46,9 +46,9 @@ end
 
 
 function solve(
-    prob::PricingProblem{VanillaOption{American, C, Spot}, I},
-    method::LSM
-) where {I <: AbstractMarketInputs, C}
+    prob::PricingProblem{VanillaOption{American,C,Spot},I},
+    method::LSM,
+) where {I<:AbstractMarketInputs,C}
 
     if !is_flat(prob.market.rate)
         throw(ArgumentError("LSM pricing only supports flat rate curves."))
@@ -63,15 +63,13 @@ function solve(
     discount = df(prob.market.rate, add_yearfrac(prob.market.referenceDate, T / nsteps))
 
     # (time_index, value) for each path
-    stopping_info = [(nsteps, prob.payoff(spot_grid[nsteps + 1, p])) for p in 1:npaths]
+    stopping_info = [(nsteps, prob.payoff(spot_grid[nsteps+1, p])) for p = 1:npaths]
 
-    for i in (ntimes - 1):-1:2
+    for i = (ntimes-1):-1:2
         t = i - 1
 
-        continuation = [
-            discount^(stopping_info[p][1] - t) * stopping_info[p][2]
-            for p in 1:npaths
-        ]
+        continuation =
+            [discount^(stopping_info[p][1] - t) * stopping_info[p][2] for p = 1:npaths]
 
         payoff_t = prob.payoff.(spot_grid[i, :])
         in_the_money = findall(payoff_t .> 0)
@@ -104,11 +102,11 @@ Updates the stopping times and payoffs based on exercise decision.
 Replaces values in `stopping_info` if immediate exercise is better than continuation.
 """
 function update_stopping_info!(
-    stopping_info::Vector{Tuple{Int, Float64}},
+    stopping_info::Vector{Tuple{Int,Float64}},
     paths::Vector{Int},
     cont_value::Vector{Float64},
     payoff_t::Vector{Float64},
-    t::Int
+    t::Int,
 )
     exercise = payoff_t[paths] .> cont_value
     stopping_info[paths[exercise]] .= [(t, payoff_t[p]) for p in paths[exercise]]

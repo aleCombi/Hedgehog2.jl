@@ -4,15 +4,15 @@ using Dates
 using Test
 using DataInterpolations
 # --- Grid definitions
-tenors  = [0.25, 0.5, 1.0, 2.0]               # maturities in years
+tenors = [0.25, 0.5, 1.0, 2.0]               # maturities in years
 strikes = [80.0, 90.0, 100.0, 110.0]          # strikes
 
 # --- Vol grid: vols[i, j] corresponds to (tenor[i], strike[j])
 vols = [
-    0.22  0.21  0.20  0.19;
-    0.23  0.22  0.21  0.20;
-    0.25  0.24  0.23  0.22;
-    0.28  0.27  0.26  0.25
+    0.22 0.21 0.20 0.19
+    0.23 0.22 0.21 0.20
+    0.25 0.24 0.23 0.22
+    0.28 0.27 0.26 0.25
 ]
 
 # --- Market data
@@ -27,11 +27,11 @@ vol_surface = RectVolSurface(reference_date, tenors, strikes, vols)
 nrows, ncols = size(vols)
 recomputed_prices = zeros(nrows, ncols)
 
-for i in 1:nrows, j in 1:ncols
+for i = 1:nrows, j = 1:ncols
     T = tenors[i]
     K = strikes[j]
     σ = get_vol(vol_surface, T, K)
-    
+
     # Create expiry from year fraction
     expiry = reference_date + Millisecond(round(Int, T * 365 * 86400 * 1000))
 
@@ -62,11 +62,11 @@ inverted_surface = RectVolSurface(
 
 # --- Test recovery of original implied volatilities
 @testset "Vol Surface Inversion Consistency (DateTime-safe)" begin
-    for i in 1:nrows, j in 1:ncols
+    for i = 1:nrows, j = 1:ncols
         T = tenors[i]
         K = strikes[j]
         original = vols[i, j]
         recovered = get_vol(inverted_surface, T, K)
-        @test isapprox(original, recovered; atol=1e-6)
+        @test isapprox(original, recovered; atol = 1e-6)
     end
 end
