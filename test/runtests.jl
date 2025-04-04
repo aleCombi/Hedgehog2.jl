@@ -1,5 +1,6 @@
 using Revise, Hedgehog2, Test, Dates, Distributions
 
+include("unit/payoff.jl")
 include("black_scholes.jl")
 include("binomial_tree.jl")
 include("carr_madan.jl")
