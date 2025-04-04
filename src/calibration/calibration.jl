@@ -15,11 +15,22 @@ struct CalibrationProblem{P<:AbstractPayoff, M<:AbstractMarketInputs, A<:Abstrac
     pricing_method::A
     accessors::Vector{Accessor}
     quotes
+    initial_guess
+end
+
+abstract type CalibrationAlgo end
+struct OptimizerAlgo <: CalibrationAlgo
+    diff # AutoForwardDiff()
+    optim_algo #Optimization.LBFGS()
+end
+
+function OptimizerAlgo()
+    return OptimizerAlgo(AutoForwardDiff(), Optimization.LBFGS())
 end
 
 using Optimization  # Or other backend
 
-function solve(calib::CalibrationProblem, initial_guess; kwargs...)
+function solve(calib::CalibrationProblem, calib_algo::CalibrationAlgo; kwargs...)
     function objective(x, p)
         basket_prob = calib.pricing_problem
 
@@ -40,8 +51,8 @@ function solve(calib::CalibrationProblem, initial_guess; kwargs...)
         return sum(abs2, errors)
     end
 
-    optf = OptimizationFunction(objective, AutoFiniteDiff())
-    prob = OptimizationProblem(optf, initial_guess, nothing)
-    result = Optimization.solve(prob, Optimization.LBFGS(); kwargs...)
+    optf = OptimizationFunction(objective, calib_algo.diff)
+    opt_prob = OptimizationProblem(optf, calib.initial_guess, nothing)
+    result = Optimization.solve(opt_prob, calib_algo.optim_algo; kwargs...)
     return result
 end

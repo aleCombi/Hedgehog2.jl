@@ -66,11 +66,13 @@ calib_problem = Hedgehog2.CalibrationProblem(
     basket_problem,
     method_heston,
     accessors,
-    quotes
+    quotes,
+    initial_guess
 )
 
+calib_algo = Hedgehog2.OptimizerAlgo()
 # --- Solve calibration
-result = solve(calib_problem, initial_guess)
+result = solve(calib_problem, calib_algo)
 
 # --- Output
 println("True Heston parameters:")
