@@ -3,7 +3,7 @@ using Hedgehog2
 using Dates
 using Test
 using DataInterpolations
-
+using Accessors
 @testset "Implied Vol Calibration Consistency (New Style)" begin
     reference_date = Date(2020, 1, 1)
     expiry_date = reference_date + Year(1)
@@ -60,7 +60,7 @@ end
     for i = 1:nrows, j = 1:ncols
         T = tenors[i]
         K = strikes[j]
-        σ = get_vol(vol_surface, T, K)
+        σ = get_vol_yf(vol_surface, T, K)
         expiry = add_yearfrac(reference_date, T)
 
         payoff = VanillaOption(K, expiry, European(), Call(), Spot())
@@ -93,7 +93,7 @@ end
         T = tenors[i]
         K = strikes[j]
         original = vols[i, j]
-        recovered = get_vol(inverted_surface, T, K)
+        recovered = get_vol_yf(inverted_surface, T, K)
         @test isapprox(original, recovered; atol = 1e-6)
     end
 end

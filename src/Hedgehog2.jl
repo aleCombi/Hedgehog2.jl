@@ -69,7 +69,7 @@ export RateCurve,
     FlatRateCurve,
     is_flat,
     ZeroRateSpineLens
-export RectVolSurface, spine_strikes, spine_tenors, spine_vols, get_vol, Interpolator2D
+export RectVolSurface, spine_strikes, spine_tenors, spine_vols, get_vol, get_vol_yf, Interpolator2D
 
 # Pricers
 export PricingProblem, solve
