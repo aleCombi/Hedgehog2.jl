@@ -1,6 +1,6 @@
 module Hedgehog2
 
-using DifferentialEquations, ForwardDiff, Distributions, Accessors, Dates
+using DifferentialEquations, ForwardDiff, Distributions, Dates
 using NonlinearSolve, Roots
 using Integrals
 using Polynomials
@@ -9,8 +9,9 @@ using Statistics
 using DataInterpolations
 using Roots
 using Random, SpecialFunctions, StaticArrays
-using Zygote
 using Optimization
+using Accessors
+import Accessors: set
 
 if false
     include("../examples/includer.jl")
@@ -55,7 +56,7 @@ include("calibration/calibration.jl")
 export yearfrac, add_yearfrac
 
 # Payoffs
-export VanillaOption, European, Spot, Forward, Call, Put
+export VanillaOption, European, Spot, Forward, Call, Put, parity_transform
 
 # Market data
 export BlackScholesInputs, AbstractMarketInputs, HestonInputs

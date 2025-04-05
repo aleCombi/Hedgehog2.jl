@@ -43,21 +43,21 @@ end
 
 
 function solve(
-    prob::PricingProblem{VanillaOption{American,C,Spot},I},
+    prob::PricingProblem{VanillaOption{TS,TE,American,C,Spot},I},
     method::LSM,
-) where {I<:AbstractMarketInputs,C}
+) where {TS,TE,I<:AbstractMarketInputs,C}
 
-    if !is_flat(prob.market.rate)
+    if !is_flat(prob.market_inputs.rate)
         throw(ArgumentError("LSM pricing only supports flat rate curves."))
     end
 
-    T = yearfrac(prob.market.referenceDate, prob.payoff.expiry)
-    sol = simulate_paths(method.mc_method, prob.market, T)
-    spot_grid = extract_spot_grid(sol) ./ prob.market.spot  # Normalize paths
+    T = yearfrac(prob.market_inputs.referenceDate, prob.payoff.expiry)
+    sol = simulate_paths(method.mc_method, prob.market_inputs, T)
+    spot_grid = extract_spot_grid(sol) ./ prob.market_inputs.spot  # Normalize paths
 
     ntimes, npaths = size(spot_grid)
     nsteps = ntimes - 1
-    discount = df(prob.market.rate, add_yearfrac(prob.market.referenceDate, T / nsteps))
+    discount = df(prob.market_inputs.rate, add_yearfrac(prob.market_inputs.referenceDate, T / nsteps))
 
     # (time_index, value) for each path
     stopping_info = [(nsteps, prob.payoff(spot_grid[nsteps+1, p])) for p = 1:npaths]
@@ -81,7 +81,7 @@ function solve(
     end
 
     discounted_values = [discount^t * val for (t, val) in stopping_info]
-    price = prob.market.spot * mean(discounted_values)
+    price = prob.market_inputs.spot * mean(discounted_values)
 
     return LSMSolution(price, stopping_info, spot_grid)
 end

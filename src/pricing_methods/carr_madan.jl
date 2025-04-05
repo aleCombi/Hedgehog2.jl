@@ -44,19 +44,19 @@ function CarrMadan(α, bound, dynamics; kwargs...)
 end
 
 function solve(
-    prob::PricingProblem{VanillaOption{European,C,Spot},I},
+    prob::PricingProblem{VanillaOption{TS,TE,European,C,Spot},I},
     method::CarrMadan,
-) where {C,I<:AbstractMarketInputs}
+) where {TS,TE,C,I<:AbstractMarketInputs}
 
-    if !is_flat(prob.market.rate)
+    if !is_flat(prob.market_inputs.rate)
         throw(ArgumentError("Carr–Madan pricing only supports flat rate curves."))
     end
 
     K = prob.payoff.strike
-    r = prob.market.rate
-    S = prob.market.spot
+    r = prob.market_inputs.rate
+    S = prob.market_inputs.spot
 
-    terminal_law = marginal_law(method.dynamics, prob.market, prob.payoff.expiry)
+    terminal_law = marginal_law(method.dynamics, prob.market_inputs, prob.payoff.expiry)
     ϕ(u) = cf(terminal_law, u)
 
     logK = log(K)

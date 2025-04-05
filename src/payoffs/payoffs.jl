@@ -87,7 +87,7 @@ function (call_put::Put)()
 end
 
 """
-    VanillaOption{T,E,C,U} <: AbstractPayoff
+    VanillaOption{TS,TE,E,C,U} <: AbstractPayoff
 
 A vanilla option with specified exercise style, call/put type, and underlying type.
 
@@ -98,14 +98,15 @@ A vanilla option with specified exercise style, call/put type, and underlying ty
 - `call_put`: Instance of `Call` or `Put`.
 - `underlying`: Either `Spot` or `Forward`.
 """
-struct VanillaOption{T,E,C,U} <: AbstractPayoff where {
-    T<:Real,
+struct VanillaOption{TS,TE,E,C,U} <: AbstractPayoff where {
+    TS<:Real,
+    TE<:Real,
     E<:AbstractExerciseStyle,
     C<:AbstractCallPut,
     U<:Underlying,
 }
-    strike::T
-    expiry::T
+    strike::TS
+    expiry::TE
     exercise_style::E
     call_put::C
     underlying::U
@@ -128,14 +129,14 @@ which is converted internally to tick units via `to_ticks`.
 - A fully constructed `VanillaOption` instance.
 """
 function VanillaOption(
-    strike::T,
+    strike::TS,
     expiry_date::TimeType,
     exercise_style::E,
     call_put::C,
     underlying::U,
-) where {E<:AbstractExerciseStyle,C<:AbstractCallPut,U<:Underlying,T<:Real}
+) where {E<:AbstractExerciseStyle,C<:AbstractCallPut,U<:Underlying,TS<:Real}
     expiry_ticks = to_ticks(expiry_date)
-    return VanillaOption{E,C,U}(strike, expiry_ticks, exercise_style, call_put, underlying)
+    return VanillaOption{TS,TS,E,C,U}(strike, expiry_ticks, exercise_style, call_put, underlying)
 end
 
 """
@@ -155,7 +156,7 @@ function (payoff::VanillaOption)(spot)
 end
 
 """
-    parity_transform(call_price, opt::VanillaOption{E, Call, U}, spot) -> Float64
+    parity_transform(call_price, opt::VanillaOption{T, E, Call, U}, spot) -> Float64
 
 Returns the call price unchanged. Useful for unified pricing APIs that accept both calls and puts.
 
@@ -167,12 +168,12 @@ Returns the call price unchanged. Useful for unified pricing APIs that accept bo
 # Returns
 - The same `call_price`, unchanged.
 """
-function parity_transform(call_price, ::VanillaOption{E,Call,U}, spot) where {E,U}
+function parity_transform(call_price, ::VanillaOption{TS,TE,E,Call,U}, spot) where {TS,TE,E,U}
     return call_price
 end
 
 """
-    parity_transform(call_price, opt::VanillaOption{E, Put, U}, spot) -> Float64
+    parity_transform(call_price, opt::VanillaOption{T, E, Put, U}, spot) -> Float64
 
 Applies put-call parity to recover the put price from a known call price.
 
@@ -185,6 +186,6 @@ Applies put-call parity to recover the put price from a known call price.
 - The corresponding put price using the formula: `put = call - S + K * exp(-rT)`
   where `T` is extracted from `opt.expiry`.
 """
-function parity_transform(call_price, opt::VanillaOption{E,Put,U}, spot) where {E,U}
+function parity_transform(call_price, opt::VanillaOption{TS,TE,E,Put,U}, spot) where {TS,TE,E,U}
     return call_price - spot + opt.strike * exp(-opt.expiry)
 end

@@ -21,7 +21,7 @@ import Accessors: @optic
 
     # First-order Greeks
     @testset "First-order: Vega" begin
-        lens = @optic _.market.sigma
+        lens = @optic _.market_inputs.sigma
         gprob = GreekProblem(prob, lens)
 
         ad_val = solve(gprob, ForwardAD(), method).greek
@@ -31,7 +31,7 @@ import Accessors: @optic
     end
 
     @testset "First-order: Delta" begin
-        lens = @optic _.market.spot
+        lens = @optic _.market_inputs.spot
         gprob = GreekProblem(prob, lens)
 
         ad_val = solve(gprob, ForwardAD(), method).greek
@@ -42,7 +42,7 @@ import Accessors: @optic
 
     # Second-order Greeks
     @testset "Second-order: Gamma" begin
-        lens = @optic _.market.spot
+        lens = @optic _.market_inputs.spot
         gprob = SecondOrderGreekProblem(prob, lens, lens)
 
         ad_val = solve(gprob, ForwardAD(), method).greek
@@ -52,7 +52,7 @@ import Accessors: @optic
     end
 
     @testset "Second-order: Volga" begin
-        lens = @optic _.market.sigma
+        lens = @optic _.market_inputs.sigma
         gprob = SecondOrderGreekProblem(prob, lens, lens)
 
         ad_val = solve(gprob, ForwardAD(), method).greek
@@ -82,8 +82,8 @@ import Accessors: @optic
     pricing_prob = PricingProblem(payoff, market_inputs)
     bs_method = BlackScholesAnalytic()
 
-    vol_lens = @optic _.market.sigma
-    spot_lens = @optic _.market.spot
+    vol_lens = @optic _.market_inputs.sigma
+    spot_lens = @optic _.market_inputs.spot
 
     # Vega
     gprob = GreekProblem(pricing_prob, vol_lens)
