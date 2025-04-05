@@ -13,25 +13,27 @@ struct CalibrationProblem{
     M<:AbstractMarketInputs,
     A<:AbstractPricingMethod,
     Accessor,
+    I <: Real,
+    Q <: Real
 }
     pricing_problem::BasketPricingProblem{P,M}
     pricing_method::A
     accessors::Vector{Accessor}
-    quotes::Any
-    initial_guess::Any
+    quotes::Vector{Q}
+    initial_guess::Vector{I}
 end
 
 abstract type CalibrationAlgo end
-struct OptimizerAlgo <: CalibrationAlgo
-    diff::Any # AutoForwardDiff()
-    optim_algo::Any #Optimization.LBFGS()
+struct OptimizerAlgo{D, O} <: CalibrationAlgo
+    diff::D
+    optim_algo::O
 end
 
 function OptimizerAlgo()
     return OptimizerAlgo(AutoForwardDiff(), Optimization.LBFGS())
 end
 
-function solve(calib::CalibrationProblem, calib_algo::CalibrationAlgo; kwargs...)
+function solve(calib::CalibrationProblem, calib_algo::OptimizerAlgo; kwargs...)
     function objective(x, p)
         basket_prob = calib.pricing_problem
 
@@ -56,4 +58,27 @@ function solve(calib::CalibrationProblem, calib_algo::CalibrationAlgo; kwargs...
     opt_prob = OptimizationProblem(optf, calib.initial_guess, nothing)
     result = Optimization.solve(opt_prob, calib_algo.optim_algo; kwargs...)
     return result
+end
+
+struct RootFinderAlgo{R} <: CalibrationAlgo
+    root_method::R
+end
+
+RootFinderAlgo() = RootFinderAlgo(nothing)
+
+function solve(calib::CalibrationProblem, calib_algo::RootFinderAlgo; kwargs...)
+    @assert length(calib.accessors) == 1 "Root-finding only supports calibration of a single parameter"
+    @assert length(calib.quotes) == 1 "Root-finding expects a single target quote"
+    lens = calib.accessors[1]
+    quote_val = calib.quotes[1]
+    pricing_problem = PricingProblem(calib.pricing_problem.payoffs[1], calib.pricing_problem.market_inputs)
+
+    function f(x, _)
+        updated_prob = set(pricing_problem, lens, x)
+        sol = Hedgehog2.solve(updated_prob, calib.pricing_method)
+        return sol.price - quote_val
+    end
+
+    problem = NonlinearProblem(f, calib.initial_guess[1])
+    return NonlinearSolve.solve(problem, calib_algo.root_method; kwargs...)
 end

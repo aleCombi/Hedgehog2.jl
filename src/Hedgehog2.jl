@@ -88,4 +88,7 @@ export solve_custom_ensemble, CustomEnsembleProblem
 # Sensitivities
 export ForwardAD, FiniteDifference, GreekProblem, SecondOrderGreekProblem, AnalyticGreek
 
+# Calibration
+export RootFinderAlgo, OptimizerAlgo, CalibrationProblem, BasketPricingProblem
+
 end
