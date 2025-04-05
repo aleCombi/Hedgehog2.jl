@@ -33,11 +33,11 @@ quotes = [solve(PricingProblem(p, market_inputs), method_heston).price for p in 
 # --- Calibration setup
 initial_guess = [0.02, 3.0, 0.03, 0.4, -0.3]
 accessors = [
-    @optic(_.market.V0),
-    @optic(_.market.κ),
-    @optic(_.market.θ),
-    @optic(_.market.σ),
-    @optic(_.market.ρ)
+    @optic(_.market_inputs.V0),
+    @optic(_.market_inputs.κ),
+    @optic(_.market_inputs.θ),
+    @optic(_.market_inputs.σ),
+    @optic(_.market_inputs.ρ)
 ]
 
 basket_problem = Hedgehog2.BasketPricingProblem(payoffs, market_inputs)

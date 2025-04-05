@@ -1,6 +1,3 @@
-using Distributions,
-    Random, SpecialFunctions, Roots, DifferentialEquations, Random, StaticArrays
-
 """
     HestonProblem(μ, κ, Θ, σ, ρ, u0, tspan; seed=UInt64(0), kwargs...)
 

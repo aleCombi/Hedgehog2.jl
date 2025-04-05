@@ -1,16 +1,3 @@
-using DifferentialEquations
-using DiffEqNoiseProcess
-using Statistics
-using Accessors
-
-export MonteCarlo,
-    HestonBroadieKaya,
-    EulerMaruyama,
-    BlackScholesExact,
-    LognormalDynamics,
-    HestonDynamics,
-    solve
-
 # ------------------ Price Dynamics ------------------
 
 abstract type PriceDynamics end
@@ -250,14 +237,14 @@ function simulate_paths(
 end
 
 function solve(
-    prob::PricingProblem{VanillaOption{European,C,Spot},I},
+    prob::PricingProblem{VanillaOption{TS,TE,European,C,Spot},I},
     method::MonteCarlo,
-) where {C,I<:AbstractMarketInputs}
-    T = yearfrac(prob.market.referenceDate, prob.payoff.expiry)
+) where {TS,TE,C,I<:AbstractMarketInputs}
+    T = yearfrac(prob.market_inputs.referenceDate, prob.payoff.expiry)
     strategy = method.strategy
     dynamics = method.dynamics
 
-    ens = simulate_paths(method, prob.market, T)
+    ens = simulate_paths(method, prob.market_inputs, T)
     paths = ens.solutions
 
     is_antithetic = get(strategy.kwargs, :antithetic, false)
@@ -275,6 +262,6 @@ function solve(
         payoffs = prob.payoff.(terminal_prices)
     end
 
-    price = df(prob.market.rate, prob.payoff.expiry) * mean(payoffs)
+    price = df(prob.market_inputs.rate, prob.payoff.expiry) * mean(payoffs)
     return MonteCarloSolution(price, ens)
 end

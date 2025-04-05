@@ -1,7 +1,4 @@
 # Cox-Ross-Rubinstein Binomial Tree Pricing Implementation
-
-export CoxRossRubinsteinMethod
-
 """
 The Cox-Ross-Rubinstein binomial tree pricing method.
 
@@ -100,11 +97,11 @@ function binomial_tree_underlying(_, forward, _, _, ::Forward)
 end
 
 function solve(
-    prob::PricingProblem{VanillaOption{E,C,U},M},
+    prob::PricingProblem{VanillaOption{TS,TE,E,C,U},M},
     method::CoxRossRubinsteinMethod,
-) where {E,C,U,M<:AbstractMarketInputs}
+) where {TS,TE,E,C,U,M}
 
-    if !is_flat(prob.market.rate)
+    if !is_flat(prob.market_inputs.rate)
         throw(
             ArgumentError(
                 "For now Cox Ross Rubinstein pricing only supports flat rate curves. The implementation has to be checked for general rate curves.",
@@ -112,7 +109,7 @@ function solve(
         )
     end
     payoff = prob.payoff
-    market_inputs = prob.market
+    market_inputs = prob.market_inputs
 
     steps = method.steps
     T = yearfrac(market_inputs.referenceDate, payoff.expiry)

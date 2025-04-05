@@ -1,18 +1,3 @@
-using DataInterpolations
-import Dates: Date, value
-import Base: getindex
-import Accessors: set, @optic
-
-export RateCurve,
-    df,
-    zero_rate,
-    forward_rate,
-    spine_tenors,
-    spine_zeros,
-    FlatRateCurve,
-    is_flat,
-    ZeroRateSpineLens
-
 # -- Structs --
 
 struct RateCurve{F}
@@ -108,11 +93,11 @@ end
 # -- Lens for bumping --
 
 function (lens::ZeroRateSpineLens)(prob)
-    return spine_zeros(prob.market.rate)[lens.i]
+    return spine_zeros(prob.market_inputs.rate)[lens.i]
 end
 
 function set(prob, lens::ZeroRateSpineLens, new_zᵢ)
-    curve = prob.market.rate
+    curve = prob.market_inputs.rate
     t = spine_tenors(curve)
     z = spine_zeros(curve)
 
@@ -121,5 +106,5 @@ function set(prob, lens::ZeroRateSpineLens, new_zᵢ)
     new_itp = curve.builder(z_bumped, t)
     new_curve = RateCurve(curve.reference_date, new_itp, curve.builder)
 
-    return @set prob.market.rate = new_curve
+    return @set prob.market_inputs.rate = new_curve
 end

@@ -22,7 +22,7 @@ price = solve(pp, pricing_method).price  # True model price
 calib_problem = Hedgehog2.CalibrationProblem(
     Hedgehog2.BasketPricingProblem([payoff], market),
     pricing_method,
-    [@optic _.market.sigma],
+    [@optic _.market_inputs.sigma],
     [price],
 )
 

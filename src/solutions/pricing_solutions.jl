@@ -1,5 +1,4 @@
 
-export solve_custom_ensemble, CustomEnsembleProblem
 abstract type AbstractPricingSolution end
 
 

@@ -1,14 +1,35 @@
-export yearfrac, add_yearfrac
-
 const SECONDS_IN_YEAR_365 = 365 * 86400
 const MILLISECONDS_IN_YEAR_365 = SECONDS_IN_YEAR_365 * 1000
 
 # --- Time Conversions ---
 
-"Convert a `Date`, `DateTime`, or ticks (Int/Float64) to milliseconds since epoch."
-to_ticks(x::Date) = Dates.datetime2epochms(DateTime(x))
-to_ticks(x::DateTime) = Dates.datetime2epochms(x)
-to_ticks(x::Real) = x  # Already Float64-compatible
+"""
+    to_ticks(x::Date)
+
+Convert a `Date` to milliseconds since the Unix epoch.
+"""
+function to_ticks(x::Date)
+    return Dates.datetime2epochms(DateTime(x))
+end
+
+"""
+    to_ticks(x::DateTime)
+
+Convert a `DateTime` to milliseconds since the Unix epoch.
+"""
+function to_ticks(x::DateTime)
+    return Dates.datetime2epochms(x)
+end
+
+"""
+    to_ticks(x::Real)
+
+Assume `x` is already a timestamp in milliseconds (e.g., `Float64` or `Int`).
+Used to normalize mixed inputs.
+"""
+function to_ticks(x::Real)
+    return x
+end
 
 # --- ACT/365 Year Fractions ---
 
@@ -45,7 +66,16 @@ Returns the updated timestamp in milliseconds as `Float64`.
 
 This version is AD-compatible.
 """
-add_yearfrac(t::Real, yf::Real) = t + yf * MILLISECONDS_IN_YEAR_365
+function add_yearfrac(t::Real, yf::Real)
+    return t + yf * MILLISECONDS_IN_YEAR_365
+end
 
-# Date-based (returns DateTime)
-add_yearfrac(t::TimeType, yf::Real) = Dates.epochms2datetime(add_yearfrac(to_ticks(t), yf))
+"""
+    add_yearfrac(t::TimeType, yf::Real) -> DateTime
+
+Add a fractional number of years (ACT/365) to a `Date` or `DateTime`.
+Returns a `DateTime` object.
+"""
+function add_yearfrac(t::TimeType, yf::Real)
+    return Dates.epochms2datetime(add_yearfrac(to_ticks(t), yf))
+end

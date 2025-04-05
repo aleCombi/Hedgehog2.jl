@@ -28,7 +28,7 @@ function analyze_antithetic_variance_reduction(
     end
 
     payoff = prob.payoff
-    discount_factor = df(prob.market.rate, prob.payoff.expiry)
+    discount_factor = df(prob.market_inputs.rate, prob.payoff.expiry)
 
     # Generate seeds for paths
     path_seeds = rand(1:10^9, num_paths ÷ 2)

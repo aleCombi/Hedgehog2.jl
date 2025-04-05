@@ -1,6 +1,3 @@
-# Exports
-export ForwardAD, FiniteDifference, GreekProblem, SecondOrderGreekProblem, AnalyticGreek
-
 # Method types
 abstract type GreekMethod end
 
@@ -142,24 +139,24 @@ end
 
 function solve(
     gprob::GreekProblem{
-        PricingProblem{VanillaOption{European,A,B},BlackScholesInputs},
-        <:Any,
+        PricingProblem{VanillaOption{TS,TE,European,B,C},BlackScholesInputs},
+        L,
     },
     ::AnalyticGreek,
     ::BlackScholesAnalytic,
-) where {A,B}
+) where {TS,TE,B,C,L}
     prob = gprob.pricing_problem
     lens = gprob.wrt
-    inputs = prob.market
+    inputs = prob.market_inputs
     cp = prob.payoff.call_put()
 
     S = inputs.spot
     σ = inputs.sigma
-    T = yearfrac(prob.market.referenceDate, prob.payoff.expiry)
+    T = yearfrac(prob.market_inputs.referenceDate, prob.payoff.expiry)
     K = prob.payoff.strike
 
-    D = df(prob.market.rate, prob.payoff.expiry)
-    F = prob.market.spot / D
+    D = df(prob.market_inputs.rate, prob.payoff.expiry)
+    F = prob.market_inputs.spot / D
     √T = sqrt(T)
     d1 = (log(F / K) + 0.5 * σ^2 * T) / (σ * √T)
     d2 = d1 - σ * √T
@@ -167,20 +164,20 @@ function solve(
     Φ = x -> cdf(Normal(), x)
     ϕ = x -> pdf(Normal(), x)
 
-    greek = if lens === @optic _.market.spot
+    greek = if lens === @optic _.market_inputs.spot
         # Delta = ∂V/∂S = ∂V/∂F * ∂F/∂S = (cp * N(cp·d1)) * (1/D)
         cp * Φ(cp * d1)
 
-    elseif lens === @optic _.market.sigma
+    elseif lens === @optic _.market_inputs.sigma
         # Vega = ∂V/∂σ = D · F · φ(d1) · √T
         D * F * ϕ(d1) * √T
 
     elseif lens === @optic _.payoff.expiry
-        @assert is_flat(prob.market.rate)
+        @assert is_flat(prob.market_inputs.rate)
 
         # Assume flat rate: z(T) = r ⇒ D(T) = exp(-rT), F(T) = S / D(T)
-        r = zero_rate_yf(prob.market.rate, T)
-        (r * prob.payoff.strike * D * Φ(d2) + F * D * prob.market.sigma * ϕ(d1) / (2√T)) / (MILLISECONDS_IN_YEAR_365) #against ticks, to match AD and FD. Observe that the sign is counterintuitive as it is a derivative against expiry in tticks, not against time-to-maturity in yearfrac
+        r = zero_rate_yf(prob.market_inputs.rate, T)
+        (r * prob.payoff.strike * D * Φ(d2) + F * D * prob.market_inputs.sigma * ϕ(d1) / (2√T)) / (MILLISECONDS_IN_YEAR_365) #against ticks, to match AD and FD. Observe that the sign is counterintuitive as it is a derivative against expiry in tticks, not against time-to-maturity in yearfrac
 
     else
         error("Unsupported lens for analytic Greek")
@@ -193,7 +190,7 @@ function solve(gprob::SecondOrderGreekProblem, ::AnalyticGreek, ::BlackScholesAn
     prob = gprob.pricing_problem
     lens1 = gprob.wrt1
     lens2 = gprob.wrt2
-    inputs = prob.market
+    inputs = prob.market_inputs
 
     S = inputs.spot
     σ = inputs.sigma
@@ -208,11 +205,11 @@ function solve(gprob::SecondOrderGreekProblem, ::AnalyticGreek, ::BlackScholesAn
 
     ϕ = x -> pdf(Normal(), x)
 
-    greek = if (lens1 === @optic _.market.spot) && (lens2 === @optic _.market.spot)
+    greek = if (lens1 === @optic _.market_inputs.spot) && (lens2 === @optic _.market_inputs.spot)
         # Gamma = ∂²V/∂S² = φ(d1) / (Sσ√T)
         ϕ(d1) / (S * σ * √T)
 
-    elseif (lens1 === @optic _.market.sigma) && (lens2 === @optic _.market.sigma)
+    elseif (lens1 === @optic _.market_inputs.sigma) && (lens2 === @optic _.market_inputs.sigma)
         # Volga = Vega * d1 * d2 / σ
         vega = D * F * ϕ(d1) * √T
         vega * d1 * d2 / σ
