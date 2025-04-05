@@ -79,6 +79,6 @@ function solve(calib::CalibrationProblem, calib_algo::RootFinderAlgo; kwargs...)
         return sol.price - quote_val
     end
 
-    problem = NonlinearProblem(f, calib.initial_guess[1])
+    problem = IntervalNonlinearProblem(f, (1E-6, 5.0))
     return NonlinearSolve.solve(problem, calib_algo.root_method; kwargs...)
 end

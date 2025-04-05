@@ -1,7 +1,7 @@
 using Dates
-using Accessors  # for @lens
+using Accessors
 using Optimization
-using Hedgehog2  # replace with your module name
+using Hedgehog2
 
 # Inputs
 reference_date = Date(2025, 1, 1)

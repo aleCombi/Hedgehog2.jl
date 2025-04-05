@@ -4,7 +4,7 @@ using Dates
 using Test
 using DataInterpolations
 
-@testset "Implied Vol Calibration Consistency" begin
+@testset "Implied Vol Calibration Consistency (New Style)" begin
     reference_date = Date(2020, 1, 1)
     expiry_date = reference_date + Year(1)
     r = 0.02
@@ -18,20 +18,25 @@ using DataInterpolations
     pricing_problem = PricingProblem(payoff, market_inputs)
     price = solve(pricing_problem, BlackScholesAnalytic()).price
 
-    # Step 2: Invert to implied vol
-    dummy_inputs = BlackScholesInputs(reference_date, r, spot, 999.0)  # unused vol
-    pricing_problem_new = PricingProblem(payoff, dummy_inputs)
-    calib_problem = Hedgehog2.BlackScholesCalibrationProblem(
-        pricing_problem_new,
+    # Step 2: Recover implied vol with new-style calibration
+    dummy_inputs = BlackScholesInputs(reference_date, r, spot, 0.2)  # dummy vol
+    basket_prob = BasketPricingProblem([payoff], dummy_inputs)
+
+    calib_problem = CalibrationProblem(
+        basket_prob,
         BlackScholesAnalytic(),
-        price,
+        [@optic _.market_inputs.sigma],
+        [price],
+        [0.2],
     )
-    implied_vol = solve(calib_problem).u
+
+    implied_vol = solve(calib_problem, RootFinderAlgo()).u
 
     @test isapprox(implied_vol, true_vol; atol = 1e-8)
 end
 
-@testset "Vol Surface Inversion Consistency (DateTime-safe)" begin
+
+@testset "Vol Surface Inversion Consistency (New Style, DateTime-safe)" begin
     # --- Grid definitions
     tenors = [0.25, 0.5, 1.0, 2.0]
     strikes = [80.0, 90.0, 100.0, 110.0]
@@ -66,9 +71,11 @@ end
         recomputed_prices[i, j] = sol.price
     end
 
+    # Convert DateTimes to tenor Periods for inversion
     expiry_datetimes = [add_yearfrac(reference_date, T) for T in tenors]
     tenor_periods = [expiry - reference_date for expiry in expiry_datetimes]
 
+    # Invert vol surface via implied vol recovery (new-style)
     inverted_surface = RectVolSurface(
         reference_date,
         rate,

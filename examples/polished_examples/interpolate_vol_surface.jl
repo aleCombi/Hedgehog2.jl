@@ -31,16 +31,16 @@ for i = 1:nrows, j = 1:ncols
     T = tenors[i]
     K = strikes[j]
     σ = get_vol(vol_surface, T, K)
-
+    @show σ
     # Create expiry from year fraction
-    expiry = reference_date + Millisecond(round(Int, T * 365 * 86400 * 1000))
-
-    payoff = VanillaOption(K, expiry, European(), Call(), Spot())
-    market = BlackScholesInputs(reference_date, rate, spot, σ)
-
-    prob = PricingProblem(payoff, market)
-    sol = solve(prob, BlackScholesAnalytic())
-    recomputed_prices[i, j] = sol.price
+    local_expiry = Hedgehog2.add_yearfrac(reference_date, T)
+    @show local_expiry
+    local_payoff = VanillaOption(K, local_expiry, European(), Call(), Spot())
+    local_market = BlackScholesInputs(reference_date, rate, spot, σ)
+    local_prob = PricingProblem(local_payoff, local_market)
+    local_sol = Hedgehog2.solve(local_prob, BlackScholesAnalytic())
+    println(local_sol.price)
+    recomputed_prices[i, j] = local_sol.price
 end
 
 # --- Invert surface using prices and DateTime-based expiries
@@ -67,6 +67,26 @@ inverted_surface = RectVolSurface(
         K = strikes[j]
         original = vols[i, j]
         recovered = get_vol(inverted_surface, T, K)
+        @show T, K
+        @show original, recovered
         @test isapprox(original, recovered; atol = 1e-6)
     end
 end
+
+expiry = Hedgehog2.add_yearfrac(reference_date, 0.25)
+sigma = 0.22
+strike = 80.0
+payoff = VanillaOption(strike, expiry, European(), Call(), Spot())
+spot = 100.0
+market_inputs = BlackScholesInputs(reference_date, rate, spot, sigma)
+price = solve(PricingProblem(payoff, market_inputs), BlackScholesAnalytic()).price
+
+calib_prob = CalibrationProblem(
+    BasketPricingProblem([payoff], market_inputs),
+    BlackScholesAnalytic(),
+    [@optic _.market_inputs.sigma],
+    [price],
+    [0.02]
+)
+
+sol = solve(calib_prob, RootFinderAlgo(Brent()), sensealg=AutoForwardDiff())

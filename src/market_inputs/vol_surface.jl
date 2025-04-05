@@ -75,3 +75,74 @@ end
 function get_vol(surf::RectVolSurface, t::Real, strike::Real)
     return surf.interpolator[t, strike]
 end
+
+function RectVolSurface(
+    reference_date,
+    rate::Real,
+    spot::Real,
+    tenors::Vector{<:Period},
+    strikes::Vector{<:Real},
+    prices::Matrix{<:Real};
+    call_put_matrix::Union{Nothing,AbstractMatrix} = nothing,
+    interp_strike = LinearInterpolation,
+    interp_time = LinearInterpolation,
+    extrap_strike = ExtrapolationType.Constant,
+    extrap_time = ExtrapolationType.Constant,
+    initial_guess = 0.02,
+    root_finding_algo = nothing,
+    kwargs...,
+)
+    nrows, ncols = length(tenors), length(strikes)
+    @assert size(prices) == (nrows, ncols) "Price matrix size must match (length(tenors), length(strikes))"
+
+    # Fill call/put matrix if not provided
+    if call_put_matrix === nothing
+        call_put_matrix = fill(Call(), nrows, ncols)
+    else
+        @assert size(call_put_matrix) == (nrows, ncols) "Call/Put matrix must match price matrix size"
+    end
+
+    # Calibrate implied vols
+    vols = Matrix{Float64}(undef, nrows, ncols)
+    accessor = @optic _.market_inputs.sigma
+    for i = 1:nrows, j = 1:ncols
+        expiry = reference_date + tenors[i]
+        strike = strikes[j]
+        cp = call_put_matrix[i, j]
+        price = prices[i, j]
+        payoff = VanillaOption(strike, expiry, European(), cp, Spot())
+        market = BlackScholesInputs(reference_date, rate, spot, initial_guess)
+        @show payoff.expiry
+
+        println(solve(PricingProblem(payoff, market), BlackScholesAnalytic()).price)
+        prob = CalibrationProblem(
+            BasketPricingProblem([payoff], market),
+            BlackScholesAnalytic(),
+            [accessor],
+            [price],
+            [initial_guess]
+        )
+
+        sol = solve(prob, RootFinderAlgo(root_finding_algo); kwargs...)
+
+        println(solve(PricingProblem(payoff, @set market.sigma = 0.22), BlackScholesAnalytic()).price)
+        println(solve(PricingProblem(payoff, @set market.sigma = sol.u), BlackScholesAnalytic()).price)
+
+        @show sol.u
+        vols[i, j] = sol.u
+    end
+
+    # Convert periods to year fractions
+    times = [yearfrac(reference_date, reference_date + τ) for τ in tenors]
+
+    return RectVolSurface(
+        reference_date,
+        times,
+        strikes,
+        vols;
+        interp_strike = interp_strike,
+        interp_time = interp_time,
+        extrap_strike = extrap_strike,
+        extrap_time = extrap_time,
+    )
+end
