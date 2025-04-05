@@ -1,6 +1,4 @@
 # Exported Types and Functions
-export AbstractPricingMethod, PricingProblem, solve
-
 """
 An abstract type representing a pricing method.
 

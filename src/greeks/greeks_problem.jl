@@ -1,6 +1,3 @@
-# Exports
-export ForwardAD, FiniteDifference, GreekProblem, SecondOrderGreekProblem, AnalyticGreek
-
 # Method types
 abstract type GreekMethod end
 

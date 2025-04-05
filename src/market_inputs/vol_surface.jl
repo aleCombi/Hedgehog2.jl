@@ -1,11 +1,3 @@
-using Dates
-using Accessors
-using Roots
-
-export RectVolSurface, spine_strikes, spine_tenors, spine_vols, get_vol, Interpolator2D
-
-import DataInterpolations: LinearInterpolation, ExtrapolationType
-
 struct Interpolator2D{XVec,YVec,YInterp,XInterpFunc}
     x_vals::XVec                        # Grid in x-direction (e.g., expiry)
     y_vals::YVec                        # Grid in y-direction (e.g., strike)

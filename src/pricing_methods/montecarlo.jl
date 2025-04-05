@@ -1,16 +1,3 @@
-using DifferentialEquations
-using DiffEqNoiseProcess
-using Statistics
-using Accessors
-
-export MonteCarlo,
-    HestonBroadieKaya,
-    EulerMaruyama,
-    BlackScholesExact,
-    LognormalDynamics,
-    HestonDynamics,
-    solve
-
 # ------------------ Price Dynamics ------------------
 
 abstract type PriceDynamics end

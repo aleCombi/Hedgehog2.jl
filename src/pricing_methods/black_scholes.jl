@@ -1,9 +1,3 @@
-# Black-Scholes pricing function for European vanilla options
-import DifferentialEquations
-using NonlinearSolve, Distributions, Roots
-
-export BlackScholesAnalytic, implied_vol
-
 """
     BlackScholesAnalytic <: AbstractPricingMethod
 

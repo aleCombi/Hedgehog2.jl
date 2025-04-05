@@ -1,6 +1,3 @@
-using Polynomials
-export LSM
-
 """
     LSM <: AbstractPricingMethod
 

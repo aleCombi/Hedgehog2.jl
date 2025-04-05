@@ -1,5 +1,3 @@
-export yearfrac, add_yearfrac
-
 const SECONDS_IN_YEAR_365 = 365 * 86400
 const MILLISECONDS_IN_YEAR_365 = SECONDS_IN_YEAR_365 * 1000
 

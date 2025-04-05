@@ -1,7 +1,3 @@
-using Dates, Distributions
-import Integrals
-export CarrMadan
-
 """
     CarrMadan <: AbstractPricingMethod
 

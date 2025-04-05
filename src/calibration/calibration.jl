@@ -1,5 +1,3 @@
-using Accessors
-using Zygote
 """
     CalibrationProblem{P, M}
 
@@ -32,8 +30,6 @@ end
 function OptimizerAlgo()
     return OptimizerAlgo(AutoForwardDiff(), Optimization.LBFGS())
 end
-
-using Optimization  # Or other backend
 
 function solve(calib::CalibrationProblem, calib_algo::CalibrationAlgo; kwargs...)
     function objective(x, p)

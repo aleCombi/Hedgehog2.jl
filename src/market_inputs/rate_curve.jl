@@ -1,18 +1,3 @@
-using DataInterpolations
-import Dates: Date, value
-import Base: getindex
-import Accessors: set, @optic
-
-export RateCurve,
-    df,
-    zero_rate,
-    forward_rate,
-    spine_tenors,
-    spine_zeros,
-    FlatRateCurve,
-    is_flat,
-    ZeroRateSpineLens
-
 # -- Structs --
 
 struct RateCurve{F}
