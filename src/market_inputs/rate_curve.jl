@@ -1,8 +1,8 @@
 # -- Structs --
 
-struct RateCurve{F}
-    reference_date::Real # ticks
-    interpolator::DataInterpolations.AbstractInterpolation     # callable interpolation function
+struct RateCurve{F, R <:Real, I <:DataInterpolations.AbstractInterpolation }
+    reference_date::R # ticks
+    interpolator::I    # callable interpolation function
     builder::F           # function (u, t) -> interpolator
 end
 
@@ -44,14 +44,14 @@ end
 
 # -- Accessors --
 
-df(curve::RateCurve, ticks::Real) =
+df(curve::RateCurve, ticks::T) where T <: Number =
     exp(-zero_rate(curve, ticks) * yearfrac(curve.reference_date, ticks))
 
 df(curve::RateCurve, t::Date) = df(curve, to_ticks(t))
 
 df_yf(curve::RateCurve, yf::Real) = exp(-zero_rate_yf(curve, yf) * yf)
 
-zero_rate(curve::RateCurve, ticks::Real) =
+zero_rate(curve::RateCurve, ticks::T) where T <: Number =
     curve.interpolator(yearfrac(curve.reference_date, ticks))
 
 zero_rate(curve::RateCurve, t::Date) = zero_rate(curve, to_ticks(t))

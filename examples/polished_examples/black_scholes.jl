@@ -9,13 +9,17 @@ euro_payoff = VanillaOption(strike, expiry, European(), Put(), underlying)
 # define market inputs
 reference_date = Date(2020, 1, 1)
 rate = 0.2
-spot = 1
+spot = 1.0
 sigma = 0.4
 market_inputs = BlackScholesInputs(reference_date, rate, spot, sigma)
 euro_pricing_prob = PricingProblem(euro_payoff, market_inputs)
 
 # create analytical black scholes pricer
-@btime analytical_price = solve(euro_pricing_prob, BlackScholesAnalytic())
+analytical_price = solve(euro_pricing_prob, BlackScholesAnalytic())
+@btime solve($euro_pricing_prob, BlackScholesAnalytic())
+@code_warntype analytical_price = solve(euro_pricing_prob, BlackScholesAnalytic())
+# @code_warntype analytical_price = solve(euro_pricing_prob, BlackScholesAnalytic())
+# @code_warntype df(market_inputs.rate, euro_payoff.expiry)
 
 # # print results
 # println("Analytical European price:")

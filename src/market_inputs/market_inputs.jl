@@ -18,9 +18,9 @@ Market data inputs for the Black-Scholes model.
 
 This struct encapsulates the necessary inputs for pricing derivatives under the Black-Scholes model.
 """
-struct BlackScholesInputs{TRef <: Real, TSpot <: Real, TSigma <: AbstractVolSurface} <: AbstractMarketInputs
+struct BlackScholesInputs{R <: RateCurve,TRef <: Real, TSpot <: Real, TSigma <: AbstractVolSurface} <: AbstractMarketInputs
     referenceDate::TRef
-    rate::RateCurve
+    rate::R
     spot::TSpot
     sigma::TSigma
 end

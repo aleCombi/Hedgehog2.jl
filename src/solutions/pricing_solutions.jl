@@ -38,12 +38,12 @@ struct MonteCarloSolution{S} <: AbstractPricingSolution
     ensemble::CustomEnsembleSolution{S}
 end
 
-struct AnalyticSolution <: AbstractPricingSolution
-    price::Any
+struct AnalyticSolution{T <: Number} <: AbstractPricingSolution
+    price::T
 end
 
-struct CarrMadanSolution <: AbstractPricingSolution
-    price::Any
+struct CarrMadanSolution{T <: Number} <: AbstractPricingSolution
+    price::T
     integral_solution::SciMLBase.IntegralSolution
 end
 
