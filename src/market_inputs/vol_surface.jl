@@ -70,8 +70,13 @@ abstract type AbstractVolSurface end
 
 Volatility surface with a constant volatility `σ`.
 """
-struct FlatVolSurface{T <: Real} <: AbstractVolSurface
+struct FlatVolSurface{T <: Real, R <: Real} <: AbstractVolSurface
+    reference_date::R
     σ::T
+end
+
+function FlatVolSurface(σ; reference_date=Date(0))
+    return FlatVolSurface(reference_date, σ)
 end
 
 """
