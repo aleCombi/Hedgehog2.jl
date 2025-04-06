@@ -4,7 +4,7 @@ using Dates
 @testset "Time Conversion and ACT/365 Utilities" begin
     # Setup
     d1 = Date(2020, 1, 1)
-    d2 = Date(2021, 1, 1)
+    d2 = d1 + Day(365)
     dt1 = DateTime(d1)
     dt2 = DateTime(d2)
     ticks1 = to_ticks(d1)
@@ -28,7 +28,7 @@ using Dates
     # add_yearfrac (Real, Real)
     t0 = 1_580_000_000_000.0  # some ms timestamp
     t1 = add_yearfrac(t0, 1.0)
-    @test isapprox((t1 - t0), MILLISECONDS_IN_YEAR_365; atol=1e-3)
+    @test isapprox((t1 - t0), 365 * 86400 * 1000; atol=1e-3)
 
     # add_yearfrac (DateTime)
     ref_date = DateTime(2020, 1, 1)

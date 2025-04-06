@@ -1,3 +1,7 @@
+using Test
+using Dates
+using DataInterpolations
+
 @testset "Interpolator2D" begin
     x = [0.25, 0.5]
     y = [90.0, 100.0]
@@ -25,19 +29,23 @@
     @test isa(itp, Interpolator2D)
 end
 
-
-using Test
-using Dates
-using DataInterpolations
-
-@testset "RectVolSurface construction from interpolator" begin
+@testset "RectVolSurface construction from grid" begin
     ticks = to_ticks(Date(2024, 1, 1))
     x = [0.25, 0.5]
     y = [90.0, 100.0]
     vols = [0.2 0.25; 0.22 0.27]
-    itp = Interpolator2D(x, y, vols)
 
-    surf = RectVolSurface(ticks, itp)
+    surf = RectVolSurface(
+        ticks,
+        x,
+        y,
+        vols;
+        interp_strike = LinearInterpolation,
+        interp_time = LinearInterpolation,
+        extrap_strike = ExtrapolationType.Constant,
+        extrap_time = ExtrapolationType.Constant,
+    )
+
     @test isa(surf, RectVolSurface)
     @test isapprox(get_vol_yf(surf, 0.5, 100.0), 0.27; atol=1e-8)
 end
@@ -47,12 +55,21 @@ end
     x = [0.25, 0.5]
     y = [90.0, 100.0]
     vols = [0.2 0.25; 0.22 0.27]
-    itp = Interpolator2D(x, y, vols)
 
-    surf = RectVolSurface(ref_date, itp)
-    T = yearfrac(to_ticks(ref_date), to_ticks(ref_date)) + 0.5
+    surf = RectVolSurface(
+        ref_date,
+        x,
+        y,
+        vols;
+        interp_strike = LinearInterpolation,
+        interp_time = LinearInterpolation,
+        extrap_strike = ExtrapolationType.Constant,
+        extrap_time = ExtrapolationType.Constant,
+    )
+
+    expiry_date = Hedgehog2.add_yearfrac(ref_date, 0.5)
     @test isa(surf, RectVolSurface)
-    @test isapprox(get_vol(surf, to_ticks(ref_date) + round(Int, T * 365.25 * 24 * 60 * 60 * 1000), 100.0), 0.27; atol=1e-8)
+    @test isapprox(get_vol(surf, to_ticks(expiry_date), 100.0), 0.27; atol=1e-8)
 end
 
 @testset "get_vol by Date and by ticks" begin
@@ -60,12 +77,21 @@ end
     x = [0.25, 0.5]
     y = [90.0, 100.0]
     vols = [0.2 0.25; 0.22 0.27]
-    itp = Interpolator2D(x, y, vols)
-    surf = RectVolSurface(ref_date, itp)
+
+    surf = RectVolSurface(
+        ref_date,
+        x,
+        y,
+        vols;
+        interp_strike = LinearInterpolation,
+        interp_time = LinearInterpolation,
+        extrap_strike = ExtrapolationType.Constant,
+        extrap_time = ExtrapolationType.Constant,
+    )
 
     expiry_date = ref_date + Year(1)
-    @test isapprox(get_vol(surf, expiry_date, 100.0), surf.interpolator[1.0, 100.0]; atol=1e-8)
+    T = yearfrac(ref_date, expiry_date)
 
-    ticks = to_ticks(expiry_date)
-    @test isapprox(get_vol(surf, ticks, 100.0), surf.interpolator[1.0, 100.0]; atol=1e-8)
+    @test isapprox(get_vol(surf, expiry_date, 100.0), surf.interpolator[T, 100.0]; atol=1e-8)
+    @test isapprox(get_vol(surf, to_ticks(expiry_date), 100.0), surf.interpolator[T, 100.0]; atol=1e-8)
 end
