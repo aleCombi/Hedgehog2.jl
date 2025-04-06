@@ -79,7 +79,7 @@ end
 
 Returns the constant volatility from a `FlatVolSurface`.
 """
-function get_vol(surf::FlatVolSurface, ::Any, ::Any)
+function get_vol(surf::FlatVolSurface, _, _)
     return surf.σ
 end
 
@@ -88,7 +88,7 @@ end
 
 Returns the constant volatility from a `FlatVolSurface`, used when year fraction is precomputed.
 """
-function get_vol_yf(surf::FlatVolSurface, ::Any, ::Any)
+function get_vol_yf(surf::FlatVolSurface, _, _)
     return surf.σ
 end
 
