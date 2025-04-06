@@ -1,7 +1,6 @@
 
 abstract type AbstractPricingSolution end
 
-
 struct CustomEnsembleProblem{P,F}
     base_problem::P
     seeds::Vector{Int64}
@@ -33,8 +32,8 @@ function solve_custom_ensemble(
     return CustomEnsembleSolution(sols, seeds)
 end
 
-struct MonteCarloSolution{S} <: AbstractPricingSolution
-    price::Any
+struct MonteCarloSolution{S, T<:Number} <: AbstractPricingSolution
+    price::T
     ensemble::CustomEnsembleSolution{S}
 end
 

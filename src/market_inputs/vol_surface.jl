@@ -76,7 +76,7 @@ struct FlatVolSurface{T <: Real, R <: Real} <: AbstractVolSurface
 end
 
 function FlatVolSurface(σ; reference_date=Date(0))
-    return FlatVolSurface(reference_date, σ)
+    return FlatVolSurface(to_ticks(reference_date), σ)
 end
 
 """

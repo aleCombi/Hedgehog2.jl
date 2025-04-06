@@ -16,11 +16,5 @@ euro_pricing_prob = PricingProblem(euro_payoff, market_inputs)
 
 # create analytical black scholes pricer
 analytical_price = solve(euro_pricing_prob, BlackScholesAnalytic())
-@btime solve($euro_pricing_prob, BlackScholesAnalytic())
-@code_warntype analytical_price = solve(euro_pricing_prob, BlackScholesAnalytic())
-# @code_warntype analytical_price = solve(euro_pricing_prob, BlackScholesAnalytic())
-# @code_warntype df(market_inputs.rate, euro_payoff.expiry)
-
-# # print results
-# println("Analytical European price:")
-# println(analytical_price)
+method = BlackScholesAnalytic()
+@btime solve($euro_pricing_prob, $method)
