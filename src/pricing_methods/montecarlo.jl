@@ -49,20 +49,21 @@ end
 function sde_problem(
     ::LognormalDynamics,
     s::BlackScholesExact,
-    market::BlackScholesInputs,
+    market::I,
     tspan,
-)
-    @assert is_flat(market.rate) "LognormalDynamics requires flat rate curve"
+) where I <: BlackScholesInputs
+    @assert market.rate isa FlatRateCurve "LognormalDynamics requires flat rate curve"
 
+    σ = get_vol(market.sigma, nothing, nothing)
     # Promote all parameters to a common type (Dual or Float64)
     T = promote_type(
         typeof(zero_rate(market.rate, 0.0)),
-        typeof(market.sigma),
+        typeof(σ),
         typeof(market.spot),
     )
 
     r = convert(T, zero_rate(market.rate, 0.0))
-    σ = convert(T, market.sigma)
+    σ = convert(T, σ)
     S₀ = convert(T, market.spot)
     t₀ = zero(T)
 
@@ -238,8 +239,8 @@ end
 
 function solve(
     prob::PricingProblem{VanillaOption{TS,TE,European,C,Spot},I},
-    method::MonteCarlo,
-) where {TS,TE,C,I<:AbstractMarketInputs}
+    method::M,
+) where {TS,TE,C,I<:AbstractMarketInputs, M<:MonteCarlo}
     T = yearfrac(prob.market_inputs.referenceDate, prob.payoff.expiry)
     strategy = method.strategy
     dynamics = method.dynamics
