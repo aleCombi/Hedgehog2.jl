@@ -120,30 +120,6 @@ function get_antithetic_ensemble_problem(
     return get_ensemble_problem(noise_problem, s)
 end
 
-function get_antithetic_ensemble_problem(
-    d::HestonDynamics,
-    s::HestonBroadieKaya,
-    normal_sol::CustomEnsembleSolution,
-    m::HestonInputs,
-)
-    tspan = (normal_sol.solutions[1].t[1], normal_sol.solutions[1].t[end])
-    # Assume s is a simulation strategy that has .seeds and .kwargs fields
-    # and normal_sol is a solution from a previous simulation
-
-    # First, copy the seeds from normal_sol
-    s_flipped = @set s.seeds = normal_sol.seeds
-
-    # Then, modify a specific keyword argument in s.kwargs
-    s_flipped = @set s_flipped.kwargs = merge(s_flipped.kwargs, (antithetic = false,))
-    flipped_problem = sde_problem(d, s_flipped, m, tspan)
-
-    antithetic_modify = function (_base_prob, _seed, i)
-        return _base_prob
-    end
-
-    return CustomEnsembleProblem(flipped_problem, normal_sol.seeds, antithetic_modify)
-end
-
 function sde_problem(::HestonDynamics, strategy::HestonBroadieKaya, m::HestonInputs, tspan)
     rate = zero_rate(m.rate, 0.0)
     noise = HestonNoise(

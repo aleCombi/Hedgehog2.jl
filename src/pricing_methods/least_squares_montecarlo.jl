@@ -34,9 +34,9 @@ end
     extract_spot_grid(sol)
 
 Extracts the simulated spot paths from a `Vector` of state vectors. Returns a matrix of size (nsteps, npaths).
-Each column corresponds to a single simulation path.
+Each column corresponds to a single simulation path. TODO: adapt for ensemblesolution
 """
-function extract_spot_grid(sol::CustomEnsembleSolution)
+function extract_spot_grid(sol::EnsembleSolution) 
     # Each s is a solution in sol.solutions, where s.u is a vector of states
     return hcat([getindex.(s.u, 1) for s in sol.solutions]...)  # size: (nsteps, npaths)
 end

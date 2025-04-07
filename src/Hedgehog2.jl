@@ -83,7 +83,6 @@ export MonteCarlo,
     LognormalDynamics,
     HestonDynamics
 export LSM
-export solve_custom_ensemble, CustomEnsembleProblem
 
 # Sensitivities
 export ForwardAD, FiniteDifference, GreekProblem, SecondOrderGreekProblem, AnalyticGreek
