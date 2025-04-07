@@ -157,42 +157,44 @@ struct MonteCarlo{P<:PriceDynamics,S<:SimulationStrategy, C<:SimulationConfig} <
 end
 
 function simulate_paths(
+    prob::PricingProblem,
     method::M,
-    market_inputs::I,
-    T,
     ::NoVarianceReduction
-) where {M<:MonteCarlo, I<:AbstractMarketInputs}
+) where {M<:MonteCarlo}
     strategy = method.strategy
     dynamics = method.dynamics
     config = method.config
+    T = yearfrac(prob.market_inputs.referenceDate, prob.payoff.expiry)
     tspan = (0.0, T)
     dt = T / config.steps
-    normal_prob = sde_problem(dynamics, strategy, market_inputs, tspan)
+
+    normal_prob = sde_problem(dynamics, strategy, prob.market_inputs, tspan)
     ensemble_prob = get_ensemble_problem(normal_prob, config)
     normal_sol = DifferentialEquations.solve(ensemble_prob, EM(); dt = dt, trajectories=config.trajectories)
     return MonteCarloSol(normal_sol, nothing)
 end
 
 function simulate_paths(
+    prob::PricingProblem,
     method::M,
-    market_inputs::I,
-    T,
     ::Antithetic
-) where {M<:MonteCarlo, I<:AbstractMarketInputs}
-
+) where {M<:MonteCarlo}
     strategy = method.strategy
     dynamics = method.dynamics
     config = method.config
+    T = yearfrac(prob.market_inputs.referenceDate, prob.payoff.expiry)
     tspan = (0.0, T)
     dt = T / config.steps
-    normal_prob = sde_problem(dynamics, strategy, market_inputs, tspan)
+
+    normal_prob = sde_problem(dynamics, strategy, prob.market_inputs, tspan)
     ensemble_prob = get_ensemble_problem(normal_prob, config)
     normal_sol = DifferentialEquations.solve(ensemble_prob, EM(); dt = dt, trajectories=config.trajectories, save_noise=true)
-    
-    antithetic_prob = get_antithetic_ensemble_problem(normal_prob, dynamics, strategy, config, normal_sol, market_inputs, tspan)
+
+    antithetic_prob = get_antithetic_ensemble_problem(normal_prob, dynamics, strategy, config, normal_sol, prob.market_inputs, tspan)
     antithetic_sol = DifferentialEquations.solve(antithetic_prob, EM(); dt = dt, trajectories=config.trajectories)
     return MonteCarloSol(normal_sol, antithetic_sol)
 end
+
 
 struct MonteCarloSol{S}
     solution::EnsembleSolution
@@ -208,7 +210,7 @@ function solve(
     dynamics = method.dynamics
     config = method.config
 
-    ens = simulate_paths(method, prob.market_inputs, T, config.variance_reduction) 
+    ens = simulate_paths(prob, method, config.variance_reduction)
     payoffs = reduce_payoffs(ens, prob.payoff, config.variance_reduction, dynamics, strategy)
     discount = df(prob.market_inputs.rate, prob.payoff.expiry)
     price = discount * mean(payoffs)
