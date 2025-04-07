@@ -48,10 +48,6 @@ function solve(
     method::CarrMadan,
 ) where {TS,TE,C,I<:AbstractMarketInputs}
 
-    if !is_flat(prob.market_inputs.rate)
-        throw(ArgumentError("Carr–Madan pricing only supports flat rate curves."))
-    end
-
     K = prob.payoff.strike
     r = prob.market_inputs.rate
     S = prob.market_inputs.spot

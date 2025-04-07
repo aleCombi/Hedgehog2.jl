@@ -34,7 +34,7 @@ end
 
 struct MonteCarloSolution{S, T<:Number} <: AbstractPricingSolution
     price::T
-    ensemble::CustomEnsembleSolution{S}
+    ensemble::S
 end
 
 struct AnalyticSolution{T <: Number} <: AbstractPricingSolution

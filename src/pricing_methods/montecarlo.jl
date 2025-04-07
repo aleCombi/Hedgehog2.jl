@@ -4,44 +4,51 @@ abstract type PriceDynamics end
 struct LognormalDynamics <: PriceDynamics end
 struct HestonDynamics <: PriceDynamics end
 
+abstract type VarianceReductionStrategy end
+
+struct NoVarianceReduction <: VarianceReductionStrategy end
+struct Antithetic <: VarianceReductionStrategy end
+
 # ------------------ Simulation Strategies ------------------
 
 abstract type SimulationStrategy end
 
-struct HestonBroadieKaya <: SimulationStrategy
-    trajectories::Any
-    steps::Any
-    kwargs::NamedTuple
-    seeds::Union{Nothing,Vector{Int}}
+struct HestonBroadieKaya{I <: Integer, S <: Integer, V <: VarianceReductionStrategy} <: SimulationStrategy
+    trajectories::I
+    steps::S
+    variance_reduction::V
+    seeds::Vector{I}
 end
 
-struct EulerMaruyama <: SimulationStrategy
-    trajectories::Any
-    steps::Any
-    kwargs::NamedTuple
-    seeds::Union{Nothing,Vector{Int}}
+struct EulerMaruyama{I <: Integer, S <: Integer, V <: VarianceReductionStrategy} <: SimulationStrategy
+    trajectories::I
+    steps::S
+    variance_reduction::V
+    seeds::Vector{I}
 end
 
-struct BlackScholesExact <: SimulationStrategy
-    trajectories::Any
-    steps::Any
-    kwargs::NamedTuple
-    seeds::Union{Nothing,Vector{Int}}
+struct BlackScholesExact{I <: Integer, S <: Integer, V <: VarianceReductionStrategy} <: SimulationStrategy
+    trajectories::I
+    steps::S
+    variance_reduction::V
+    seeds::Vector{I}
 end
 
-HestonBroadieKaya(trajectories; steps = 1, seeds = nothing, kwargs...) = begin
+HestonBroadieKaya(trajectories; steps = 1, seeds = nothing, variance_reduction=Antithetic()               # just antithetic
+) = begin
     seeds === nothing && (seeds = Base.rand(1_000_000_000:2_000_000_000, trajectories))
-    HestonBroadieKaya(trajectories, steps, (; kwargs...), seeds)
+    HestonBroadieKaya(trajectories, steps, variance_reduction, seeds)
+end
+EulerMaruyama(trajectories; steps = 1, seeds = nothing, variance_reduction=Antithetic()               # just antithetic
+) = begin
+    seeds === nothing && (seeds = Base.rand(1_000_000_000:2_000_000_000, trajectories))
+    EulerMaruyama(trajectories, steps, variance_reduction, seeds)
 end
 
-EulerMaruyama(trajectories; steps = 1, seeds = nothing, kwargs...) = begin
+BlackScholesExact(trajectories; steps = 1, seeds = nothing, variance_reduction=Antithetic()               # just antithetic
+) = begin
     seeds === nothing && (seeds = Base.rand(1_000_000_000:2_000_000_000, trajectories))
-    EulerMaruyama(trajectories, steps, (; kwargs...), seeds)
-end
-
-BlackScholesExact(trajectories; steps = 1, seeds = nothing, kwargs...) = begin
-    seeds === nothing && (seeds = Base.rand(1_000_000_000:2_000_000_000, trajectories))
-    BlackScholesExact(trajectories, steps, (; kwargs...), seeds)
+    BlackScholesExact(trajectories, steps, variance_reduction, seeds)
 end
 
 # ------------------ SDE Problem Builders ------------------
@@ -49,73 +56,68 @@ end
 function sde_problem(
     ::LognormalDynamics,
     s::BlackScholesExact,
-    market::I,
+    market::BlackScholesInputs,
     tspan,
-) where I <: BlackScholesInputs
+)
     @assert market.rate isa FlatRateCurve "LognormalDynamics requires flat rate curve"
 
+    r = zero_rate(market.rate, 0.0)
     σ = get_vol(market.sigma, nothing, nothing)
-    # Promote all parameters to a common type (Dual or Float64)
-    T = promote_type(
-        typeof(zero_rate(market.rate, 0.0)),
-        typeof(σ),
-        typeof(market.spot),
-    )
-
-    r = convert(T, zero_rate(market.rate, 0.0))
-    σ = convert(T, σ)
-    S₀ = convert(T, market.spot)
-    t₀ = zero(T)
+    S₀ = market.spot
+    t₀ = zero(S₀)  # ensure same type as S₀
 
     noise = GeometricBrownianMotionProcess(r, σ, t₀, S₀)
-    return NoiseProblem(noise, tspan; s.kwargs...)
+    noise_problem = NoiseProblem(noise, tspan)
+    return noise_problem
 end
 
+
 function sde_problem(::HestonDynamics, ::EulerMaruyama, m::HestonInputs, tspan)
-    @assert is_flat(m.rate) "Heston simulation requires flat rate curve"
     rate = zero_rate(m.rate, 0.0)
     return HestonProblem(rate, m.κ, m.θ, m.σ, m.ρ, [m.spot, m.V0], tspan)
 end
 
 function sde_problem(::LognormalDynamics, ::EulerMaruyama, m::BlackScholesInputs, tspan)
-    @assert is_flat(m.rate) "Heston simulation requires flat rate curve"
     rate = zero_rate(m.rate, 0.0)
-    return LogGBMProblem(rate, m.sigma, log(m.spot), tspan)
+    σ = get_vol(m.sigma, nothing, nothing)
+    return LogGBMProblem(rate, σ, log(m.spot), tspan)
 end
 
 function get_antithetic_ensemble_problem(
+    problem,
     ::PriceDynamics,
     ::EulerMaruyama,
-    normal_sol::CustomEnsembleSolution,
+    normal_sol::EnsembleSolution,
     market_inputs,
+    tspan
 )
-    base_prob = normal_sol.solutions[1].prob
-
-    antithetic_modify = function (_base_prob, _seed, i)
-        sol = normal_sol.solutions[i]
-        flipped_noise = NoiseGrid(sol.W.t, -sol.W.W)
+    prob_func = function (_base_prob, _seed, i)
+        flipped_noise = NoiseGrid(normal_sol.u[i].W.t, -normal_sol.u[i].W.W)
         return remake(_base_prob; noise = flipped_noise)
     end
 
-    return CustomEnsembleProblem(base_prob, normal_sol.seeds, antithetic_modify)
+    return EnsembleProblem(problem, prob_func=prob_func)
 end
 
 function get_antithetic_ensemble_problem(
-    d::LognormalDynamics,
+    problem,
+    ::LognormalDynamics,
     s::BlackScholesExact,
-    normal_sol::CustomEnsembleSolution,
-    m::BlackScholesInputs,
+    normal_sol::EnsembleSolution,
+    market::BlackScholesInputs,
+    tspan
 )
-    tspan = (normal_sol.solutions[1].t[1], normal_sol.solutions[1].t[end])
-    s_flipped = @set s.seeds = normal_sol.seeds
-    m_flipped = @set m.sigma = -m.sigma
-    flipped_problem = sde_problem(d, s_flipped, m_flipped, tspan)
+    @assert market.rate isa FlatRateCurve "LognormalDynamics requires flat rate curve"
 
-    antithetic_modify = function (_base_prob, _seed, i)
-        return _base_prob
-    end
+    r = zero_rate(market.rate, 0.0)
+    σ = -get_vol(market.sigma, nothing, nothing)
+    S₀ = market.spot
+    t₀ = zero(S₀)  # ensure same type as S₀
 
-    return CustomEnsembleProblem(flipped_problem, normal_sol.seeds, antithetic_modify)
+    noise = GeometricBrownianMotionProcess(r, σ, t₀, S₀)
+
+    noise_problem = NoiseProblem(noise, tspan)
+    return get_ensemble_problem(noise_problem, s)
 end
 
 function get_antithetic_ensemble_problem(
@@ -143,7 +145,6 @@ function get_antithetic_ensemble_problem(
 end
 
 function sde_problem(::HestonDynamics, strategy::HestonBroadieKaya, m::HestonInputs, tspan)
-    @assert is_flat(m.rate) "Heston simulation requires flat rate curve"
     rate = zero_rate(m.rate, 0.0)
     noise = HestonNoise(
         rate,
@@ -153,8 +154,7 @@ function sde_problem(::HestonDynamics, strategy::HestonBroadieKaya, m::HestonInp
         m.ρ,
         0.0,
         [log(m.spot), m.V0],
-        Z0 = nothing;
-        strategy.kwargs...,
+        Z0 = nothing
     )
     return NoiseProblem(noise, tspan)
 end
@@ -175,19 +175,12 @@ end
 
 # ------------------ Ensemble Simulation Wrapper ------------------
 
-function get_ensemble_problem(
-    problem::Union{NoiseProblem,SDEProblem},
-    strategy::S,
-) where {S<:SimulationStrategy}
-    N = strategy.trajectories
-
-    seeds =
-        strategy isa BlackScholesExact && strategy.seeds !== nothing ? strategy.seeds :
-        Base.rand(1_000_000_000:2_000_000_000, N)
-
-    modify = (p, seed, _) -> remake(p; seed = seed)
-    custom_prob = CustomEnsembleProblem(problem, collect(seeds), modify)
-    return custom_prob
+function get_ensemble_problem(prob, strategy)
+    seeds = strategy.seeds
+    let seeds = seeds
+        prob_func = (prob, i, repeat) -> remake(prob; seed=seeds[i])
+        EnsembleProblem(prob, prob_func=prob_func)
+    end
 end
 
 # ------------------ Terminal Value Extractors ------------------
@@ -205,64 +198,92 @@ struct MonteCarlo{P<:PriceDynamics,S<:SimulationStrategy} <: AbstractPricingMeth
 end
 
 function simulate_paths(
-    method::MonteCarlo,
+    method::M,
     market_inputs::I,
     T,
-) where {I<:AbstractMarketInputs}
+    ::NoVarianceReduction
+) where {M<:MonteCarlo, I<:AbstractMarketInputs}
     strategy = method.strategy
     dynamics = method.dynamics
     tspan = (0.0, T)
     dt = T / strategy.steps
-
-    antithetic = get(strategy.kwargs, :antithetic, false)
-
-    # Step 1: simulate original paths
     normal_prob = sde_problem(dynamics, strategy, market_inputs, tspan)
     ensemble_prob = get_ensemble_problem(normal_prob, strategy)
-    normal_sol = solve_custom_ensemble(ensemble_prob; dt = dt)
+    normal_sol = DifferentialEquations.solve(ensemble_prob, EM(); dt = dt, trajectories=strategy.trajectories)
+    return MonteCarloSol(normal_sol, nothing)
+end
 
-    if !antithetic
-        return normal_sol
-    end
+function simulate_paths(
+    method::M,
+    market_inputs::I,
+    T,
+    ::Antithetic
+) where {M<:MonteCarlo, I<:AbstractMarketInputs}
 
-    # Step 2: simulate antithetic paths using same seeds, flipped sigma
-    antithetic_ensemble_prob =
-        get_antithetic_ensemble_problem(dynamics, strategy, normal_sol, market_inputs)
-    antithetic_sol = solve_custom_ensemble(antithetic_ensemble_prob; dt = dt)
+    strategy = method.strategy
+    dynamics = method.dynamics
+    tspan = (0.0, T)
+    dt = T / strategy.steps
+    normal_prob = sde_problem(dynamics, strategy, market_inputs, tspan)
+    ensemble_prob = get_ensemble_problem(normal_prob, strategy)
+    normal_sol = DifferentialEquations.solve(ensemble_prob, EM(); dt = dt, trajectories=strategy.trajectories, save_noise=true)
+    
+    antithetic_prob = get_antithetic_ensemble_problem(normal_prob,dynamics, strategy, normal_sol, market_inputs, tspan)
+    antithetic_sol = DifferentialEquations.solve(antithetic_prob, EM(); dt = dt, trajectories=strategy.trajectories)
+    return MonteCarloSol(normal_sol, antithetic_sol)
+end
 
-    # Step 3: combine both solutions
-    combined_paths = vcat(normal_sol.solutions, antithetic_sol.solutions)
-
-    # Create new EnsembleSolution with merged paths
-    return CustomEnsembleSolution(combined_paths, normal_sol.seeds)
+struct MonteCarloSol{S}
+    solution::EnsembleSolution
+    antithetic_sol::S
 end
 
 function solve(
-    prob::PricingProblem{VanillaOption{TS,TE,European,C,Spot},I},
-    method::M,
-) where {TS,TE,C,I<:AbstractMarketInputs, M<:MonteCarlo}
+    prob::PricingProblem{VanillaOption{TS, TE, European, C, Spot}, I},
+    method::MonteCarlo{D, S},
+) where {TS, TE, C, I<:AbstractMarketInputs, D<:PriceDynamics, S<:SimulationStrategy}
     T = yearfrac(prob.market_inputs.referenceDate, prob.payoff.expiry)
     strategy = method.strategy
     dynamics = method.dynamics
 
-    ens = simulate_paths(method, prob.market_inputs, T)
-    paths = ens.solutions
+    ens = simulate_paths(method, prob.market_inputs, T, strategy.variance_reduction)  # returns EnsembleSolution
+    # Assume state is 1D and we extract final value from each trajectory
+    
+    payoffs = reduce_payoffs(ens, prob.payoff, strategy.variance_reduction, dynamics, strategy)
+    discount = df(prob.market_inputs.rate, prob.payoff.expiry)
+    price = discount * mean(payoffs)
 
-    is_antithetic = get(strategy.kwargs, :antithetic, false)
-
-    if is_antithetic
-        N = length(paths) ÷ 2
-        terminal_1 = [get_terminal_value(p, dynamics, strategy) for p in paths[1:N]]
-        terminal_2 = [get_terminal_value(p, dynamics, strategy) for p in paths[N+1:end]]
-        payoffs = [
-            0.5 * (prob.payoff(x) + prob.payoff(y)) for
-            (x, y) in zip(terminal_1, terminal_2)
-        ]
-    else
-        terminal_prices = [get_terminal_value(p, dynamics, strategy) for p in paths]
-        payoffs = prob.payoff.(terminal_prices)
-    end
-
-    price = df(prob.market_inputs.rate, prob.payoff.expiry) * mean(payoffs)
     return MonteCarloSolution(price, ens)
 end
+
+function reduce_payoffs(
+    result::MonteCarloSol{Nothing},
+    payoff::F,
+    ::NoVarianceReduction,
+    dynamics::PriceDynamics,
+    strategy::SimulationStrategy,
+) where {F}
+    paths = result.solution.u
+    return [payoff(get_terminal_value(p, dynamics, strategy)) for p in paths]
+end
+
+function reduce_payoffs(
+    result::MonteCarloSol{<:EnsembleSolution},
+    payoff::F,
+    ::Antithetic,
+    dynamics::PriceDynamics,
+    strategy::SimulationStrategy,
+) where {F}
+    paths₁ = result.solution.u
+    paths₂ = result.antithetic_sol.u
+    return [
+        (
+            payoff(get_terminal_value(p1, dynamics, strategy)) +
+            payoff(get_terminal_value(p2, dynamics, strategy))
+        )
+        for (p1, p2) in zip(paths₁, paths₂)
+    ]
+end
+
+
+

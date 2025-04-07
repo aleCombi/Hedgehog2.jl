@@ -69,9 +69,9 @@ Market data inputs for the Heston stochastic volatility model.
 
 Used for pricing under the Heston model and simulation of stochastic volatility paths.
 """
-struct HestonInputs <: AbstractMarketInputs
+struct HestonInputs{C <: AbstractRateCurve} <: AbstractMarketInputs
     referenceDate::Real
-    rate::RateCurve
+    rate::C
     spot::Any
     V0::Any
     κ::Any
@@ -80,7 +80,7 @@ struct HestonInputs <: AbstractMarketInputs
     ρ::Any
 end
 
-HestonInputs(reference_date::TimeType, rate::RateCurve, spot, V0, κ, θ, σ, ρ) =
+HestonInputs(reference_date::TimeType, rate::C, spot, V0, κ, θ, σ, ρ) where C <: AbstractRateCurve =
     HestonInputs(to_ticks(reference_date), rate, spot, V0, κ, θ, σ, ρ)
 
 HestonInputs(reference_date::TimeType, rate::Real, spot, V0, κ, θ, σ, ρ) = HestonInputs(
