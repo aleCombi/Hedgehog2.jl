@@ -11,51 +11,31 @@ struct Antithetic <: VarianceReductionStrategy end
 
 # ------------------ Simulation Strategies ------------------
 
+struct SimulationConfig{I, S, V<:VarianceReductionStrategy}
+    trajectories::I
+    steps::S
+    variance_reduction::V
+    seeds::Vector{I}
+end
+
+
 abstract type SimulationStrategy end
 
-struct HestonBroadieKaya{I <: Integer, S <: Integer, V <: VarianceReductionStrategy} <: SimulationStrategy
-    trajectories::I
-    steps::S
-    variance_reduction::V
-    seeds::Vector{I}
-end
+struct EulerMaruyama <: SimulationStrategy end
+struct HestonBroadieKaya <: SimulationStrategy end
+struct BlackScholesExact <: SimulationStrategy end
 
-struct EulerMaruyama{I <: Integer, S <: Integer, V <: VarianceReductionStrategy} <: SimulationStrategy
-    trajectories::I
-    steps::S
-    variance_reduction::V
-    seeds::Vector{I}
-end
-
-struct BlackScholesExact{I <: Integer, S <: Integer, V <: VarianceReductionStrategy} <: SimulationStrategy
-    trajectories::I
-    steps::S
-    variance_reduction::V
-    seeds::Vector{I}
-end
-
-HestonBroadieKaya(trajectories; steps = 1, seeds = nothing, variance_reduction=Antithetic()               # just antithetic
+SimulationConfig(trajectories; steps = 1, seeds = nothing, variance_reduction=Antithetic()               # just antithetic
 ) = begin
     seeds === nothing && (seeds = Base.rand(1_000_000_000:2_000_000_000, trajectories))
-    HestonBroadieKaya(trajectories, steps, variance_reduction, seeds)
-end
-EulerMaruyama(trajectories; steps = 1, seeds = nothing, variance_reduction=Antithetic()               # just antithetic
-) = begin
-    seeds === nothing && (seeds = Base.rand(1_000_000_000:2_000_000_000, trajectories))
-    EulerMaruyama(trajectories, steps, variance_reduction, seeds)
-end
-
-BlackScholesExact(trajectories; steps = 1, seeds = nothing, variance_reduction=Antithetic()               # just antithetic
-) = begin
-    seeds === nothing && (seeds = Base.rand(1_000_000_000:2_000_000_000, trajectories))
-    BlackScholesExact(trajectories, steps, variance_reduction, seeds)
+    SimulationConfig(trajectories, steps, variance_reduction, seeds)
 end
 
 # ------------------ SDE Problem Builders ------------------
 
 function sde_problem(
     ::LognormalDynamics,
-    s::BlackScholesExact,
+    ::BlackScholesExact,
     market::BlackScholesInputs,
     tspan,
 )
@@ -87,6 +67,7 @@ function get_antithetic_ensemble_problem(
     problem,
     ::PriceDynamics,
     ::EulerMaruyama,
+    config::SimulationConfig,
     normal_sol::EnsembleSolution,
     market_inputs,
     tspan
@@ -102,7 +83,8 @@ end
 function get_antithetic_ensemble_problem(
     problem,
     ::LognormalDynamics,
-    s::BlackScholesExact,
+    ::BlackScholesExact,
+    config::SimulationConfig,
     normal_sol::EnsembleSolution,
     market::BlackScholesInputs,
     tspan
@@ -151,8 +133,8 @@ end
 
 # ------------------ Ensemble Simulation Wrapper ------------------
 
-function get_ensemble_problem(prob, strategy)
-    seeds = strategy.seeds
+function get_ensemble_problem(prob, strategy_config::SimulationConfig)
+    seeds = strategy_config.seeds
     let seeds = seeds
         prob_func = (prob, i, repeat) -> remake(prob; seed=seeds[i])
         EnsembleProblem(prob, prob_func=prob_func)
@@ -168,9 +150,10 @@ get_terminal_value(path, ::PriceDynamics, ::SimulationStrategy) =
 
 # ------------------ Monte Carlo Method ------------------
 
-struct MonteCarlo{P<:PriceDynamics,S<:SimulationStrategy} <: AbstractPricingMethod
+struct MonteCarlo{P<:PriceDynamics,S<:SimulationStrategy, C<:SimulationConfig} <: AbstractPricingMethod
     dynamics::P
     strategy::S
+    config::C
 end
 
 function simulate_paths(
@@ -181,11 +164,12 @@ function simulate_paths(
 ) where {M<:MonteCarlo, I<:AbstractMarketInputs}
     strategy = method.strategy
     dynamics = method.dynamics
+    config = method.config
     tspan = (0.0, T)
-    dt = T / strategy.steps
+    dt = T / config.steps
     normal_prob = sde_problem(dynamics, strategy, market_inputs, tspan)
-    ensemble_prob = get_ensemble_problem(normal_prob, strategy)
-    normal_sol = DifferentialEquations.solve(ensemble_prob, EM(); dt = dt, trajectories=strategy.trajectories)
+    ensemble_prob = get_ensemble_problem(normal_prob, config)
+    normal_sol = DifferentialEquations.solve(ensemble_prob, EM(); dt = dt, trajectories=config.trajectories)
     return MonteCarloSol(normal_sol, nothing)
 end
 
@@ -198,14 +182,15 @@ function simulate_paths(
 
     strategy = method.strategy
     dynamics = method.dynamics
+    config = method.config
     tspan = (0.0, T)
-    dt = T / strategy.steps
+    dt = T / config.steps
     normal_prob = sde_problem(dynamics, strategy, market_inputs, tspan)
-    ensemble_prob = get_ensemble_problem(normal_prob, strategy)
-    normal_sol = DifferentialEquations.solve(ensemble_prob, EM(); dt = dt, trajectories=strategy.trajectories, save_noise=true)
+    ensemble_prob = get_ensemble_problem(normal_prob, config)
+    normal_sol = DifferentialEquations.solve(ensemble_prob, EM(); dt = dt, trajectories=config.trajectories, save_noise=true)
     
-    antithetic_prob = get_antithetic_ensemble_problem(normal_prob,dynamics, strategy, normal_sol, market_inputs, tspan)
-    antithetic_sol = DifferentialEquations.solve(antithetic_prob, EM(); dt = dt, trajectories=strategy.trajectories)
+    antithetic_prob = get_antithetic_ensemble_problem(normal_prob,dynamics, strategy, config, normal_sol, market_inputs, tspan)
+    antithetic_sol = DifferentialEquations.solve(antithetic_prob, EM(); dt = dt, trajectories=config.trajectories)
     return MonteCarloSol(normal_sol, antithetic_sol)
 end
 
@@ -221,11 +206,12 @@ function solve(
     T = yearfrac(prob.market_inputs.referenceDate, prob.payoff.expiry)
     strategy = method.strategy
     dynamics = method.dynamics
+    config = method.config
 
-    ens = simulate_paths(method, prob.market_inputs, T, strategy.variance_reduction)  # returns EnsembleSolution
+    ens = simulate_paths(method, prob.market_inputs, T, config.variance_reduction)  # returns EnsembleSolution
     # Assume state is 1D and we extract final value from each trajectory
     
-    payoffs = reduce_payoffs(ens, prob.payoff, strategy.variance_reduction, dynamics, strategy)
+    payoffs = reduce_payoffs(ens, prob.payoff, config.variance_reduction, dynamics, strategy)
     discount = df(prob.market_inputs.rate, prob.payoff.expiry)
     price = discount * mean(payoffs)
 

@@ -34,11 +34,11 @@ analytic_sol = solve(pricing_problem, method_heston).price
 
 dynamics = HestonDynamics()
 trajectories = 10000
-strategy = EulerMaruyama(trajectories; steps=100, variance_reduction=Hedgehog2.Antithetic())
-strategy_exact = HestonBroadieKaya(trajectories; steps=1, variance_reduction=Hedgehog2.NoVarianceReduction())
+config = Hedgehog2.SimulationConfig(trajectories; steps=100, variance_reduction=Hedgehog2.Antithetic())
+config_exact = Hedgehog2.SimulationConfig(trajectories; steps=1, variance_reduction=Hedgehog2.NoVarianceReduction())
 
-montecarlo_method = MonteCarlo(dynamics, strategy)
-montecarlo_method_exact = MonteCarlo(dynamics, strategy_exact)
+montecarlo_method = MonteCarlo(dynamics, EulerMaruyama(), config)
+montecarlo_method_exact = MonteCarlo(dynamics, HestonBroadieKaya(), config_exact)
 
 solution = Hedgehog2.solve(pricing_problem, montecarlo_method).price
 solution_exact = Hedgehog2.solve(pricing_problem, montecarlo_method_exact).price
