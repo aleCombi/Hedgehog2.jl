@@ -111,12 +111,12 @@ function sde_problem(
     tspan,
 )
     @assert market.rate isa FlatRateCurve "LognormalDynamics requires flat rate curve"
-
+   
     r = zero_rate(market.rate, 0.0)
     σ = get_vol(market.sigma, nothing, nothing)
     S₀ = market.spot
     t₀ = zero(S₀)
-
+    
     noise = GeometricBrownianMotionProcess(r, σ, t₀, S₀)
     noise_problem = NoiseProblem(noise, tspan)
     return noise_problem
@@ -125,8 +125,14 @@ end
 function sde_problem(::LognormalDynamics, ::EulerMaruyama, m::BlackScholesInputs, tspan)
     rate = zero_rate(m.rate, 0.0)
     σ = get_vol(m.sigma, nothing, nothing)
-    return LogGBMProblem(rate, σ, log(m.spot), tspan)
+    S₀ = m.spot
+
+    # Promote all to the same type to support AD (e.g., Dual numbers)
+    rate, σ, S₀ = promote(rate, σ, S₀)
+
+    return LogGBMProblem(rate, σ, log(S₀), tspan)
 end
+
 
 function sde_problem(::HestonDynamics, ::EulerMaruyama, m::HestonInputs, tspan)
     rate = zero_rate(m.rate, 0.0)
@@ -184,7 +190,7 @@ function get_antithetic_ensemble_problem(
     noise = GeometricBrownianMotionProcess(r, σ, t₀, S₀)
 
     noise_problem = NoiseProblem(noise, tspan)
-    return get_ensemble_problem(noise_problem, s)
+    return get_ensemble_problem(noise_problem, config)
 end
 
 # ------------------ Marginal Laws (optional) ------------------
@@ -249,7 +255,6 @@ function simulate_paths(
     T = yearfrac(prob.market_inputs.referenceDate, prob.payoff.expiry)
     tspan = (0.0, T)
     dt = T / config.steps
-
     normal_prob = sde_problem(dynamics, strategy, prob.market_inputs, tspan)
     ensemble_prob = get_ensemble_problem(normal_prob, config)
     normal_sol = DifferentialEquations.solve(ensemble_prob, EM(); dt = dt, trajectories=config.trajectories)

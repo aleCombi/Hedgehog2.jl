@@ -37,4 +37,9 @@ ad_method = ForwardAD()
 spot_lens = @optic _.market_inputs.spot
 delta_prob = Hedgehog2.GreekProblem(euro_pricing_prob, spot_lens)
 solve(delta_prob, ad_method, BlackScholesAnalytic())
-solve(delta_prob, ad_method, montecarlo_method)
+@btime solve(delta_prob, fd_method, montecarlo_method)
+
+rate_greek_prob = GreekProblem(euro_pricing_prob, ZeroRateSpineLens(1))
+solve(rate_greek_prob, ad_method, montecarlo_method)
+@btime solve($rate_greek_prob, $ad_method, $montecarlo_method)
+@btime solve($rate_greek_prob, $fd_method, $montecarlo_method)
