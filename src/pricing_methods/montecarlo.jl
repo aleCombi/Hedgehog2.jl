@@ -189,7 +189,7 @@ function simulate_paths(
     ensemble_prob = get_ensemble_problem(normal_prob, config)
     normal_sol = DifferentialEquations.solve(ensemble_prob, EM(); dt = dt, trajectories=config.trajectories, save_noise=true)
     
-    antithetic_prob = get_antithetic_ensemble_problem(normal_prob,dynamics, strategy, config, normal_sol, market_inputs, tspan)
+    antithetic_prob = get_antithetic_ensemble_problem(normal_prob, dynamics, strategy, config, normal_sol, market_inputs, tspan)
     antithetic_sol = DifferentialEquations.solve(antithetic_prob, EM(); dt = dt, trajectories=config.trajectories)
     return MonteCarloSol(normal_sol, antithetic_sol)
 end
@@ -208,9 +208,7 @@ function solve(
     dynamics = method.dynamics
     config = method.config
 
-    ens = simulate_paths(method, prob.market_inputs, T, config.variance_reduction)  # returns EnsembleSolution
-    # Assume state is 1D and we extract final value from each trajectory
-    
+    ens = simulate_paths(method, prob.market_inputs, T, config.variance_reduction) 
     payoffs = reduce_payoffs(ens, prob.payoff, config.variance_reduction, dynamics, strategy)
     discount = df(prob.market_inputs.rate, prob.payoff.expiry)
     price = discount * mean(payoffs)
