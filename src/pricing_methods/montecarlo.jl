@@ -51,16 +51,30 @@ function sde_problem(
     return noise_problem
 end
 
+function sde_problem(::LognormalDynamics, ::EulerMaruyama, m::BlackScholesInputs, tspan)
+    rate = zero_rate(m.rate, 0.0)
+    σ = get_vol(m.sigma, nothing, nothing)
+    return LogGBMProblem(rate, σ, log(m.spot), tspan)
+end
 
 function sde_problem(::HestonDynamics, ::EulerMaruyama, m::HestonInputs, tspan)
     rate = zero_rate(m.rate, 0.0)
     return HestonProblem(rate, m.κ, m.θ, m.σ, m.ρ, [m.spot, m.V0], tspan)
 end
 
-function sde_problem(::LognormalDynamics, ::EulerMaruyama, m::BlackScholesInputs, tspan)
+function sde_problem(::HestonDynamics, strategy::HestonBroadieKaya, m::HestonInputs, tspan)
     rate = zero_rate(m.rate, 0.0)
-    σ = get_vol(m.sigma, nothing, nothing)
-    return LogGBMProblem(rate, σ, log(m.spot), tspan)
+    noise = HestonNoise(
+        rate,
+        m.κ,
+        m.θ,
+        m.σ,
+        m.ρ,
+        0.0,
+        [log(m.spot), m.V0],
+        Z0 = nothing
+    )
+    return NoiseProblem(noise, tspan)
 end
 
 function get_antithetic_ensemble_problem(
@@ -100,21 +114,6 @@ function get_antithetic_ensemble_problem(
 
     noise_problem = NoiseProblem(noise, tspan)
     return get_ensemble_problem(noise_problem, s)
-end
-
-function sde_problem(::HestonDynamics, strategy::HestonBroadieKaya, m::HestonInputs, tspan)
-    rate = zero_rate(m.rate, 0.0)
-    noise = HestonNoise(
-        rate,
-        m.κ,
-        m.θ,
-        m.σ,
-        m.ρ,
-        0.0,
-        [log(m.spot), m.V0],
-        Z0 = nothing
-    )
-    return NoiseProblem(noise, tspan)
 end
 
 # ------------------ Marginal Laws (optional) ------------------
