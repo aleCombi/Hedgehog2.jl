@@ -199,7 +199,6 @@ function solve(
     prob::PricingProblem{VanillaOption{TS, TE, European, C, Spot}, I},
     method::MonteCarlo{D, S},
 ) where {TS, TE, C, I<:AbstractMarketInputs, D<:PriceDynamics, S<:SimulationStrategy}
-    T = yearfrac(prob.market_inputs.referenceDate, prob.payoff.expiry)
     strategy = method.strategy
     dynamics = method.dynamics
     config = method.config
@@ -236,7 +235,3 @@ function reduce_payoffs(
         for (p1, p2) in zip(paths₁, paths₂)
     ]
 end
-
-
-
-

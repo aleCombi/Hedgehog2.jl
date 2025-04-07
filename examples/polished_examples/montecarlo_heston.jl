@@ -33,16 +33,17 @@ analytic_sol = solve(pricing_problem, method_heston).price
 
 
 dynamics = HestonDynamics()
-trajectories = 10000
-config = Hedgehog2.SimulationConfig(trajectories; steps=100, variance_reduction=Hedgehog2.Antithetic())
+trajectories = 100
+config = Hedgehog2.SimulationConfig(trajectories; steps=100, variance_reduction=Hedgehog2.NoVarianceReduction())
 config_exact = Hedgehog2.SimulationConfig(trajectories; steps=1, variance_reduction=Hedgehog2.NoVarianceReduction())
 
 montecarlo_method = MonteCarlo(dynamics, EulerMaruyama(), config)
 montecarlo_method_exact = MonteCarlo(dynamics, HestonBroadieKaya(), config_exact)
 
-solution = Hedgehog2.solve(pricing_problem, montecarlo_method).price
+solution = Hedgehog2.solve(pricing_problem, montecarlo_method)
 solution_exact = Hedgehog2.solve(pricing_problem, montecarlo_method_exact).price
-
+sole = Hedgehog2.simulate_paths(pricing_problem, montecarlo_method, Hedgehog2.NoVarianceReduction())
+@code_warntype solution.price
 @show solution
 @show analytic_sol
 @show solution_exact

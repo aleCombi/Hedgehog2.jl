@@ -1,7 +1,7 @@
 
 abstract type AbstractPricingSolution end
 
-struct MonteCarloSolution{S, T<:Number} <: AbstractPricingSolution
+struct MonteCarloSolution{T<:Number, S} <: AbstractPricingSolution
     price::T
     ensemble::S
 end

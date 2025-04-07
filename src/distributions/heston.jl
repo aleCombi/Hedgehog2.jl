@@ -17,7 +17,7 @@ function HestonProblem(μ, κ, Θ, σ, ρ, u0, tspan; seed = UInt64(0), kwargs..
 
     noise = CorrelatedWienerProcess(Γ, tspan[1], zeros(2))
 
-    sde_f = SDEFunction(f, g)
+    sde_f = SDEFunction{false}(f, g)
     return SDEProblem(
         sde_f,
         u0,
