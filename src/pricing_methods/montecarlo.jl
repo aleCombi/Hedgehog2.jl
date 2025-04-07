@@ -1,16 +1,60 @@
 # ------------------ Price Dynamics ------------------
 
+"""
+    abstract type PriceDynamics
+
+Abstract supertype for all models describing the stochastic dynamics of asset prices.
+"""
 abstract type PriceDynamics end
+
+"""
+    struct LognormalDynamics <: PriceDynamics
+
+Price process follows geometric Brownian motion (Black-Scholes model).
+"""
 struct LognormalDynamics <: PriceDynamics end
+
+"""
+    struct HestonDynamics <: PriceDynamics
+
+Stochastic volatility model where the variance follows a CIR process.
+"""
 struct HestonDynamics <: PriceDynamics end
 
+"""
+    abstract type VarianceReductionStrategy
+
+Abstract supertype for variance reduction strategies used in Monte Carlo simulations.
+"""
 abstract type VarianceReductionStrategy end
 
+"""
+    struct NoVarianceReduction <: VarianceReductionStrategy
+
+Standard Monte Carlo simulation without variance reduction.
+"""
 struct NoVarianceReduction <: VarianceReductionStrategy end
+
+"""
+    struct Antithetic <: VarianceReductionStrategy
+
+Antithetic variates method for variance reduction by simulating mirrored noise paths.
+"""
 struct Antithetic <: VarianceReductionStrategy end
 
 # ------------------ Simulation Strategies ------------------
 
+"""
+    struct SimulationConfig{I, S, V<:VarianceReductionStrategy}
+
+Configuration for Monte Carlo simulations.
+
+# Fields
+- `trajectories`: Number of Monte Carlo paths.
+- `steps`: Number of time steps.
+- `variance_reduction`: Strategy to reduce variance (e.g., `Antithetic`).
+- `seeds`: RNG seeds used to control simulations.
+"""
 struct SimulationConfig{I, S, V<:VarianceReductionStrategy}
     trajectories::I
     steps::S
@@ -18,20 +62,47 @@ struct SimulationConfig{I, S, V<:VarianceReductionStrategy}
     seeds::Vector{I}
 end
 
+"""
+    SimulationConfig(trajectories; steps=1, seeds=nothing, variance_reduction=Antithetic())
 
-abstract type SimulationStrategy end
-
-struct EulerMaruyama <: SimulationStrategy end
-struct HestonBroadieKaya <: SimulationStrategy end
-struct BlackScholesExact <: SimulationStrategy end
-
-SimulationConfig(trajectories; steps = 1, seeds = nothing, variance_reduction=Antithetic()               # just antithetic
-) = begin
+Constructor for `SimulationConfig`, generating random seeds if not provided.
+"""
+SimulationConfig(trajectories; steps = 1, seeds = nothing, variance_reduction=Antithetic()) = begin
     seeds === nothing && (seeds = Base.rand(1_000_000_000:2_000_000_000, trajectories))
     SimulationConfig(trajectories, steps, variance_reduction, seeds)
 end
 
+"""
+    abstract type SimulationStrategy
+
+Abstract supertype for numerical strategies to simulate SDEs.
+"""
+abstract type SimulationStrategy end
+
+"""
+    struct EulerMaruyama <: SimulationStrategy
+
+Standard Euler-Maruyama discretization for SDEs.
+"""
+struct EulerMaruyama <: SimulationStrategy end
+
+"""
+    struct HestonBroadieKaya <: SimulationStrategy
+
+Exact sampling scheme for the Heston model using Broadie-Kaya method.
+"""
+struct HestonBroadieKaya <: SimulationStrategy end
+
+"""
+    struct BlackScholesExact <: SimulationStrategy
+
+Exact solution for geometric Brownian motion.
+"""
+struct BlackScholesExact <: SimulationStrategy end
+
 # ------------------ SDE Problem Builders ------------------
+
+# (docstrings omitted here but can be added similarly on request)
 
 function sde_problem(
     ::LognormalDynamics,
@@ -44,7 +115,7 @@ function sde_problem(
     r = zero_rate(market.rate, 0.0)
     σ = get_vol(market.sigma, nothing, nothing)
     S₀ = market.spot
-    t₀ = zero(S₀)  # ensure same type as S₀
+    t₀ = zero(S₀)
 
     noise = GeometricBrownianMotionProcess(r, σ, t₀, S₀)
     noise_problem = NoiseProblem(noise, tspan)
@@ -108,7 +179,7 @@ function get_antithetic_ensemble_problem(
     r = zero_rate(market.rate, 0.0)
     σ = -get_vol(market.sigma, nothing, nothing)
     S₀ = market.spot
-    t₀ = zero(S₀)  # ensure same type as S₀
+    t₀ = zero(S₀)
 
     noise = GeometricBrownianMotionProcess(r, σ, t₀, S₀)
 
@@ -149,11 +220,23 @@ get_terminal_value(path, ::PriceDynamics, ::SimulationStrategy) =
 
 # ------------------ Monte Carlo Method ------------------
 
+"""
+    struct MonteCarlo{P<:PriceDynamics, S<:SimulationStrategy, C<:SimulationConfig}
+
+Monte Carlo pricing method combining price dynamics, simulation strategy, and configuration.
+
+# Fields
+- `dynamics`: The model for asset price dynamics (e.g., `HestonDynamics`).
+- `strategy`: Numerical discretization method (e.g., `EulerMaruyama`).
+- `config`: Simulation parameters (number of paths, steps, variance reduction, etc.).
+"""
 struct MonteCarlo{P<:PriceDynamics,S<:SimulationStrategy, C<:SimulationConfig} <: AbstractPricingMethod
     dynamics::P
     strategy::S
     config::C
 end
+
+# (docstrings for simulate_paths and solve can be added next if needed)
 
 function simulate_paths(
     prob::PricingProblem,
@@ -193,7 +276,6 @@ function simulate_paths(
     antithetic_sol = DifferentialEquations.solve(antithetic_prob, EM(); dt = dt, trajectories=config.trajectories)
     return (normal_sol, antithetic_sol)
 end
-
 
 function reduce_payoffs(
     result::EnsembleSolution,
