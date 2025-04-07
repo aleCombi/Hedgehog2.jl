@@ -171,7 +171,7 @@ function simulate_paths(
     normal_prob = sde_problem(dynamics, strategy, prob.market_inputs, tspan)
     ensemble_prob = get_ensemble_problem(normal_prob, config)
     normal_sol = DifferentialEquations.solve(ensemble_prob, EM(); dt = dt, trajectories=config.trajectories)
-    return MonteCarloSol(normal_sol, nothing)
+    return normal_sol
 end
 
 function simulate_paths(
@@ -192,13 +192,7 @@ function simulate_paths(
 
     antithetic_prob = get_antithetic_ensemble_problem(normal_prob, dynamics, strategy, config, normal_sol, prob.market_inputs, tspan)
     antithetic_sol = DifferentialEquations.solve(antithetic_prob, EM(); dt = dt, trajectories=config.trajectories)
-    return MonteCarloSol(normal_sol, antithetic_sol)
-end
-
-
-struct MonteCarloSol{S}
-    solution::EnsembleSolution
-    antithetic_sol::S
+    return (normal_sol, antithetic_sol)
 end
 
 function solve(
@@ -219,33 +213,30 @@ function solve(
 end
 
 function reduce_payoffs(
-    result::MonteCarloSol{Nothing},
+    result::EnsembleSolution,
     payoff::F,
     ::NoVarianceReduction,
     dynamics::PriceDynamics,
     strategy::SimulationStrategy,
 ) where {F}
-    paths = result.solution.u
-    return [payoff(get_terminal_value(p, dynamics, strategy)) for p in paths]
+    return [payoff(get_terminal_value(p, dynamics, strategy)) for p in result.u]
 end
 
 function reduce_payoffs(
-    result::MonteCarloSol{<:EnsembleSolution},
+    result::Tuple{EnsembleSolution, EnsembleSolution},
     payoff::F,
     ::Antithetic,
     dynamics::PriceDynamics,
     strategy::SimulationStrategy,
 ) where {F}
-    paths₁ = result.solution.u
-    paths₂ = result.antithetic_sol.u
+    paths₁, paths₂ = result[1].u, result[2].u
     return [
-        (
-            payoff(get_terminal_value(p1, dynamics, strategy)) +
-            payoff(get_terminal_value(p2, dynamics, strategy))
-        )
+        payoff(get_terminal_value(p1, dynamics, strategy)) +
+        payoff(get_terminal_value(p2, dynamics, strategy))
         for (p1, p2) in zip(paths₁, paths₂)
     ]
 end
+
 
 
 
