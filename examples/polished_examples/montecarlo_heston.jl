@@ -31,7 +31,6 @@ method_heston = Hedgehog2.CarrMadan(α, boundary, HestonDynamics())
 pricing_problem = PricingProblem(payoff, market_inputs)
 analytic_sol = solve(pricing_problem, method_heston).price
 
-
 dynamics = HestonDynamics()
 trajectories = 100
 config = Hedgehog2.SimulationConfig(trajectories; steps=100, variance_reduction=Hedgehog2.NoVarianceReduction())
