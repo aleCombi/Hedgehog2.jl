@@ -194,21 +194,6 @@ function simulate_paths(
     return (normal_sol, antithetic_sol)
 end
 
-function solve(
-    prob::PricingProblem{VanillaOption{TS, TE, European, C, Spot}, I},
-    method::MonteCarlo{D, S},
-) where {TS, TE, C, I<:AbstractMarketInputs, D<:PriceDynamics, S<:SimulationStrategy}
-    strategy = method.strategy
-    dynamics = method.dynamics
-    config = method.config
-
-    ens = simulate_paths(prob, method, config.variance_reduction)
-    payoffs = reduce_payoffs(ens, prob.payoff, config.variance_reduction, dynamics, strategy)
-    discount = df(prob.market_inputs.rate, prob.payoff.expiry)
-    price = discount * mean(payoffs)
-
-    return MonteCarloSolution(price, ens)
-end
 
 function reduce_payoffs(
     result::EnsembleSolution,
@@ -233,4 +218,20 @@ function reduce_payoffs(
         payoff(get_terminal_value(p2, dynamics, strategy))
         for (p1, p2) in zip(paths₁, paths₂)
     ]
+end
+
+function solve(
+    prob::PricingProblem{VanillaOption{TS, TE, European, C, Spot}, I},
+    method::MonteCarlo{D, S},
+) where {TS, TE, C, I<:AbstractMarketInputs, D<:PriceDynamics, S<:SimulationStrategy}
+    strategy = method.strategy
+    dynamics = method.dynamics
+    config = method.config
+
+    ens = simulate_paths(prob, method, config.variance_reduction)
+    payoffs = reduce_payoffs(ens, prob.payoff, config.variance_reduction, dynamics, strategy)
+    discount = df(prob.market_inputs.rate, prob.payoff.expiry)
+    price = discount * mean(payoffs)
+
+    return MonteCarloSolution(price, ens)
 end
