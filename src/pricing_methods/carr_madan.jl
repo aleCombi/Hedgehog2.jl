@@ -12,11 +12,11 @@ of the characteristic function of the log-price under the risk-neutral measure.
 - `dynamics`: The model dynamics providing the terminal characteristic function.
 - `kwargs`: Additional keyword arguments passed to the integral solver.
 """
-struct CarrMadan <: AbstractPricingMethod
-    α::Any
-    bound::Any
-    dynamics::Any
-    kwargs::Any # integral keyword arguments
+struct CarrMadan{Tα, TBound, TDynamics, TKW} <: AbstractPricingMethod
+    α::Tα
+    bound::TBound
+    dynamics::TDynamics
+    kwargs::TKW  # usually NamedTuple or Dict
 end
 
 """
@@ -40,7 +40,7 @@ Constructs a `CarrMadan` method with optional integration settings for `quadgk`.
 - `kwargs...`: Additional keyword arguments for `quadgk`.
 """
 function CarrMadan(α, bound, dynamics; kwargs...)
-    return CarrMadan(α, bound, dynamics, Dict(kwargs...))
+    return CarrMadan(α, bound, dynamics, (; kwargs...))
 end
 
 function solve(
@@ -60,7 +60,7 @@ function solve(
     integrand(v, p) =
         damp * call_transform(r, prob.payoff.expiry, ϕ, v, method) * exp(-im * v * logK)
 
-    iprob = IntegralProblem(integrand, -method.bound, method.bound, nothing)
+    iprob = IntegralProblem{false}(integrand, -method.bound, method.bound, nothing)
     integral_result = Integrals.solve(iprob, Integrals.HCubatureJL(); method.kwargs...)
 
     call_price = real(integral_result.u)

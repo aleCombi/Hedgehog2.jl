@@ -172,7 +172,7 @@ end
 Evaluates the characteristic function at point `a`, unwrapping the angle using `θ_prev` to ensure continuity.
 Returns the characteristic function value and updated unwrapped angle.
 """
-function evaluate_chf(iter::HestonCFIterator, a::Real, θ_prev::Union{Nothing,Float64})
+function evaluate_chf(iter::HestonCFIterator, a::Real, θ_prev::Tθ) where {Tθ}
     κ, θ, σ, V0, T = iter.dist.κ, iter.dist.θ, iter.dist.σ, iter.dist.V0, iter.dist.T
     ν = iter.ν
     ζκ, ηκ, logIκ = iter.ζκ, iter.ηκ, iter.logIκ
@@ -187,7 +187,7 @@ function evaluate_chf(iter::HestonCFIterator, a::Real, θ_prev::Union{Nothing,Fl
     second_term = exp((V0 + VT) / σ^2 * (ηκ - ηγ))
 
     θ = angle(νγ)
-    θ_unwrapped = if θ_prev === nothing
+    θ_unwrapped = if isnan(θ_prev)
         θ
     else
         δ = θ - θ_prev

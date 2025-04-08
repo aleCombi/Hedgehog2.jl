@@ -20,8 +20,12 @@ method_analytic = BlackScholesAnalytic()
 method_carr_madan = CarrMadan(1.0, 16.0, LognormalDynamics())
 
 # -- Solve for prices
-sol_analytic = solve(prob, method_analytic)
-sol_carr = solve(prob, method_carr_madan)
+sol_analytic = Hedgehog2.solve(prob, method_analytic)
+sol_carr = Hedgehog2.solve(prob, method_carr_madan)
+
+@code_warntype Hedgehog2.solve(prob, method_carr_madan)
+@btime Hedgehog2.solve($prob, $method_analytic)
+@btime Hedgehog2.solve($prob, $method_carr_madan)
 
 println("Analytic price:   ", sol_analytic.price)
 println("Carr-Madan price: ", sol_carr.price)
@@ -29,18 +33,18 @@ println("Carr-Madan price: ", sol_carr.price)
 # --- Greeks via GreekProblem
 
 # Accessors
-spot_lens = @optic _.market.spot
-sigma_lens = @optic _.market.sigma
+spot_lens = @optic _.market_inputs.spot
+sigma_lens = @optic _.market_inputs.sigma
 
 # Methods
 fd = FiniteDifference(1e-3)
 ad = ForwardAD()
 
 println("\n--- Greeks (Analytic Method) ---")
-delta_fd = solve(GreekProblem(prob, spot_lens), fd, method_analytic).greek
-vega_fd = solve(GreekProblem(prob, sigma_lens), fd, method_analytic).greek
-delta_ad = solve(GreekProblem(prob, spot_lens), ad, method_analytic).greek
-vega_ad = solve(GreekProblem(prob, sigma_lens), ad, method_analytic).greek
+delta_fd = Hedgehog2.solve(GreekProblem(prob, spot_lens), fd, method_analytic).greek
+vega_fd = Hedgehog2.solve(GreekProblem(prob, sigma_lens), fd, method_analytic).greek
+delta_ad = Hedgehog2.solve(GreekProblem(prob, spot_lens), ad, method_analytic).greek
+vega_ad = Hedgehog2.solve(GreekProblem(prob, sigma_lens), ad, method_analytic).greek
 
 println("FD Delta (analytic): ", delta_fd)
 println("AD Delta (analytic): ", delta_ad)
@@ -48,10 +52,10 @@ println("FD Vega  (analytic): ", vega_fd)
 println("AD Vega  (analytic): ", vega_ad)
 
 println("\n--- Greeks (Carr-Madan Method) ---")
-delta_fd_cm = solve(GreekProblem(prob, spot_lens), fd, method_carr_madan).greek
-vega_fd_cm = solve(GreekProblem(prob, sigma_lens), fd, method_carr_madan).greek
-delta_ad_cm = solve(GreekProblem(prob, spot_lens), ad, method_carr_madan).greek
-vega_ad_cm = solve(GreekProblem(prob, sigma_lens), ad, method_carr_madan).greek
+delta_fd_cm = Hedgehog2.solve(GreekProblem(prob, spot_lens), fd, method_carr_madan).greek
+vega_fd_cm = Hedgehog2.solve(GreekProblem(prob, sigma_lens), fd, method_carr_madan).greek
+delta_ad_cm = Hedgehog2.solve(GreekProblem(prob, spot_lens), ad, method_carr_madan).greek
+vega_ad_cm = Hedgehog2.solve(GreekProblem(prob, sigma_lens), ad, method_carr_madan).greek
 
 println("FD Delta (Carr-Madan): ", delta_fd_cm)
 println("AD Delta (Carr-Madan): ", delta_ad_cm)

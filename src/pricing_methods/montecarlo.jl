@@ -228,8 +228,9 @@ Returns the marginal distribution of log-price under Black-Scholes dynamics.
 """
 function marginal_law(::LognormalDynamics, m::BlackScholesInputs, t)
     rate = zero_rate(m.rate, t)
+    σ = get_vol(m.sigma, nothing, nothing)
     α = yearfrac(m.rate.reference_date, t)
-    return Normal(log(m.spot) + (rate - m.sigma^2 / 2) * √α, m.sigma * √α)
+    return Normal(log(m.spot) + (rate - σ^2 / 2) * √α, σ * √α)
 end
 
 """

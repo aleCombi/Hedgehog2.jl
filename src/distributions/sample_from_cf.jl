@@ -31,7 +31,7 @@ end
 Estimates the mean and variance from the characteristic function `ϕ_iter` using central differences.
 """
 function moments_from_cf(ϕ_iter::HestonCFIterator; h = 1e-2)
-    θ_prev = nothing
+    θ_prev = NaN
 
     ϕp, θ_prev = evaluate_chf(ϕ_iter, h, θ_prev)
     ϕ0, θ_prev = evaluate_chf(ϕ_iter, 0.0, θ_prev)
@@ -62,7 +62,7 @@ function cdf_from_cf(ϕ_iter::HestonCFIterator, x, h; cf_tol = 1e-3, kwargs...)
 
     result = h * x / π
     prefactor = 2 / π
-    θ_prev = nothing
+    θ_prev = NaN
 
     for j = 1:10^9
         a = h * j
