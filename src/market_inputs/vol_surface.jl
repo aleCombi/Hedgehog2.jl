@@ -230,7 +230,6 @@ function RectVolSurface(
 
         sol = solve(prob, RootFinderAlgo(root_finding_algo); kwargs...)
         vols[i, j] = sol.u
-        println(sol.u)
     end
 
     times = [yearfrac(reference_date, reference_date + τ) for τ in tenors]

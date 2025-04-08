@@ -97,15 +97,15 @@ Fields:
 - `κ`, `θ`, `σ`, `ρ`: mean reversion, long-term variance, vol-of-vol, and correlation
 - `r`, `T`: risk-free rate and maturity
 """
-struct HestonDistribution <: ContinuousMultivariateDistribution
-    S0::Any
-    V0::Any
-    κ::Any
-    θ::Any
-    σ::Any
-    ρ::Any
-    r::Any
-    T::Any
+struct HestonDistribution{TS0,TV0,Tκ,Tθ,Tσ,Tρ,Tr,T} <: ContinuousMultivariateDistribution
+    S0::TS0
+    V0::TV0
+    κ::Tκ
+    θ::Tθ
+    σ::Tσ
+    ρ::Tρ
+    r::Tr
+    T::T
 end
 
 """
@@ -138,14 +138,15 @@ end
 
 Precomputes constants for efficient evaluation of the characteristic function of ∫₀ᵗ V_s ds.
 """
-struct HestonCFIterator
-    VT::Float64
-    dist::HestonDistribution
-    logIκ::ComplexF64
-    ζκ::ComplexF64
-    ηκ::ComplexF64
-    ν::Float64
+struct HestonCFIterator{TVT, TDist<:HestonDistribution, TLogIκ, Tζκ, Tηκ, Tν}
+    VT::TVT
+    dist::TDist
+    logIκ::TLogIκ
+    ζκ::Tζκ
+    ηκ::Tηκ
+    ν::Tν
 end
+
 
 """
     HestonCFIterator(VT, dist::HestonDistribution)
@@ -193,7 +194,6 @@ function evaluate_chf(iter::HestonCFIterator, a::Real, θ_prev::Union{Nothing,Fl
         δ -= 2π * round(δ / (2π))
         θ_prev + δ
     end
-
     νγ_unwrapped = abs(νγ) * cis(θ_unwrapped)
     logIγ = log(besseli(ν, νγ_unwrapped)) + im * ν * (θ_unwrapped - θ)
     bessel_ratio = exp(logIγ - logIκ)
@@ -236,7 +236,7 @@ Useful for testing and diagnostics.
 """
 function rand(rng::AbstractRNG, d::HestonDistribution; antithetic = false, kwargs...)
     d1 = HestonDistribution(d.S0, d.V0, d.κ, d.θ, d.σ, d.ρ, d.r, d.T)
-    # println(d)
+
     # Step 1: Sample V_T
     V_T = sample_V_T(rng, d1)
 

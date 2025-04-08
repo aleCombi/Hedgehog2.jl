@@ -55,7 +55,7 @@ end
 Approximates the cumulative distribution function at `x` by numerically integrating the characteristic function.
 Implements the method of Broadie-Kaya with truncation tolerance `cf_tol`.
 """
-function cdf_from_cf(ϕ_iter::HestonCFIterator, x, h; cf_tol = 1e-4, kwargs...)
+function cdf_from_cf(ϕ_iter::HestonCFIterator, x, h; cf_tol = 1e-3, kwargs...)
     if x < 0
         return 0.0
     end
