@@ -101,21 +101,16 @@ function solve(
     method::CoxRossRubinsteinMethod,
 ) where {TS,TE,E,C,U,M}
 
-    if !is_flat(prob.market_inputs.rate)
-        throw(
-            ArgumentError(
-                "For now Cox Ross Rubinstein pricing only supports flat rate curves. The implementation has to be checked for general rate curves.",
-            ),
-        )
-    end
     payoff = prob.payoff
     market_inputs = prob.market_inputs
+    
+    σ = get_vol(market_inputs.sigma, payoff.expiry, payoff.strike)
 
     steps = method.steps
     T = yearfrac(market_inputs.referenceDate, payoff.expiry)
     forward = market_inputs.spot / df(market_inputs.rate, payoff.expiry)
     ΔT = T / steps
-    u = exp(market_inputs.sigma * sqrt(ΔT))
+    u = exp(σ√ΔT)
 
     forward_at_i(i) = forward * u .^ (-i:2:i)
     underlying_at_i(i) = binomial_tree_underlying(
@@ -129,7 +124,7 @@ function solve(
 
     value = payoff.(forward_at_i(steps))
 
-    for step = (steps-1):-1:0
+    for i in reverse(0:(steps - 1))
         continuation = p * value[2:end] + (1 - p) * value[1:end-1]
         discount_factor = exp(-zero_rate(market_inputs.rate, payoff.expiry) * ΔT)
         value = binomial_tree_value(

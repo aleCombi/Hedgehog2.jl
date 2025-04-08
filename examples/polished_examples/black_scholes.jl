@@ -53,3 +53,6 @@ vol_greek_prob = GreekProblem(euro_pricing_prob, VolLens(1,1))
 @btime solve($vol_greek_prob, $ad_method, $pricing_method)
 
 
+steps = 80
+crr = CoxRossRubinsteinMethod(steps)
+solve(euro_pricing_prob, crr)

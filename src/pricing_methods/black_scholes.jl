@@ -47,13 +47,9 @@ function solve(
     σ = get_vol(market.sigma, payoff.expiry, K)
     cp = payoff.call_put()
     T = yearfrac(market.referenceDate, payoff.expiry)
-    r = zero_rate(market.rate, payoff.expiry)
-    yf = yearfrac(market.rate.reference_date, payoff.expiry)
-    D = exp(-r * yf)
-    # D = df(market.rate, payoff.expiry)
+    D = df(market.rate, payoff.expiry)
     F = market.spot / D
-    # typeof(market.spot)|> println
-    # typeof(F)|> println
+
     price = if σ == 0
         D * payoff(F)
     else
