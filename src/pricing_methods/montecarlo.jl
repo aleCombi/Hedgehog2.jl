@@ -102,8 +102,11 @@ struct BlackScholesExact <: SimulationStrategy end
 
 # ------------------ SDE Problem Builders ------------------
 
-# (docstrings omitted here but can be added similarly on request)
+"""
+    sde_problem(::LognormalDynamics, ::BlackScholesExact, market, tspan)
 
+Constructs a `NoiseProblem` for Black-Scholes dynamics with exact solution.
+"""
 function sde_problem(
     ::LognormalDynamics,
     ::BlackScholesExact,
@@ -122,23 +125,36 @@ function sde_problem(
     return noise_problem
 end
 
+"""
+    sde_problem(::LognormalDynamics, ::EulerMaruyama, market, tspan)
+
+Constructs a `LogGBMProblem` using Euler-Maruyama for Black-Scholes dynamics.
+"""
 function sde_problem(::LognormalDynamics, ::EulerMaruyama, m::BlackScholesInputs, tspan)
     rate = zero_rate(m.rate, 0.0)
     σ = get_vol(m.sigma, nothing, nothing)
     S₀ = m.spot
 
-    # Promote all to the same type to support AD (e.g., Dual numbers)
     rate, σ, S₀ = promote(rate, σ, S₀)
 
     return LogGBMProblem(rate, σ, log(S₀), tspan)
 end
 
+"""
+    sde_problem(::HestonDynamics, ::EulerMaruyama, market, tspan)
 
+Constructs a `HestonProblem` using Euler-Maruyama for Heston dynamics.
+"""
 function sde_problem(::HestonDynamics, ::EulerMaruyama, m::HestonInputs, tspan)
     rate = zero_rate(m.rate, 0.0)
     return HestonProblem(rate, m.κ, m.θ, m.σ, m.ρ, [m.spot, m.V0], tspan)
 end
 
+"""
+    sde_problem(::HestonDynamics, ::HestonBroadieKaya, market, tspan)
+
+Constructs a `NoiseProblem` for Heston model using the Broadie-Kaya method.
+"""
 function sde_problem(::HestonDynamics, strategy::HestonBroadieKaya, m::HestonInputs, tspan)
     rate = zero_rate(m.rate, 0.0)
     noise = HestonNoise(
@@ -154,6 +170,11 @@ function sde_problem(::HestonDynamics, strategy::HestonBroadieKaya, m::HestonInp
     return NoiseProblem(noise, tspan)
 end
 
+"""
+    get_antithetic_ensemble_problem(...)
+
+Builds an antithetic ensemble problem by mirroring noise paths from a base solution.
+"""
 function get_antithetic_ensemble_problem(
     problem,
     ::PriceDynamics,
@@ -171,6 +192,11 @@ function get_antithetic_ensemble_problem(
     return EnsembleProblem(problem, prob_func=prob_func)
 end
 
+"""
+    get_antithetic_ensemble_problem(...)
+
+Constructs an antithetic ensemble problem for exact Black-Scholes dynamics.
+"""
 function get_antithetic_ensemble_problem(
     problem,
     ::LognormalDynamics,
@@ -195,12 +221,22 @@ end
 
 # ------------------ Marginal Laws (optional) ------------------
 
+"""
+    marginal_law(::LognormalDynamics, market, t)
+
+Returns the marginal distribution of log-price under Black-Scholes dynamics.
+"""
 function marginal_law(::LognormalDynamics, m::BlackScholesInputs, t)
     rate = zero_rate(m.rate, t)
     α = yearfrac(m.rate.reference_date, t)
     return Normal(log(m.spot) + (rate - m.sigma^2 / 2) * √α, m.sigma * √α)
 end
 
+"""
+    marginal_law(::HestonDynamics, market, t)
+
+Returns the marginal distribution of price under Heston dynamics.
+"""
 function marginal_law(::HestonDynamics, m::HestonInputs, t)
     α = yearfrac(m.rate.reference_date, t)
     rate = zero_rate(m.rate, t)
@@ -209,6 +245,11 @@ end
 
 # ------------------ Ensemble Simulation Wrapper ------------------
 
+"""
+    get_ensemble_problem(prob, config)
+
+Constructs an `EnsembleProblem` with fixed seeds for reproducible simulations.
+"""
 function get_ensemble_problem(prob, strategy_config::SimulationConfig)
     seeds = strategy_config.seeds
     let seeds = seeds
@@ -219,6 +260,11 @@ end
 
 # ------------------ Terminal Value Extractors ------------------
 
+"""
+    get_terminal_value(path, dynamics, strategy)
+
+Extracts the terminal asset value from a simulated path.
+"""
 get_terminal_value(path, ::HestonDynamics, ::HestonBroadieKaya) = exp(last(path)[1])
 get_terminal_value(path, ::LognormalDynamics, ::EulerMaruyama) = exp(last(path))
 get_terminal_value(path, ::PriceDynamics, ::SimulationStrategy) =
@@ -242,8 +288,11 @@ struct MonteCarlo{P<:PriceDynamics,S<:SimulationStrategy, C<:SimulationConfig} <
     config::C
 end
 
-# (docstrings for simulate_paths and solve can be added next if needed)
+"""
+    simulate_paths(prob, method, ::NoVarianceReduction)
 
+Simulates Monte Carlo paths without variance reduction.
+"""
 function simulate_paths(
     prob::PricingProblem,
     method::M,
@@ -261,6 +310,11 @@ function simulate_paths(
     return normal_sol
 end
 
+"""
+    simulate_paths(prob, method, ::Antithetic)
+
+Simulates Monte Carlo paths using the antithetic variates technique.
+"""
 function simulate_paths(
     prob::PricingProblem,
     method::M,
@@ -282,6 +336,11 @@ function simulate_paths(
     return (normal_sol, antithetic_sol)
 end
 
+"""
+    reduce_payoffs(result, payoff, ::NoVarianceReduction, dynamics, strategy)
+
+Computes payoffs from simulated terminal values without variance reduction.
+"""
 function reduce_payoffs(
     result::EnsembleSolution,
     payoff::F,
@@ -292,6 +351,11 @@ function reduce_payoffs(
     return [payoff(get_terminal_value(p, dynamics, strategy)) for p in result.u]
 end
 
+"""
+    reduce_payoffs(result, payoff, ::Antithetic, dynamics, strategy)
+
+Computes payoffs from paired antithetic simulations and averages them.
+"""
 function reduce_payoffs(
     result::Tuple{EnsembleSolution, EnsembleSolution},
     payoff::F,
@@ -307,6 +371,11 @@ function reduce_payoffs(
     ]
 end
 
+"""
+    solve(prob, method)
+
+Solves a `PricingProblem` using the specified Monte Carlo method.
+"""
 function solve(
     prob::PricingProblem{VanillaOption{TS, TE, European, C, Spot}, I},
     method::MonteCarlo{D, S},
