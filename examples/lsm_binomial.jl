@@ -1,4 +1,4 @@
-using Revise, Hedgehog2, BenchmarkTools, Dates, Random, SciMLBase
+using Revise, Hedgehog2, BenchmarkTools, Dates, Random
 
 # Define payoff
 strike = 1.0
@@ -25,12 +25,13 @@ println(crr_solution.price)
 
 # --- LSM using `solve(...)` style
 dynamics = LognormalDynamics()
-trajectories = 1000
+trajectories = 10000
 steps_lsm = 100
 
-strategy = BlackScholesExact(trajectories, steps_lsm)
+strategy = BlackScholesExact()
+config = Hedgehog2.SimulationConfig(trajectories; steps=steps_lsm, variance_reduction=Hedgehog2.Antithetic())
 degree = 3
-lsm_method = LSM(dynamics, strategy, degree)
+lsm_method = LSM(dynamics, strategy, config, degree)
 lsm_solution = solve(prob, lsm_method)
 
 println("LSM American Price:")

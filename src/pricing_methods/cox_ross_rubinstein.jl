@@ -124,7 +124,7 @@ function solve(
 
     value = payoff.(forward_at_i(steps))
 
-    for i in reverse(0:(steps - 1))
+    for step in reverse(0:(steps - 1))
         continuation = p * value[2:end] + (1 - p) * value[1:end-1]
         discount_factor = exp(-zero_rate(market_inputs.rate, payoff.expiry) * ΔT)
         value = binomial_tree_value(

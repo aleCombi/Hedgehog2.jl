@@ -25,20 +25,29 @@ Constructs an `LSM` pricing method with a given degree polynomial regression and
 - `degree`: Degree of polynomial basis.
 - `kwargs...`: Additional arguments passed to the `MonteCarlo` constructor.
 """
-function LSM(dynamics::PriceDynamics, strategy::SimulationStrategy, degree::Int; kwargs...)
-    mc = MonteCarlo(dynamics, strategy; kwargs...)
+function LSM(dynamics::PriceDynamics, strategy::SimulationStrategy, config::SimulationConfig, degree::Int)
+    mc = MonteCarlo(dynamics, strategy, config)
     return LSM(mc, degree)
 end
 
 """
-    extract_spot_grid(sol)
+    extract_spot_grid(sol::EnsembleSolution)
 
-Extracts the simulated spot paths from a `Vector` of state vectors. Returns a matrix of size (nsteps, npaths).
-Each column corresponds to a single simulation path. TODO: adapt for ensemblesolution
+Extracts the simulated spot paths from an `EnsembleSolution`. Returns a matrix of size `(nsteps, npaths)`,
+where each column corresponds to one simulation path, and each row to a time step.
+
+Assumes that `sol.u[i].u[j][1]` contains the spot at time `t[j]` for trajectory `i`.
 """
-function extract_spot_grid(sol::EnsembleSolution) 
-    # Each s is a solution in sol.solutions, where s.u is a vector of states
-    return hcat([getindex.(s.u, 1) for s in sol.solutions]...)  # size: (nsteps, npaths)
+function extract_spot_grid(sol::EnsembleSolution)
+    npaths = length(sol.u)
+    nsteps = length(sol.u[1].t)
+    spot_grid = Matrix{eltype(sol.u[1].u[1][1])}(undef, nsteps, npaths)
+
+    @inbounds for j in 1:npaths
+        @views spot_grid[:, j] = getindex.(sol.u[j].u, 1)
+    end
+
+    return spot_grid
 end
 
 
@@ -47,12 +56,8 @@ function solve(
     method::LSM,
 ) where {TS,TE,I<:AbstractMarketInputs,C}
 
-    if !is_flat(prob.market_inputs.rate)
-        throw(ArgumentError("LSM pricing only supports flat rate curves."))
-    end
-
     T = yearfrac(prob.market_inputs.referenceDate, prob.payoff.expiry)
-    sol = simulate_paths(method.mc_method, prob.market_inputs, T)
+    sol = simulate_paths(prob, method.mc_method, NoVarianceReduction())
     spot_grid = extract_spot_grid(sol) ./ prob.market_inputs.spot  # Normalize paths
 
     ntimes, npaths = size(spot_grid)
