@@ -74,10 +74,10 @@ Computes the underlying asset price at a given step when pricing an option on th
 # Returns
 - The estimated spot price, derived by discounting the forward price.
 """
-function binomial_tree_underlying(time_step, forward, rate, delta_time, ::Spot)
+function binomial_tree_underlying(steps, time_step, forward, rate, delta_time, ::Spot)
     return exp(
         -zero_rate(rate, add_yearfrac(rate.reference_date, time_step * delta_time)) *
-        time_step *
+        (steps - time_step) *
         delta_time,
     ) * forward
 end
@@ -92,7 +92,7 @@ Computes the underlying asset price at a given step when pricing an option on th
 # Returns
 - The forward price (unchanged, as forward prices already embed discounting).
 """
-function binomial_tree_underlying(_, forward, _, _, ::Forward)
+function binomial_tree_underlying(_, _, forward, _, _, ::Forward)
     return forward
 end
 
@@ -114,6 +114,7 @@ function solve(
 
     forward_at_i(i) = forward * u .^ (-i:2:i)
     underlying_at_i(i) = binomial_tree_underlying(
+        steps,
         i,
         forward_at_i(i),
         market_inputs.rate,
