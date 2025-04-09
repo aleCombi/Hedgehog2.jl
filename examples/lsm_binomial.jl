@@ -18,7 +18,7 @@ prob = PricingProblem(american_payoff, market_inputs)
 # --- Cox–Ross–Rubinstein using `solve(...)` style
 steps_crr = 8
 crr_method = CoxRossRubinsteinMethod(steps_crr)
-crr_solution = solve(prob, crr_method)
+crr_solution = Hedgehog2.solve(prob, crr_method)
 
 println("Cox Ross Rubinstein American Price:")
 println(crr_solution.price)
@@ -32,7 +32,7 @@ strategy = BlackScholesExact()
 config = Hedgehog2.SimulationConfig(trajectories; steps=steps_lsm, variance_reduction=Hedgehog2.Antithetic())
 degree = 5
 lsm_method = LSM(dynamics, strategy, config, degree)
-lsm_solution = solve(prob, lsm_method)
+lsm_solution = Hedgehog2.solve(prob, lsm_method)
 
 println("LSM American Price:")
 println(lsm_solution.price)
@@ -42,8 +42,8 @@ euro_prob = PricingProblem(
     market_inputs,
 )
 black_scholes_method = BlackScholesAnalytic()
-bs_solution = solve(euro_prob, black_scholes_method)
+bs_solution = Hedgehog2.solve(euro_prob, black_scholes_method)
 println("Black Scholes European Price:")    
 println(bs_solution.price)
 
-@code_warntype solve(prob, lsm_method)
+@btime Hedgehog2.solve(prob, lsm_method)

@@ -68,7 +68,7 @@ end
 Constructor for `SimulationConfig`, generating random seeds if not provided.
 """
 SimulationConfig(trajectories; steps = 1, seeds = nothing, variance_reduction=Antithetic()) = begin
-    seeds === nothing && (seeds = Base.rand(1_000_000_000:2_000_000_000, trajectories))
+    seeds === nothing && (seeds = Base.rand(UInt64, trajectories))
     SimulationConfig(trajectories, steps, variance_reduction, seeds)
 end
 
