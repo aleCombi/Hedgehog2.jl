@@ -120,12 +120,12 @@ Updates the stopping times and payoffs based on exercise decision.
 Replaces values in `stopping_info` if immediate exercise is better than continuation.
 """
 function update_stopping_info!(
-    stopping_info::Vector{Tuple{Int,Float64}},
+    stopping_info::Vector{Tuple{Int,U}},
     paths::Vector{Int},
-    cont_value::Vector{Float64},
-    payoff_t::Vector{Float64},
+    cont_value::Vector{T},
+    payoff_t::Vector{S},
     t::Int,
-)
+) where {T,S,U}
     exercise = payoff_t[paths] .> cont_value
     stopping_info[paths[exercise]] .= [(t, payoff_t[p]) for p in paths[exercise]]
 end

@@ -1,4 +1,4 @@
-using Revise, Hedgehog2, BenchmarkTools, Dates, Random
+using Revise, Hedgehog2, BenchmarkTools, Dates, Random, Accessors
 
 # Define payoff
 strike = 1.0
@@ -48,3 +48,17 @@ println(bs_solution.price)
 
 @btime Hedgehog2.solve(prob, lsm_method)
 
+
+# Accessors
+spot_lens = @optic _.market_inputs.spot
+sigma_lens = Hedgehog2.VolLens(1,1)
+
+# Methods
+fd_method = FiniteDifference(1e-3)
+ad = ForwardAD()
+
+println("\n--- Greeks (Analytic Method) ---")
+delta_fd = Hedgehog2.solve(GreekProblem(prob, spot_lens), fd_method, lsm_method).greek
+vega_fd = Hedgehog2.solve(GreekProblem(prob, sigma_lens), fd_method, lsm_method).greek
+delta_ad = Hedgehog2.solve(GreekProblem(prob, spot_lens), ad, lsm_method).greek
+vega_ad = Hedgehog2.solve(GreekProblem(prob, sigma_lens), ad, lsm_method).greek 

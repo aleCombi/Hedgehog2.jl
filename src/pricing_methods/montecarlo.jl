@@ -120,6 +120,7 @@ function sde_problem(
     S₀ = market.spot
     t₀ = zero(S₀)
     
+    r, σ, t₀, S₀ = promote(r, σ, t₀, S₀)
     noise = GeometricBrownianMotionProcess(r, σ, t₀, S₀)
     noise_problem = NoiseProblem(noise, tspan)
     return noise_problem
@@ -213,6 +214,7 @@ function get_antithetic_ensemble_problem(
     S₀ = market.spot
     t₀ = zero(S₀)
 
+    r, σ, t₀, S₀ = promote(r, σ, t₀, S₀)
     noise = GeometricBrownianMotionProcess(r, σ, t₀, S₀)
 
     noise_problem = NoiseProblem(noise, tspan)
