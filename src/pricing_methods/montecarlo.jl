@@ -55,11 +55,11 @@ Configuration for Monte Carlo simulations.
 - `variance_reduction`: Strategy to reduce variance (e.g., `Antithetic`).
 - `seeds`: RNG seeds used to control simulations.
 """
-struct SimulationConfig{I, S, V<:VarianceReductionStrategy}
+struct SimulationConfig{I, S, V<:VarianceReductionStrategy,TSeeds}
     trajectories::I
     steps::S
     variance_reduction::V
-    seeds::Vector{I}
+    seeds::Vector{TSeeds}
 end
 
 """
