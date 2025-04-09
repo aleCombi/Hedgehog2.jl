@@ -1,15 +1,22 @@
 # -- Structs --
+abstract type AbstractRateCurve end
 
-struct RateCurve{F}
-    reference_date::Real # ticks
-    interpolator::DataInterpolations.AbstractInterpolation     # callable interpolation function
+struct RateCurve{F, R <:Real, I <:DataInterpolations.AbstractInterpolation } <: AbstractRateCurve
+    reference_date::R # ticks
+    interpolator::I    # callable interpolation function
     builder::F           # function (u, t) -> interpolator
 end
 
-struct ZeroRateSpineLens
-    i::Int
+struct FlatRateCurve{R <: Number, S <: Number} <: AbstractRateCurve
+    reference_date::R
+    rate::S
 end
 
+# -- Flat Curve --
+
+function FlatRateCurve(rate; reference_date = Date(0))
+    return FlatRateCurve(to_ticks(reference_date), rate)
+end
 
 # -- Constructors --
 
@@ -44,19 +51,23 @@ end
 
 # -- Accessors --
 
-df(curve::RateCurve, ticks::Real) =
+df(curve::R, ticks::T) where {T <: Number, R <: AbstractRateCurve} =
     exp(-zero_rate(curve, ticks) * yearfrac(curve.reference_date, ticks))
 
-df(curve::RateCurve, t::Date) = df(curve, to_ticks(t))
+df(curve::R, t::D) where {R <: AbstractRateCurve, D <:TimeType} = df(curve, to_ticks(t))
 
-df_yf(curve::RateCurve, yf::Real) = exp(-zero_rate_yf(curve, yf) * yf)
+df_yf(curve::R, yf::T) where {R <: AbstractRateCurve, T <: Number} = exp(-zero_rate_yf(curve, yf) * yf)
 
-zero_rate(curve::RateCurve, ticks::Real) =
+zero_rate(curve::RateCurve, ticks::T) where T <: Number =
     curve.interpolator(yearfrac(curve.reference_date, ticks))
 
-zero_rate(curve::RateCurve, t::Date) = zero_rate(curve, to_ticks(t))
+zero_rate(curve::FlatRateCurve, ticks::T) where T <: Number =
+    curve.rate
 
-zero_rate_yf(curve::RateCurve, yf::Real) = curve.interpolator(yf)
+zero_rate(curve::R, t::Date) where R <: AbstractRateCurve = zero_rate(curve, to_ticks(t))
+
+zero_rate_yf(curve::RateCurve, yf::R) where R <: Number = curve.interpolator(yf)
+zero_rate_yf(curve::FlatRateCurve, yf::R) where R <: Number = curve.rate
 
 # -- Forward Rates --
 
@@ -76,35 +87,3 @@ forward_rate(curve::RateCurve, d1::Date, d2::Date) = forward_rate(
 
 spine_tenors(curve::RateCurve) = curve.interpolator.t
 spine_zeros(curve::RateCurve) = curve.interpolator.u
-
-# -- Flat Curve --
-
-function FlatRateCurve(r; reference_date = Date(0))
-    builder =
-        (u, t) -> ConstantInterpolation(u, t; extrapolation = ExtrapolationType.Constant)
-    itp = builder([r], [0.0])
-    return RateCurve(to_ticks(reference_date), itp, builder)
-end
-
-function is_flat(curve::RateCurve)
-    length(spine_tenors(curve)) == 1
-end
-
-# -- Lens for bumping --
-
-function (lens::ZeroRateSpineLens)(prob)
-    return spine_zeros(prob.market_inputs.rate)[lens.i]
-end
-
-function set(prob, lens::ZeroRateSpineLens, new_zᵢ)
-    curve = prob.market_inputs.rate
-    t = spine_tenors(curve)
-    z = spine_zeros(curve)
-
-    # Rebuild bumped zero rates
-    z_bumped = @set z[lens.i] = new_zᵢ
-    new_itp = curve.builder(z_bumped, t)
-    new_curve = RateCurve(curve.reference_date, new_itp, curve.builder)
-
-    return @set prob.market_inputs.rate = new_curve
-end

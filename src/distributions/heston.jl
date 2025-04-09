@@ -17,7 +17,7 @@ function HestonProblem(μ, κ, Θ, σ, ρ, u0, tspan; seed = UInt64(0), kwargs..
 
     noise = CorrelatedWienerProcess(Γ, tspan[1], zeros(2))
 
-    sde_f = SDEFunction(f, g)
+    sde_f = SDEFunction{false}(f, g)
     return SDEProblem(
         sde_f,
         u0,
@@ -39,6 +39,27 @@ function LogGBMProblem(μ, σ, u0, tspan; seed = UInt64(0), kwargs...)
     noise = WienerProcess(tspan[1], 0.0)
 
     sde_f = SDEFunction(f, g)
+    return SDEProblem(
+        sde_f,
+        u0,
+        (tspan[1], tspan[2]),
+        noise = noise,
+        seed = seed,
+        kwargs...,
+    )
+end
+
+function LogGBMProblem!(μ, σ, u0, tspan; seed = UInt64(0), kwargs...)
+    f! = function (du, u, p, t)
+        @. du = μ - 0.5 * σ^2  # Drift of log(S_t)
+    end
+    g! = function (du, u, p, t)
+        @. du = σ  # Constant diffusion
+    end
+
+    noise = WienerProcess(tspan[1], 0.0)
+
+    sde_f = SDEFunction{true}(f!, g!)
     return SDEProblem(
         sde_f,
         u0,
@@ -76,15 +97,15 @@ Fields:
 - `κ`, `θ`, `σ`, `ρ`: mean reversion, long-term variance, vol-of-vol, and correlation
 - `r`, `T`: risk-free rate and maturity
 """
-struct HestonDistribution <: ContinuousMultivariateDistribution
-    S0::Any
-    V0::Any
-    κ::Any
-    θ::Any
-    σ::Any
-    ρ::Any
-    r::Any
-    T::Any
+struct HestonDistribution{TS0,TV0,Tκ,Tθ,Tσ,Tρ,Tr,T} <: ContinuousMultivariateDistribution
+    S0::TS0
+    V0::TV0
+    κ::Tκ
+    θ::Tθ
+    σ::Tσ
+    ρ::Tρ
+    r::Tr
+    T::T
 end
 
 """
@@ -117,14 +138,15 @@ end
 
 Precomputes constants for efficient evaluation of the characteristic function of ∫₀ᵗ V_s ds.
 """
-struct HestonCFIterator
-    VT::Float64
-    dist::HestonDistribution
-    logIκ::ComplexF64
-    ζκ::ComplexF64
-    ηκ::ComplexF64
-    ν::Float64
+struct HestonCFIterator{TVT, TDist<:HestonDistribution, TLogIκ, Tζκ, Tηκ, Tν}
+    VT::TVT
+    dist::TDist
+    logIκ::TLogIκ
+    ζκ::Tζκ
+    ηκ::Tηκ
+    ν::Tν
 end
+
 
 """
     HestonCFIterator(VT, dist::HestonDistribution)
@@ -150,7 +172,7 @@ end
 Evaluates the characteristic function at point `a`, unwrapping the angle using `θ_prev` to ensure continuity.
 Returns the characteristic function value and updated unwrapped angle.
 """
-function evaluate_chf(iter::HestonCFIterator, a::Real, θ_prev::Union{Nothing,Float64})
+function evaluate_chf(iter::HestonCFIterator, a::Real, θ_prev::Tθ) where {Tθ}
     κ, θ, σ, V0, T = iter.dist.κ, iter.dist.θ, iter.dist.σ, iter.dist.V0, iter.dist.T
     ν = iter.ν
     ζκ, ηκ, logIκ = iter.ζκ, iter.ηκ, iter.logIκ
@@ -165,14 +187,13 @@ function evaluate_chf(iter::HestonCFIterator, a::Real, θ_prev::Union{Nothing,Fl
     second_term = exp((V0 + VT) / σ^2 * (ηκ - ηγ))
 
     θ = angle(νγ)
-    θ_unwrapped = if θ_prev === nothing
+    θ_unwrapped = if isnan(θ_prev)
         θ
     else
         δ = θ - θ_prev
         δ -= 2π * round(δ / (2π))
         θ_prev + δ
     end
-
     νγ_unwrapped = abs(νγ) * cis(θ_unwrapped)
     logIγ = log(besseli(ν, νγ_unwrapped)) + im * ν * (θ_unwrapped - θ)
     bessel_ratio = exp(logIγ - logIκ)
@@ -215,7 +236,7 @@ Useful for testing and diagnostics.
 """
 function rand(rng::AbstractRNG, d::HestonDistribution; antithetic = false, kwargs...)
     d1 = HestonDistribution(d.S0, d.V0, d.κ, d.θ, d.σ, d.ρ, d.r, d.T)
-    # println(d)
+
     # Step 1: Sample V_T
     V_T = sample_V_T(rng, d1)
 

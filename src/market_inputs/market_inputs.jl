@@ -18,16 +18,15 @@ Market data inputs for the Black-Scholes model.
 
 This struct encapsulates the necessary inputs for pricing derivatives under the Black-Scholes model.
 """
-struct BlackScholesInputs <: AbstractMarketInputs
-    referenceDate::Real
-    rate::RateCurve
-    spot::Any
-    sigma::Any
+struct BlackScholesInputs{R <: AbstractRateCurve,TRef <: Real, TSpot <: Real, TSigma <: AbstractVolSurface} <: AbstractMarketInputs
+    referenceDate::TRef
+    rate::R
+    spot::TSpot
+    sigma::TSigma
 end
 
-BlackScholesInputs(reference_date::TimeType, rate::RateCurve, spot, sigma) =
-    BlackScholesInputs(to_ticks(reference_date), rate, spot, sigma)
-
+BlackScholesInputs(reference_date::TimeType, rate::AbstractRateCurve, spot, sigma::Real) =
+    BlackScholesInputs(to_ticks(reference_date), rate, spot, FlatVolSurface(sigma; reference_date=to_ticks(reference_date)))
 
 BlackScholesInputs(reference_date::TimeType, rate::Real, spot, sigma) = BlackScholesInputs(
     reference_date,
@@ -70,18 +69,28 @@ Market data inputs for the Heston stochastic volatility model.
 
 Used for pricing under the Heston model and simulation of stochastic volatility paths.
 """
-struct HestonInputs <: AbstractMarketInputs
-    referenceDate::Real
-    rate::RateCurve
-    spot::Any
-    V0::Any
-    κ::Any
-    θ::Any
-    σ::Any
-    ρ::Any
+struct HestonInputs{
+    C <: AbstractRateCurve,
+    Tref <: Number,
+    Tspot <: Number,
+    TV0 <: Number,
+    Tκ <: Number,
+    Tθ <: Number,
+    Tσ <: Number,
+    Tρ <: Number
+} <: AbstractMarketInputs
+    referenceDate::Tref
+    rate::C
+    spot::Tspot
+    V0::TV0
+    κ::Tκ
+    θ::Tθ
+    σ::Tσ
+    ρ::Tρ
 end
 
-HestonInputs(reference_date::TimeType, rate::RateCurve, spot, V0, κ, θ, σ, ρ) =
+
+HestonInputs(reference_date::TimeType, rate::C, spot, V0, κ, θ, σ, ρ) where C <: AbstractRateCurve =
     HestonInputs(to_ticks(reference_date), rate, spot, V0, κ, θ, σ, ρ)
 
 HestonInputs(reference_date::TimeType, rate::Real, spot, V0, κ, θ, σ, ρ) = HestonInputs(

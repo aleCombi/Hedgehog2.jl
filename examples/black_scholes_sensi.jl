@@ -27,8 +27,8 @@ bs_method = BlackScholesAnalytic()
 # ------------------------------
 # Define lenses
 # ------------------------------
-vol_lens = @optic _.market.sigma
-spot_lens = @optic _.market.spot
+vol_lens = @optic _.market_inputs.sigma
+spot_lens = @optic _.market_inputs.spot
 
 # ------------------------------
 # Vega (1st order w.r.t. sigma)

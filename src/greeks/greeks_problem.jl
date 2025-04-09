@@ -1,6 +1,11 @@
 # Method types
 abstract type GreekMethod end
 
+struct GreekResult{T}
+    greek::T
+end
+
+
 abstract type FDScheme end
 
 struct FDForward <: FDScheme end
@@ -11,8 +16,8 @@ struct AnalyticGreek <: GreekMethod end
 
 struct ForwardAD <: GreekMethod end
 
-struct FiniteDifference{S<:FDScheme} <: GreekMethod
-    bump::Any
+struct FiniteDifference{S<:FDScheme, A <: Number} <: GreekMethod
+    bump::A
     scheme::S
 end
 
@@ -68,15 +73,15 @@ end
 
 function solve(
     gprob::GreekProblem,
-    method::FiniteDifference{S},
+    method::FiniteDifference{S,A},
     pricing_method::P,
-) where {S<:FDScheme,P<:AbstractPricingMethod}
+) where {S<:FDScheme,P<:AbstractPricingMethod,A}
     prob = gprob.pricing_problem
     lens = gprob.wrt
     ε = method.bump
     scheme = method.scheme
     deriv = compute_fd_derivative(scheme, prob, lens, ε, pricing_method)
-    return (greek = deriv,)
+    return GreekResult(deriv)
 end
 
 # Second-order GreekProblem
@@ -105,7 +110,7 @@ function solve(
         deriv = ForwardDiff.derivative(∂f, x₀)
     end
 
-    return (greek = deriv,)
+    return GreekResult(deriv)
 end
 
 function solve(
@@ -134,26 +139,26 @@ function solve(
         deriv = (f_pp - f_pm - f_mp + f_mm) / (4ε^2)
     end
 
-    return (greek = deriv,)
+    return GreekResult(deriv)
 end
 
 function solve(
     gprob::GreekProblem{
-        PricingProblem{VanillaOption{TS,TE,European,B,C},BlackScholesInputs},
+        PricingProblem{VanillaOption{TS,TE,European,B,C},I},
         L,
     },
     ::AnalyticGreek,
     ::BlackScholesAnalytic,
-) where {TS,TE,B,C,L}
+) where {TS,TE,B,C,L, I<:BlackScholesInputs}
     prob = gprob.pricing_problem
     lens = gprob.wrt
     inputs = prob.market_inputs
     cp = prob.payoff.call_put()
 
     S = inputs.spot
-    σ = inputs.sigma
     T = yearfrac(prob.market_inputs.referenceDate, prob.payoff.expiry)
     K = prob.payoff.strike
+    σ = get_vol_yf(inputs.sigma, T, K)
 
     D = df(prob.market_inputs.rate, prob.payoff.expiry)
     F = prob.market_inputs.spot / D
@@ -183,7 +188,7 @@ function solve(
         error("Unsupported lens for analytic Greek")
     end
 
-    return (greek = greek,)
+    return GreekResult(greek)
 end
 
 function solve(gprob::SecondOrderGreekProblem, ::AnalyticGreek, ::BlackScholesAnalytic)
@@ -218,5 +223,5 @@ function solve(gprob::SecondOrderGreekProblem, ::AnalyticGreek, ::BlackScholesAn
         error("Unsupported second-order analytic Greek")
     end
 
-    return (greek = greek,)
+    return GreekResult(deriv)
 end

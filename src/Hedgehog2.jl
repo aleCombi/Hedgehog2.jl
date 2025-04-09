@@ -29,9 +29,9 @@ include("solutions/pricing_solutions.jl")
 include("payoffs/payoffs.jl")
 
 # market inputs
+include("market_inputs/vol_surface.jl")
 include("market_inputs/rate_curve.jl")
 include("market_inputs/market_inputs.jl")
-include("market_inputs/vol_surface.jl")
 
 # pricing methods
 include("pricing_methods/pricing_methods.jl")
@@ -69,7 +69,7 @@ export RateCurve,
     FlatRateCurve,
     is_flat,
     ZeroRateSpineLens
-export RectVolSurface, spine_strikes, spine_tenors, spine_vols, get_vol, get_vol_yf, Interpolator2D, to_ticks
+export RectVolSurface, spine_strikes, spine_tenors, spine_vols, get_vol, get_vol_yf, Interpolator2D, to_ticks, VolLens
 
 # Pricers
 export PricingProblem, solve
@@ -83,7 +83,6 @@ export MonteCarlo,
     LognormalDynamics,
     HestonDynamics
 export LSM
-export solve_custom_ensemble, CustomEnsembleProblem
 
 # Sensitivities
 export ForwardAD, FiniteDifference, GreekProblem, SecondOrderGreekProblem, AnalyticGreek

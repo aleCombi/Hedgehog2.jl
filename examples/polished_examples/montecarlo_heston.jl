@@ -28,6 +28,24 @@ boundary = 32
 method_heston = Hedgehog2.CarrMadan(α, boundary, HestonDynamics())
 
 # Define pricer
+pricing_problem = PricingProblem(payoff, market_inputs)
+analytic_sol = Hedgehog2.solve(pricing_problem, method_heston)
 
-println(solve(PricingProblem(payoff, market_inputs), method_heston).price)
+dynamics = HestonDynamics()
+trajectories = 10000
+config = Hedgehog2.SimulationConfig(trajectories; steps=100, variance_reduction=Hedgehog2.NoVarianceReduction())
+config_exact = Hedgehog2.SimulationConfig(trajectories; steps=1, variance_reduction=Hedgehog2.NoVarianceReduction())
+
+montecarlo_method = MonteCarlo(dynamics, EulerMaruyama(), config)
+montecarlo_method_exact = MonteCarlo(dynamics, HestonBroadieKaya(), config_exact)
+
+solution = Hedgehog2.solve(pricing_problem, montecarlo_method)
+solution_exact = Hedgehog2.solve(pricing_problem, montecarlo_method_exact)
+
+@show solution.price
+@show analytic_sol.price
+@show solution_exact.price
+
+@btime Hedgehog2.solve($pricing_problem, $montecarlo_method_exact).price
+@btime Hedgehog2.solve($pricing_problem, $montecarlo_method).price
 

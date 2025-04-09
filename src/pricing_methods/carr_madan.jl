@@ -12,11 +12,12 @@ of the characteristic function of the log-price under the risk-neutral measure.
 - `dynamics`: The model dynamics providing the terminal characteristic function.
 - `kwargs`: Additional keyword arguments passed to the integral solver.
 """
-struct CarrMadan <: AbstractPricingMethod
-    α::Any
-    bound::Any
-    dynamics::Any
-    kwargs::Any # integral keyword arguments
+struct CarrMadan{Tα, TBound, TDynamics, TKW, I} <: AbstractPricingMethod
+    α::Tα
+    bound::TBound
+    dynamics::TDynamics
+    integral_method::I
+    kwargs::TKW  # usually NamedTuple or Dict
 end
 
 """
@@ -39,18 +40,14 @@ Constructs a `CarrMadan` method with optional integration settings for `quadgk`.
 - `dynamics`: The price dynamics (must support `marginal_law`).
 - `kwargs...`: Additional keyword arguments for `quadgk`.
 """
-function CarrMadan(α, bound, dynamics; kwargs...)
-    return CarrMadan(α, bound, dynamics, Dict(kwargs...))
+function CarrMadan(α, bound, dynamics, integral_method = Integrals.HCubatureJL(); kwargs...)
+    return CarrMadan(α, bound, dynamics, integral_method, (; kwargs...))
 end
 
 function solve(
     prob::PricingProblem{VanillaOption{TS,TE,European,C,Spot},I},
     method::CarrMadan,
 ) where {TS,TE,C,I<:AbstractMarketInputs}
-
-    if !is_flat(prob.market_inputs.rate)
-        throw(ArgumentError("Carr–Madan pricing only supports flat rate curves."))
-    end
 
     K = prob.payoff.strike
     r = prob.market_inputs.rate
@@ -64,8 +61,8 @@ function solve(
     integrand(v, p) =
         damp * call_transform(r, prob.payoff.expiry, ϕ, v, method) * exp(-im * v * logK)
 
-    iprob = IntegralProblem(integrand, -method.bound, method.bound, nothing)
-    integral_result = Integrals.solve(iprob, Integrals.HCubatureJL(); method.kwargs...)
+    iprob = IntegralProblem{false}(integrand, -method.bound, method.bound, nothing)
+    integral_result = Integrals.solve(iprob, method.integral_method; method.kwargs...)
 
     call_price = real(integral_result.u)
     price = parity_transform(call_price, prob.payoff, S)

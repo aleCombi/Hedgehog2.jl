@@ -36,15 +36,15 @@ Computes the price of a European vanilla option under the Black-Scholes model.
 - Falls back to intrinsic value if volatility is zero.
 """
 function solve(
-    prob::PricingProblem{VanillaOption{TS,TE,European,B,C}, BlackScholesInputs},
+    prob::PricingProblem{VanillaOption{TS,TE,European,B,C}, I},
     ::BlackScholesAnalytic,
-) where {TS,TE,B,C}
+) where {TS,TE,B,C, I <: BlackScholesInputs}
 
     payoff = prob.payoff
     market = prob.market_inputs
 
     K = payoff.strike
-    σ = market.sigma
+    σ = get_vol(market.sigma, payoff.expiry, K)
     cp = payoff.call_put()
     T = yearfrac(market.referenceDate, payoff.expiry)
     D = df(market.rate, payoff.expiry)
