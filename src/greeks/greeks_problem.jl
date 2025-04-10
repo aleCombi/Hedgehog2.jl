@@ -225,3 +225,19 @@ function solve(gprob::SecondOrderGreekProblem, ::AnalyticGreek, ::BlackScholesAn
 
     return GreekResult(deriv)
 end
+
+struct BatchGreekProblem{P,L}
+    pricing_problem::P
+    lenses::L
+end
+
+function solve(
+    gprob::BatchGreekProblem{P,L},
+    method::GreekMethod,
+    pricing_method::AbstractPricingMethod
+) where {P,L}
+    lenses = gprob.lenses
+    prob = gprob.pricing_problem
+   
+    Dict(lens => solve(GreekProblem(prob, lens), method, pricing_method).greek for lens in lenses)
+end

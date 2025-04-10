@@ -241,12 +241,23 @@ function RectVolSurface(
     )
 end
 
+abstract type GreekLens end
+struct SpotLens <: GreekLens end
+
+function (::SpotLens)(p)
+    return p.market_inputs.spot
+end
+
+function set(p, ::SpotLens, newval)
+    return @set p.market_inputs.spot = newval
+end
+
 """
     VolLens(strike, expiry)
 
 Lens structure for accessing and mutating specific vol entries by strike and expiry.
 """
-struct VolLens{S, T}
+struct VolLens{S, T} <: GreekLens
     strike::S
     expiry::T
 end
