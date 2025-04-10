@@ -69,7 +69,7 @@ export RateCurve,
     FlatRateCurve,
     is_flat,
     ZeroRateSpineLens
-export RectVolSurface, spine_strikes, spine_tenors, spine_vols, get_vol, get_vol_yf, Interpolator2D, to_ticks, VolLens
+export RectVolSurface, spine_strikes, spine_tenors, spine_vols, get_vol, get_vol_yf, Interpolator2D, to_ticks, VolLens, SpotLens
 
 # Pricers
 export PricingProblem, solve
@@ -85,7 +85,7 @@ export MonteCarlo,
 export LSM
 
 # Sensitivities
-export ForwardAD, FiniteDifference, GreekProblem, SecondOrderGreekProblem, AnalyticGreek
+export ForwardAD, FiniteDifference, GreekProblem, SecondOrderGreekProblem, AnalyticGreek, BatchGreekProblem
 
 # Calibration
 export RootFinderAlgo, OptimizerAlgo, CalibrationProblem, BasketPricingProblem
