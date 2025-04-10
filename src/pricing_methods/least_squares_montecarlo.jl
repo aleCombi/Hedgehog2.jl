@@ -75,7 +75,7 @@ function solve(
 
     T = yearfrac(prob.market_inputs.referenceDate, prob.payoff.expiry)
     sol = Hedgehog2.simulate_paths(prob, method.mc_method, method.mc_method.config.variance_reduction)
-    spot_grid = Hedgehog2.extract_spot_grid(sol) ./ prob.market_inputs.spot  # Normalize paths
+    spot_grid = Hedgehog2.extract_spot_grid(sol)
     ntimes, npaths = size(spot_grid)
     nsteps = ntimes - 1
     discount = df(prob.market_inputs.rate, add_yearfrac(prob.market_inputs.referenceDate, T / nsteps))
@@ -102,7 +102,7 @@ function solve(
     end
 
     discounted_values = [discount^t * val for (t, val) in stopping_info]
-    price = prob.market_inputs.spot * mean(discounted_values)
+    price = mean(discounted_values)
 
     return LSMSolution(price, stopping_info, spot_grid)
 end

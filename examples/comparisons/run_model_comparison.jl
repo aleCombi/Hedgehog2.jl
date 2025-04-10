@@ -1,16 +1,18 @@
 using DelimitedFiles
 using DataFrames
 using Hedgehog2
+using BenchmarkTools
+using Statistics
 
 function run_model_comparison_table(
     prob::PricingProblem,
-    models::Vector{Hedgehog2.AbstractPricingMethod},
+    models::Vector{<:Hedgehog2.AbstractPricingMethod},
     lenses::Tuple;
     ad_method::Hedgehog2.GreekMethod = ForwardAD(),
     fd_method::Hedgehog2.GreekMethod = FiniteDifference(1e-3),
     analytic_method::Union{Nothing, Hedgehog2.GreekMethod} = nothing,
+    use_belapsed::Bool = false,
 )
-
     results = Dict{String, Any}()
     rows = Vector{NamedTuple}()
 
@@ -18,14 +20,35 @@ function run_model_comparison_table(
         model_name = string(typeof(model).name.name)
 
         # Price
-        price_time = @belapsed Hedgehog2.solve($prob, $model)
+        if use_belapsed
+            price_time = @belapsed Hedgehog2.solve($prob, $model)
+        else
+            t0 = time()
+            sol = Hedgehog2.solve(prob, model)
+            price_time = time() - t0
+        end
+        
+        # Get solution (outside the timing)
         sol = Hedgehog2.solve(prob, model)
         price = sol.price
 
         # Batch Greeks (AD & FD)
         batch_prob = BatchGreekProblem(prob, lenses)
-        ad_time = @belapsed solve($batch_prob, $ad_method, $model)
-        fd_time = @belapsed solve($batch_prob, $fd_method, $model)
+        
+        if use_belapsed
+            ad_time = @belapsed solve($batch_prob, $ad_method, $model)
+            fd_time = @belapsed solve($batch_prob, $fd_method, $model)
+        else
+            t0 = time()
+            greeks_ad = solve(batch_prob, ad_method, model)
+            ad_time = time() - t0
+            
+            t0 = time()
+            greeks_fd = solve(batch_prob, fd_method, model)
+            fd_time = time() - t0
+        end
+        
+        # Get solutions (outside the timing)
         greeks_ad = solve(batch_prob, ad_method, model)
         greeks_fd = solve(batch_prob, fd_method, model)
 

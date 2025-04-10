@@ -56,7 +56,7 @@ include("calibration/calibration.jl")
 export yearfrac, add_yearfrac
 
 # Payoffs
-export VanillaOption, European, Spot, Forward, Call, Put, parity_transform
+export VanillaOption, European, American, Spot, Forward, Call, Put, parity_transform
 
 # Market data
 export BlackScholesInputs, AbstractMarketInputs, HestonInputs
@@ -81,7 +81,8 @@ export MonteCarlo,
     EulerMaruyama,
     BlackScholesExact,
     LognormalDynamics,
-    HestonDynamics
+    HestonDynamics,
+    SimulationConfig
 export LSM
 
 # Sensitivities

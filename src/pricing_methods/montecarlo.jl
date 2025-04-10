@@ -368,8 +368,8 @@ function reduce_payoffs(
 ) where {F}
     paths₁, paths₂ = result[1].u, result[2].u
     return [
-        payoff(get_terminal_value(p1, dynamics, strategy)) +
-        payoff(get_terminal_value(p2, dynamics, strategy))
+        (payoff(get_terminal_value(p1, dynamics, strategy)) +
+        payoff(get_terminal_value(p2, dynamics, strategy))) / 2
         for (p1, p2) in zip(paths₁, paths₂)
     ]
 end

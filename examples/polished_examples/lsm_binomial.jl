@@ -1,22 +1,22 @@
 using Revise, Hedgehog2, BenchmarkTools, Dates, Random, Accessors
 
-# Define payoff
-strike = 1.0
-expiry = Date(2021, 1, 1)
-american_payoff = VanillaOption(strike, expiry, Hedgehog2.American(), Call(), Spot())
-
 # Define market inputs
+strike = 10.0
 reference_date = Date(2020, 1, 1)
-rate = 0.2
-spot = 1.0
-sigma = 0.03
+expiry = reference_date + Year(1)
+rate = 0.05
+spot = 10.0
+sigma = 0.2
 market_inputs = BlackScholesInputs(reference_date, rate, spot, sigma)
+
+# Define payoff
+american_payoff = VanillaOption(strike, expiry, American(), Put(), Spot())
 
 # -- Wrap everything into a pricing problem
 prob = PricingProblem(american_payoff, market_inputs)
 
 # --- Cox–Ross–Rubinstein using `solve(...)` style
-steps_crr = 8
+steps_crr = 800
 crr_method = CoxRossRubinsteinMethod(steps_crr)
 crr_solution = Hedgehog2.solve(prob, crr_method)
 
@@ -37,10 +37,7 @@ lsm_solution = Hedgehog2.solve(prob, lsm_method)
 println("LSM American Price:")
 println(lsm_solution.price)
 
-euro_prob = PricingProblem(
-    VanillaOption(strike, expiry, Hedgehog2.European(), Call(), Spot()),
-    market_inputs,
-)
+euro_prob = @set prob.payoff.exercise_style = European()
 black_scholes_method = BlackScholesAnalytic()
 bs_solution = Hedgehog2.solve(euro_prob, black_scholes_method)
 println("Black Scholes European Price:")    
