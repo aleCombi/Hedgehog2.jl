@@ -94,7 +94,7 @@ function run_model_comparison_table(
         end
 
         baseline_data = results[baseline_name]
-
+        
         for (name, data) in results
             if name == baseline_name
                 continue
@@ -123,8 +123,26 @@ function run_model_comparison_table(
                 fd_us = fd_time_diff,
                 price_us = price_time_diff,
             ))
+
+            add_separator!(rows)
         end
     end
 
     return DataFrame(rows)
+end
+
+function add_separator!(rows)
+    # Add a separator row to visually split groups when displayed
+    push!(rows, (
+        greek = "────────────────────────",
+        model = "",
+        metric = "",
+        ad_value = missing,
+        fd_value = missing,
+        analytic_value = missing,
+        price = missing,
+        ad_us = missing,
+        fd_us = missing,
+        price_us = missing,
+    ))
 end
