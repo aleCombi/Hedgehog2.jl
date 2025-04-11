@@ -47,8 +47,8 @@
 - [x] Add antithetic variates toggle to `MonteCarlo` method (Discrete and Exact Black-Scholes [x], Discrete and Exact Heston [x])
 - [x] Unit tests: check variance reduction and correctness vs analytic prices
 - [x] Seed reproducibility: allow full control over RNG seeds (for all MC types)
-- [ ] Refactor MC framework to support seed injection and custom ensemble configs
-- [ ] Optional: design placeholder for `MCStrategy`, but defer advanced variance reduction
+- [x] Refactor MC framework to support seed injection and custom ensemble configs
+- [x] Optional: design placeholder for `MCStrategy`, but defer advanced variance reduction
 
 ---
 
