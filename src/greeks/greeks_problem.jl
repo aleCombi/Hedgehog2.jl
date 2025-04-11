@@ -46,29 +46,29 @@ end
 
 function compute_fd_derivative(::FDForward, prob, lens, ε, pricing_method)
     x₀ = lens(prob)
-    prob_up = set(prob, lens, x₀ + ε)
+    prob_up = set(prob, lens, x₀ * (1 + ε))
 
     v_up = solve(prob_up, pricing_method).price
     v₀ = solve(prob, pricing_method).price
-    return (v_up - v₀) / ε
+    return (v_up - v₀) / (x₀ * ε)
 end
 
 function compute_fd_derivative(::FDBackward, prob, lens, ε, pricing_method)
     x₀ = lens(prob)
-    prob_down = set(prob, lens, x₀ - ε)
+    prob_down = set(prob, lens, x₀ * (1 - ε))
     v_down = solve(prob_down, pricing_method).price
     v₀ = solve(prob, pricing_method).price
-    return (v₀ - v_down) / ε
+    return (v₀ - v_down) / (x₀ * ε)
 end
 
 function compute_fd_derivative(::FDCentral, prob, lens, ε, pricing_method)
     x₀ = lens(prob)
 
-    prob_up = set(prob, lens, x₀ + ε)
-    prob_down = set(prob, lens, x₀ - ε)
+    prob_up = set(prob, lens, x₀ * (1 + ε))
+    prob_down = set(prob, lens, x₀ * (1 - ε))
     v_up = solve(prob_up, pricing_method).price
     v_down = solve(prob_down, pricing_method).price
-    return (v_up - v_down) / (2ε)
+    return (v_up - v_down) / (2ε * x₀)
 end
 
 function solve(

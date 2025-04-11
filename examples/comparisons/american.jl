@@ -36,8 +36,8 @@ steps_lsm = 100
 seed = 42
 
 # Create deterministic seeds for reproducibility
-path_seeds = rand(Xoshiro(seed), UInt64, trajectories)
-lsm_config = SimulationConfig(trajectories, steps=steps_lsm)
+seeds = Base.rand(UInt64, trajectories)
+lsm_config = SimulationConfig(trajectories, steps=steps_lsm, variance_reduction=Hedgehog2.Antithetic(), seeds=seeds)
 degree = 5  # Polynomial degree for regression
 lsm_method = LSM(dynamics, BlackScholesExact(), lsm_config, degree)
 
@@ -45,7 +45,7 @@ lsm_method = LSM(dynamics, BlackScholesExact(), lsm_config, degree)
 # Define lenses for Greeks
 # ------------------------------
 vol_lens = VolLens(1,1)
-spot_lens = @optic _.market_inputs.spot
+spot_lens = Hedgehog2.SpotLens()
 rate_lens = ZeroRateSpineLens(1)
 lenses = (spot_lens, vol_lens, rate_lens)
 
@@ -58,8 +58,9 @@ df_put = run_model_comparison_table(
     [crr_method, lsm_method],
     lenses;
     ad_method = ForwardAD(),
-    fd_method = FiniteDifference(1e-4),
+    fd_method = FiniteDifference(1e-2),
     analytic_method = nothing,  # No analytic for American
+    use_belapsed = true
 )
 println(df_put)
 
@@ -84,7 +85,9 @@ df_call_div = run_model_comparison_table(
     [crr_method, lsm_method],
     lenses;
     ad_method = ForwardAD(),
-    fd_method = FiniteDifference(1e-4),
-    analytic_method = nothing # No analytic for American
+    fd_method = FiniteDifference(1e-2),
+    analytic_method = nothing, # No analytic for American
+    use_belapsed = true
+
 )
 println(df_call_div)
