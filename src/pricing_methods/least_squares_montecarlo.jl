@@ -104,7 +104,7 @@ function solve(
     discounted_values = [discount^t * val for (t, val) in stopping_info]
     price = mean(discounted_values)
 
-    return LSMSolution(price, stopping_info, spot_grid)
+    return LSMSolution(prob, method, price, stopping_info, spot_grid)
 end
 
 """

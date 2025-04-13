@@ -67,7 +67,7 @@ function solve(
     call_price = real(integral_result.u)
     price = parity_transform(call_price, prob.payoff, S)
 
-    return CarrMadanSolution(price, integral_result)
+    return CarrMadanSolution(prob, method, price, integral_result)
 end
 
 """

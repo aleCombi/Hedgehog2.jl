@@ -392,5 +392,5 @@ function solve(
     discount = df(prob.market_inputs.rate, prob.payoff.expiry)
     price = discount * mean(payoffs)
 
-    return MonteCarloSolution(price, ens)
+    return MonteCarloSolution(prob, method, price, ens)
 end

@@ -60,5 +60,5 @@ function solve(
         D * cp * (F * cdf(N, cp * d1) - K * cdf(N, cp * d2))
     end
 
-    return AnalyticSolution(price)
+    return AnalyticSolution(prob, method, price)
 end

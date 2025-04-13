@@ -1,7 +1,7 @@
 # ✅ Unit Test Coverage Tracker
 
 ## 🧰 Utilities
-- [ ] `date_functions.jl`
+- [x] `date_functions.jl`
 - [ ] `solutions/pricing_solutions.jl`
 
 ## 💰 Payoffs
