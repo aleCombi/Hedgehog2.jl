@@ -1,6 +1,3 @@
-abstract type PricingProblem end
-abstract type AbstractPricingMethod end
-
 """
     AbstractPricingSolution
 

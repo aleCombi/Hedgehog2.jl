@@ -37,7 +37,7 @@ Computes the price of a European vanilla option under the Black-Scholes model.
 """
 function solve(
     prob::PricingProblem{VanillaOption{TS,TE,European,B,C}, I},
-    ::BlackScholesAnalytic,
+    method::BlackScholesAnalytic,
 ) where {TS,TE,B,C, I <: BlackScholesInputs}
 
     payoff = prob.payoff
