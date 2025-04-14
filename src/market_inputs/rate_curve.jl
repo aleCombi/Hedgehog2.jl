@@ -64,7 +64,7 @@ zero_rate(curve::RateCurve, ticks::T) where T <: Number =
 zero_rate(curve::FlatRateCurve, ticks::T) where T <: Number =
     curve.rate
 
-zero_rate(curve::R, t::Date) where R <: AbstractRateCurve = zero_rate(curve, to_ticks(t))
+zero_rate(curve::R, t::D) where {R <: AbstractRateCurve, D<:TimeType} = zero_rate(curve, to_ticks(t))
 
 zero_rate_yf(curve::RateCurve, yf::R) where R <: Number = curve.interpolator(yf)
 zero_rate_yf(curve::FlatRateCurve, yf::R) where R <: Number = curve.rate

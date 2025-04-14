@@ -12,7 +12,7 @@ end
 
 # --- Test Suite ---
 
-@testset "Black-Scholes Analytic Tests (Improved)" begin
+@testset "Black-Scholes Analytic Tests" begin
     method = BlackScholesAnalytic()
     ref_date = Date(2024, 1, 1) # Using a fixed past date for reproducibility
 
@@ -182,5 +182,4 @@ end
         expected_put_intrinsic = D * max(K - F, 0.0)
         @test isapprox(sol_put.price, expected_put_intrinsic, atol=0.1)
     end
-10
 end

@@ -2,19 +2,19 @@
 
 ## 🧰 Utilities
 - [x] `date_functions.jl`
-- [ ] `solutions/pricing_solutions.jl`
+- [x] `solutions/pricing_solutions.jl`
 
 ## 💰 Payoffs
-- [ ] `payoffs/payoffs.jl`
+- [x] `payoffs/payoffs.jl`
 
 ## 📉 Market Inputs
-- [ ] `market_inputs/vol_surface.jl`
+- [x] `market_inputs/vol_surface.jl`
 - [ ] `market_inputs/rate_curve.jl`
 - [ ] `market_inputs/market_inputs.jl`
 
 ## 🧠 Pricing Methods
 - [ ] `pricing_methods/pricing_methods.jl`
-- [ ] `pricing_methods/black_scholes.jl`
+- [x] `pricing_methods/black_scholes.jl`
 - [ ] `pricing_methods/cox_ross_rubinstein.jl`
 - [ ] `pricing_methods/montecarlo.jl`
 - [ ] `pricing_methods/carr_madan.jl`
