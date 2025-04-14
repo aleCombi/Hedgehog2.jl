@@ -12,7 +12,7 @@ end
 
 # --- Test Suite ---
 
-@testset "Black-Scholes Analytic Tests" begin
+@testset "Black-Scholes" begin
     method = BlackScholesAnalytic()
     ref_date = Date(2024, 1, 1) # Using a fixed past date for reproducibility
 

@@ -9,13 +9,13 @@
 
 ## 📉 Market Inputs
 - [x] `market_inputs/vol_surface.jl`
-- [ ] `market_inputs/rate_curve.jl`
+- [x] `market_inputs/rate_curve.jl`
 - [ ] `market_inputs/market_inputs.jl`
 
 ## 🧠 Pricing Methods
 - [ ] `pricing_methods/pricing_methods.jl`
 - [x] `pricing_methods/black_scholes.jl`
-- [ ] `pricing_methods/cox_ross_rubinstein.jl`
+- [x] `pricing_methods/cox_ross_rubinstein.jl`
 - [ ] `pricing_methods/montecarlo.jl`
 - [ ] `pricing_methods/carr_madan.jl`
 - [ ] `pricing_methods/least_squares_montecarlo.jl`
