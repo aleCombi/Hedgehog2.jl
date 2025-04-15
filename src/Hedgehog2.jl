@@ -19,6 +19,7 @@ end
 
 if false
     include("../test/runtests.jl")
+    include("../test/calibration.jl")
 end
 
 # utilities

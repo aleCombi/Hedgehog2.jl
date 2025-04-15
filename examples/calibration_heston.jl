@@ -48,11 +48,11 @@ initial_guess = [0.02, 3.0, 0.03, 0.4, -0.3]  # [v0, κ, θ, σ, ρ]
 
 # Accessors for each parameter in HestonInputs
 accessors = [
-    @optic(_.market.V0),
-    @optic(_.market.κ),
-    @optic(_.market.θ),
-    @optic(_.market.σ),
-    @optic(_.market.ρ)
+    @optic(_.market_inputs.V0),
+    @optic(_.market_inputs.κ),
+    @optic(_.market_inputs.θ),
+    @optic(_.market_inputs.σ),
+    @optic(_.market_inputs.ρ)
 ]
 
 
