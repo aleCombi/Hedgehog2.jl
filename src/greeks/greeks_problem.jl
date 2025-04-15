@@ -63,7 +63,6 @@ end
 
 function compute_fd_derivative(::FDCentral, prob, lens, ε, pricing_method)
     x₀ = lens(prob)
-
     prob_up = set(prob, lens, x₀ * (1 + ε))
     prob_down = set(prob, lens, x₀ * (1 - ε))
     v_up = solve(prob_up, pricing_method).price
@@ -178,11 +177,9 @@ function solve(
         D * F * ϕ(d1) * √T
 
     elseif lens === @optic _.payoff.expiry
-        @assert is_flat(prob.market_inputs.rate)
-
         # Assume flat rate: z(T) = r ⇒ D(T) = exp(-rT), F(T) = S / D(T)
         r = zero_rate_yf(prob.market_inputs.rate, T)
-        (r * prob.payoff.strike * D * Φ(d2) + F * D * prob.market_inputs.sigma * ϕ(d1) / (2√T)) / (MILLISECONDS_IN_YEAR_365) #against ticks, to match AD and FD. Observe that the sign is counterintuitive as it is a derivative against expiry in tticks, not against time-to-maturity in yearfrac
+        (r * prob.payoff.strike * D * Φ(d2) + F * D * σ * ϕ(d1) / (2√T)) / (MILLISECONDS_IN_YEAR_365) #against ticks, to match AD and FD. Observe that the sign is counterintuitive as it is a derivative against expiry in tticks, not against time-to-maturity in yearfrac
 
     else
         error("Unsupported lens for analytic Greek")

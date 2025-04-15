@@ -21,7 +21,7 @@ import Accessors: @optic
 
     # First-order Greeks
     @testset "First-order: Vega" begin
-        lens = @optic _.market_inputs.sigma
+        lens = VolLens(1,1)
         gprob = GreekProblem(prob, lens)
 
         ad_val = solve(gprob, ForwardAD(), method).greek
@@ -52,7 +52,7 @@ import Accessors: @optic
     end
 
     @testset "Second-order: Volga" begin
-        lens = @optic _.market_inputs.sigma
+        lens = VolLens(1,1)
         gprob = SecondOrderGreekProblem(prob, lens, lens)
 
         ad_val = solve(gprob, ForwardAD(), method).greek
@@ -112,7 +112,7 @@ import Accessors: @optic
     # Theta (no analytic)
     thetaprob = GreekProblem(pricing_prob, @optic _.payoff.expiry)
     theta_ad = solve(thetaprob, ForwardAD(), bs_method).greek
-    theta_fd = solve(thetaprob, FiniteDifference(1), bs_method).greek
+    theta_fd = solve(thetaprob, FiniteDifference(1e-12), bs_method).greek
     theta_analytic = solve(thetaprob, AnalyticGreek(), bs_method).greek
     @test isapprox(theta_ad, theta_fd; rtol = 5e-3)
     @test isapprox(theta_ad, theta_analytic; rtol = 1e-8)
