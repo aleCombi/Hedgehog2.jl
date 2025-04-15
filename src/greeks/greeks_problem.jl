@@ -173,7 +173,7 @@ function solve(
         # Delta = ∂V/∂S = ∂V/∂F * ∂F/∂S = (cp * N(cp·d1)) * (1/D)
         cp * Φ(cp * d1)
 
-    elseif lens === @optic _.market_inputs.sigma
+    elseif lens === VolLens(1,1) #TODO: add logic
         # Vega = ∂V/∂σ = D · F · φ(d1) · √T
         D * F * ϕ(d1) * √T
 
@@ -198,9 +198,9 @@ function solve(gprob::SecondOrderGreekProblem, ::AnalyticGreek, ::BlackScholesAn
     inputs = prob.market_inputs
 
     S = inputs.spot
-    σ = inputs.sigma
     T = yearfrac(inputs.referenceDate, prob.payoff.expiry)
     K = prob.payoff.strike
+    σ = get_vol_yf(inputs.sigma, T, K)
 
     D = df(inputs.rate, prob.payoff.expiry)
     F = S / D
@@ -214,7 +214,7 @@ function solve(gprob::SecondOrderGreekProblem, ::AnalyticGreek, ::BlackScholesAn
         # Gamma = ∂²V/∂S² = φ(d1) / (Sσ√T)
         ϕ(d1) / (S * σ * √T)
 
-    elseif (lens1 === @optic _.market_inputs.sigma) && (lens2 === @optic _.market_inputs.sigma)
+    elseif (lens1 === VolLens(1,1)) && (lens2 === VolLens(1,1)) #TODO: introduce logic for sigma
         # Volga = Vega * d1 * d2 / σ
         vega = D * F * ϕ(d1) * √T
         vega * d1 * d2 / σ
@@ -223,7 +223,7 @@ function solve(gprob::SecondOrderGreekProblem, ::AnalyticGreek, ::BlackScholesAn
         error("Unsupported second-order analytic Greek")
     end
 
-    return GreekResult(deriv)
+    return GreekResult(greek)
 end
 
 struct BatchGreekProblem{P,L}

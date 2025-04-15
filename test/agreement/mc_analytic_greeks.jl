@@ -24,8 +24,8 @@ using Random
     # --------------------------
     # Lenses
     # --------------------------
-    vol_lens = @optic _.market.sigma
-    spot_lens = @optic _.market.spot
+    vol_lens = VolLens(1,1)
+    spot_lens = @optic _.market_inputs.spot
     rate_lens = ZeroRateSpineLens(1)
 
     # --------------------------
@@ -35,7 +35,7 @@ using Random
     rng = MersenneTwister(42)
     seeds = rand(rng, 1:10^9, trajectories)
     mc_method =
-        MonteCarlo(LognormalDynamics(), BlackScholesExact(trajectories; seeds = seeds))
+        MonteCarlo(LognormalDynamics(), BlackScholesExact(), SimulationConfig(trajectories; seeds = seeds))
     analytic_method = BlackScholesAnalytic()
 
     # --------------------------

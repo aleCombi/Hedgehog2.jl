@@ -82,7 +82,7 @@ import Accessors: @optic
     pricing_prob = PricingProblem(payoff, market_inputs)
     bs_method = BlackScholesAnalytic()
 
-    vol_lens = @optic _.market_inputs.sigma
+    vol_lens = VolLens(1,1)
     spot_lens = @optic _.market_inputs.spot
 
     # Vega
