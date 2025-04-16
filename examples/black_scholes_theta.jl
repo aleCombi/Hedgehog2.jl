@@ -1,4 +1,4 @@
-using Revise, Hedgehog2, BenchmarkTools, Dates
+using Revise, Hedgehog, BenchmarkTools, Dates
 using Accessors
 import Accessors: @optic
 
@@ -7,7 +7,7 @@ import Accessors: @optic
 # ------------------------------
 strike = 1.0
 expiry = Date(2021, 1, 1)
-underlying = Hedgehog2.Forward()
+underlying = Hedgehog.Forward()
 
 payoff = VanillaOption(strike, expiry, European(), Call(), underlying)
 
@@ -22,7 +22,7 @@ bs_method = BlackScholesAnalytic()
 # Theta (1st order w.r.t. expiry)
 # ------------------------------
 # note that derivatives are in ticks, hence very small
-thetaproblem = Hedgehog2.GreekProblem(pricing_prob, @optic _.payoff.expiry)
+thetaproblem = Hedgehog.GreekProblem(pricing_prob, @optic _.payoff.expiry)
 theta_ad = solve(thetaproblem, ForwardAD(), bs_method).greek
 theta_fd = solve(thetaproblem, FiniteDifference(1), bs_method).greek
 theta_an = solve(thetaproblem, AnalyticGreek(), bs_method).greek

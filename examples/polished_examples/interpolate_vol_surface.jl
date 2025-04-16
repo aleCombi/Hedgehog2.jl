@@ -1,5 +1,5 @@
 using Revise
-using Hedgehog2  # Your library with RectVolSurface, PricingProblem, etc.
+using Hedgehog  # Your library with RectVolSurface, PricingProblem, etc.
 using Dates
 using Test
 using DataInterpolations
@@ -33,12 +33,12 @@ for i = 1:nrows, j = 1:ncols
     σ = get_vol(vol_surface, T, K)
     @show σ
     # Create expiry from year fraction
-    local_expiry = Hedgehog2.add_yearfrac(reference_date, T)
+    local_expiry = Hedgehog.add_yearfrac(reference_date, T)
     @show local_expiry
     local_payoff = VanillaOption(K, local_expiry, European(), Call(), Spot())
     local_market = BlackScholesInputs(reference_date, rate, spot, σ)
     local_prob = PricingProblem(local_payoff, local_market)
-    local_sol = Hedgehog2.solve(local_prob, BlackScholesAnalytic())
+    local_sol = Hedgehog.solve(local_prob, BlackScholesAnalytic())
     println(local_sol.price)
     recomputed_prices[i, j] = local_sol.price
 end
@@ -73,7 +73,7 @@ inverted_surface = RectVolSurface(
     end
 end
 
-expiry = Hedgehog2.add_yearfrac(reference_date, 0.25)
+expiry = Hedgehog.add_yearfrac(reference_date, 0.25)
 sigma = 0.22
 strike = 80.0
 payoff = VanillaOption(strike, expiry, European(), Call(), Spot())

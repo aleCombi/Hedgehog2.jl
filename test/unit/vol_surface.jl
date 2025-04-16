@@ -68,7 +68,7 @@ using DataInterpolations
             extrap_time = ExtrapolationType.Constant,
         )
 
-        expiry_date = Hedgehog2.add_yearfrac(ref_date, 0.5)
+        expiry_date = Hedgehog.add_yearfrac(ref_date, 0.5)
         @test isa(surf, RectVolSurface)
         @test isapprox(get_vol(surf, to_ticks(expiry_date), 100.0), 0.27; atol=1e-8)
     end

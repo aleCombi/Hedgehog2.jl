@@ -1,5 +1,5 @@
 using Revise
-using Hedgehog2  # Replace with your actual module name if different
+using Hedgehog  # Replace with your actual module name if different
 using DataInterpolations
 using Dates
 using Plots
@@ -10,7 +10,7 @@ dfs = [0.995, 0.990, 0.980, 0.955, 0.890, 0.750]
 ref_date = Date(2025, 1, 1)
 
 # Build interpolated curves
-curve_linear = Hedgehog2.RateCurve(
+curve_linear = Hedgehog.RateCurve(
     ref_date,
     tenors,
     dfs;
@@ -18,7 +18,7 @@ curve_linear = Hedgehog2.RateCurve(
     extrap = ExtrapolationType.Constant,
 )
 
-curve_cubic = Hedgehog2.RateCurve(
+curve_cubic = Hedgehog.RateCurve(
     ref_date,
     tenors,
     dfs;

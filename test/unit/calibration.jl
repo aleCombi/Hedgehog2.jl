@@ -1,6 +1,6 @@
 using Test
 using Dates
-using Hedgehog2
+using Hedgehog
 using Accessors
 
 @testset "Calibration" begin
@@ -30,7 +30,7 @@ using Accessors
 
     using Test
     using Dates
-    using Hedgehog2  # assuming your package is named Hedgehog2 and properly imported
+    using Hedgehog  # assuming your package is named Hedgehog and properly imported
     using Accessors
 
     @testset "Heston Carr-Madan Calibration" begin

@@ -1,5 +1,5 @@
 using Revise
-using Hedgehog2
+using Hedgehog
 using Dates
 using Printf
 
@@ -36,7 +36,7 @@ mc_exact_solution = solve(prob, mc_exact_method)
 trajectories = 10_000
 steps = 100
 mc_euler_method =
-    MonteCarlo(LognormalDynamics(), EulerMaruyama(), SimulationConfig(trajectories, steps=steps, variance_reduction=Hedgehog2.Antithetic()))
+    MonteCarlo(LognormalDynamics(), EulerMaruyama(), SimulationConfig(trajectories, steps=steps, variance_reduction=Hedgehog.Antithetic()))
 mc_euler_solution = solve(prob, mc_euler_method)
 
 # Print the results

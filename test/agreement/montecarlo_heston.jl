@@ -1,5 +1,5 @@
 using Test
-using Hedgehog2
+using Hedgehog
 using Dates
 using Random
 using Statistics
@@ -57,13 +57,13 @@ using Printf
             "Euler-Maruyama without antithetic",
             EulerMaruyama(),
             HestonDynamics(),
-            SimulationConfig(trajectories, seeds = nothing, variance_reduction=Hedgehog2.NoVarianceReduction())
+            SimulationConfig(trajectories, seeds = nothing, variance_reduction=Hedgehog.NoVarianceReduction())
         ),
         (
             "Euler-Maruyama with antithetic",
             EulerMaruyama(),
             HestonDynamics(),
-            SimulationConfig(trajectories ÷ 2, seeds = nothing, variance_reduction=Hedgehog2.Antithetic())
+            SimulationConfig(trajectories ÷ 2, seeds = nothing, variance_reduction=Hedgehog.Antithetic())
         ),
     ]
 

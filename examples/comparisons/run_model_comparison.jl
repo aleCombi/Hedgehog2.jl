@@ -1,16 +1,16 @@
 using DelimitedFiles
 using DataFrames
-using Hedgehog2
+using Hedgehog
 using BenchmarkTools
 using Statistics
 
 function run_model_comparison_table(
     prob::PricingProblem,
-    models::Vector{<:Hedgehog2.AbstractPricingMethod},
+    models::Vector{<:Hedgehog.AbstractPricingMethod},
     lenses::Tuple;
-    ad_method::Hedgehog2.GreekMethod = ForwardAD(),
-    fd_method::Hedgehog2.GreekMethod = FiniteDifference(1e-3),
-    analytic_method::Union{Nothing, Hedgehog2.GreekMethod} = nothing,
+    ad_method::Hedgehog.GreekMethod = ForwardAD(),
+    fd_method::Hedgehog.GreekMethod = FiniteDifference(1e-3),
+    analytic_method::Union{Nothing, Hedgehog.GreekMethod} = nothing,
     use_belapsed::Bool = false,
 )
     results = Dict{String, Any}()
@@ -21,15 +21,15 @@ function run_model_comparison_table(
 
         # Price
         if use_belapsed
-            price_time = @belapsed Hedgehog2.solve($prob, $model)
+            price_time = @belapsed Hedgehog.solve($prob, $model)
         else
             t0 = time()
-            sol = Hedgehog2.solve(prob, model)
+            sol = Hedgehog.solve(prob, model)
             price_time = time() - t0
         end
         
         # Get solution (outside the timing)
-        sol = Hedgehog2.solve(prob, model)
+        sol = Hedgehog.solve(prob, model)
         price = sol.price
 
         # Batch Greeks (AD & FD)

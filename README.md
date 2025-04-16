@@ -1,8 +1,8 @@
-# Hedgehog2
+# Hedgehog
 
-**Hedgehog2** is a modular, SciML-inspired derivatives pricing library in Julia.
+**Hedgehog** is a modular, SciML-inspired derivatives pricing library in Julia.
 
-[![Build Status](https://github.com/aleCombi/Hedgehog2.jl/actions/workflows/CI.yml/badge.svg?branch=master)](https://github.com/aleCombi/Hedgehog2.jl/actions/workflows/CI.yml?query=branch%3Amaster)
+[![Build Status](https://github.com/aleCombi/Hedgehog.jl/actions/workflows/CI.yml/badge.svg?branch=master)](https://github.com/aleCombi/Hedgehog.jl/actions/workflows/CI.yml?query=branch%3Amaster)
 
 ## 📐 Design Overview
 
@@ -50,7 +50,7 @@ price = sol.price
 
 ## 📊 Calibration
 
-Hedgehog2 supports calibration via a unified nonlinear solver interface:
+Hedgehog supports calibration via a unified nonlinear solver interface:
 
 - Solve for implied volatility using `CalibrationProblem`
 - Invert volatility surfaces

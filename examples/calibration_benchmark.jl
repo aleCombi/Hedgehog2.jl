@@ -1,4 +1,4 @@
-using Revise, Hedgehog2, Dates, BenchmarkTools
+using Revise, Hedgehog, Dates, BenchmarkTools
 
 # --- True model inputs
 reference_date = Date(2020, 1, 1)
@@ -40,9 +40,9 @@ accessors = [
     @optic(_.market_inputs.ρ)
 ]
 
-basket_problem = Hedgehog2.BasketPricingProblem(payoffs, market_inputs)
+basket_problem = Hedgehog.BasketPricingProblem(payoffs, market_inputs)
 
-calib_problem = Hedgehog2.CalibrationProblem(
+calib_problem = Hedgehog.CalibrationProblem(
     basket_problem,
     method_heston,
     accessors,
@@ -54,11 +54,11 @@ calib_problem = Hedgehog2.CalibrationProblem(
 println("\nBenchmarking AutoForwardDiff()...")
 @btime solve(
     $calib_problem,
-    Hedgehog2.OptimizerAlgo(AutoForwardDiff(), Optimization.LBFGS()),
+    Hedgehog.OptimizerAlgo(AutoForwardDiff(), Optimization.LBFGS()),
 )
 
 println("\nBenchmarking AutoFiniteDiff()...")
 @btime solve(
     $calib_problem,
-    Hedgehog2.OptimizerAlgo(AutoFiniteDiff(), Optimization.LBFGS()),
+    Hedgehog.OptimizerAlgo(AutoFiniteDiff(), Optimization.LBFGS()),
 )

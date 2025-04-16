@@ -1,5 +1,5 @@
 using Revise
-using Hedgehog2
+using Hedgehog
 using Dates
 using Test
 using DataInterpolations

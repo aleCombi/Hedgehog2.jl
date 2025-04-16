@@ -1,4 +1,4 @@
-using Revise, Hedgehog2, BenchmarkTools, Dates
+using Revise, Hedgehog, BenchmarkTools, Dates
 using Accessors
 import Accessors: @optic
 
@@ -7,7 +7,7 @@ import Accessors: @optic
 # ------------------------------
 strike = 1.0
 expiry = Date(2020, 1, 2)
-underlying = Hedgehog2.Forward()
+underlying = Hedgehog.Forward()
 
 euro_payoff = VanillaOption(strike, expiry, European(), Put(), underlying)
 
@@ -33,21 +33,21 @@ spot_lens = @optic _.market_inputs.spot
 # ------------------------------
 # Vega (1st order w.r.t. sigma)
 # ------------------------------
-gprob = Hedgehog2.GreekProblem(euro_pricing_prob, vol_lens)
+gprob = Hedgehog.GreekProblem(euro_pricing_prob, vol_lens)
 vega_ad = solve(gprob, ForwardAD(), bs_method).greek
 vega_fd = solve(gprob, FiniteDifference(1e-4), bs_method).greek
 
 # ------------------------------
 # Gamma (2nd order w.r.t. spot)
 # ------------------------------
-gammaprob = Hedgehog2.SecondOrderGreekProblem(euro_pricing_prob, spot_lens, spot_lens)
+gammaprob = Hedgehog.SecondOrderGreekProblem(euro_pricing_prob, spot_lens, spot_lens)
 gamma_ad = solve(gammaprob, ForwardAD(), bs_method).greek
 gamma_fd = solve(gammaprob, FiniteDifference(1e-4), bs_method).greek
 
 # ------------------------------
 # Volga (2nd order w.r.t. sigma)
 # ------------------------------
-volgaprob = Hedgehog2.SecondOrderGreekProblem(euro_pricing_prob, vol_lens, vol_lens)
+volgaprob = Hedgehog.SecondOrderGreekProblem(euro_pricing_prob, vol_lens, vol_lens)
 volga_ad = solve(volgaprob, ForwardAD(), bs_method).greek
 volga_fd = solve(volgaprob, FiniteDifference(1e-4), bs_method).greek
 
@@ -115,7 +115,7 @@ println("Volga (Finite Diff): $volga_fd")
 # Theta (1st order w.r.t. expiry)
 # ------------------------------
 # note that derivatives are in ticks, hence very small
-thetaproblem = Hedgehog2.GreekProblem(euro_pricing_prob, @optic _.payoff.expiry)
+thetaproblem = Hedgehog.GreekProblem(euro_pricing_prob, @optic _.payoff.expiry)
 theta_ad = solve(thetaproblem, ForwardAD(), bs_method).greek
 theta_fd = solve(thetaproblem, FiniteDifference(1), bs_method).greek
 # theta_an = solve(thetaproblem, AnalyticGreek(), bs_method).greek

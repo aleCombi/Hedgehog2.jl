@@ -1,5 +1,5 @@
 using Revise
-using Hedgehog2
+using Hedgehog
 using Random
 using Plots
 using Dates

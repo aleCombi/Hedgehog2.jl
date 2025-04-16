@@ -1,5 +1,5 @@
 using Revise
-using Hedgehog2
+using Hedgehog
 using Distributions
 using Random
 using Plots

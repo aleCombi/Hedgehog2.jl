@@ -1,4 +1,4 @@
-using Revise, Hedgehog2, BenchmarkTools, Dates
+using Revise, Hedgehog, BenchmarkTools, Dates
 using Accessors
 import Accessors: @optic
 using Test
@@ -11,7 +11,7 @@ include("run_model_comparison.jl")
 # ------------------------------
 strike = 1.0
 expiry = Date(2020, 1, 2)
-underlying = Hedgehog2.Spot()
+underlying = Hedgehog.Spot()
 euro_payoff = VanillaOption(strike, expiry, European(), Put(), underlying)
 
 reference_date = Date(2020, 1, 1)

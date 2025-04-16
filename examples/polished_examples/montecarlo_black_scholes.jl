@@ -1,4 +1,4 @@
-using Revise, Hedgehog2, BenchmarkTools, Dates
+using Revise, Hedgehog, BenchmarkTools, Dates
 using Accessors
 import Accessors: @optic
 using DifferentialEquations
@@ -21,21 +21,21 @@ euro_pricing_prob = PricingProblem(euro_payoff, market_inputs)
 
 dynamics = LognormalDynamics()
 trajectories = 10000
-config = Hedgehog2.SimulationConfig(trajectories; steps=100, variance_reduction=Hedgehog2.NoVarianceReduction())
+config = Hedgehog.SimulationConfig(trajectories; steps=100, variance_reduction=Hedgehog.NoVarianceReduction())
 strategy = EulerMaruyama()
 montecarlo_method = MonteCarlo(dynamics, strategy, config)
 
-solution_analytic = Hedgehog2.solve(euro_pricing_prob, BlackScholesAnalytic()).price
-solution = Hedgehog2.solve(euro_pricing_prob, montecarlo_method).price
+solution_analytic = Hedgehog.solve(euro_pricing_prob, BlackScholesAnalytic()).price
+solution = Hedgehog.solve(euro_pricing_prob, montecarlo_method).price
 
-@btime Hedgehog2.solve($euro_pricing_prob, $montecarlo_method).price
-@btime Hedgehog2.solve($euro_pricing_prob, BlackScholesAnalytic()).price
+@btime Hedgehog.solve($euro_pricing_prob, $montecarlo_method).price
+@btime Hedgehog.solve($euro_pricing_prob, BlackScholesAnalytic()).price
 
-fd_method = FiniteDifference(1E-4, Hedgehog2.FDForward())
+fd_method = FiniteDifference(1E-4, Hedgehog.FDForward())
 ad_method = ForwardAD()
 
 spot_lens = @optic _.market_inputs.spot
-delta_prob = Hedgehog2.GreekProblem(euro_pricing_prob, spot_lens)
+delta_prob = Hedgehog.GreekProblem(euro_pricing_prob, spot_lens)
 solve(delta_prob, ad_method, BlackScholesAnalytic())
 @btime solve(delta_prob, fd_method, montecarlo_method)
 @btime solve(delta_prob, ad_method, montecarlo_method)

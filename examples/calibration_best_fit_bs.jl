@@ -1,4 +1,4 @@
-using Revise, Hedgehog2, Dates, Accessors
+using Revise, Hedgehog, Dates, Accessors
 
 # -- Market Inputs (true values)
 reference_date = Date(2020, 1, 1)
@@ -22,7 +22,7 @@ true_prices =
     [solve(PricingProblem(payoff, market), pricing_method).price for payoff in payoffs]
 
 # -- Define CalibrationProblem
-basket_problem = Hedgehog2.BasketPricingProblem(payoffs, market)
+basket_problem = Hedgehog.BasketPricingProblem(payoffs, market)
 
 # Calibrate both sigma and rate
 accessors = [@optic _.market.sigma]
@@ -30,7 +30,7 @@ accessors = [@optic _.market.sigma]
 initial_guess = [0.2]  # Start from wrong sigma and rate
 
 calib_problem =
-    Hedgehog2.CalibrationProblem(basket_problem, pricing_method, accessors, true_prices)
+    Hedgehog.CalibrationProblem(basket_problem, pricing_method, accessors, true_prices)
 
 # -- Run calibration
 result = solve(calib_problem, initial_guess)

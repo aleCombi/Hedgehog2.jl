@@ -1,4 +1,4 @@
-using Revise, Hedgehog2, BenchmarkTools, Dates
+using Revise, Hedgehog, BenchmarkTools, Dates
 using Accessors
 import Accessors: @optic
 using Test
@@ -37,7 +37,7 @@ seed = 42
 
 # Create deterministic seeds for reproducibility
 seeds = Base.rand(UInt64, trajectories)
-lsm_config = SimulationConfig(trajectories, steps=steps_lsm, variance_reduction=Hedgehog2.Antithetic(), seeds=seeds)
+lsm_config = SimulationConfig(trajectories, steps=steps_lsm, variance_reduction=Hedgehog.Antithetic(), seeds=seeds)
 degree = 5  # Polynomial degree for regression
 lsm_method = LSM(dynamics, BlackScholesExact(), lsm_config, degree)
 
@@ -45,7 +45,7 @@ lsm_method = LSM(dynamics, BlackScholesExact(), lsm_config, degree)
 # Define lenses for Greeks
 # ------------------------------
 vol_lens = VolLens(1,1)
-spot_lens = Hedgehog2.SpotLens()
+spot_lens = Hedgehog.SpotLens()
 rate_lens = ZeroRateSpineLens(1)
 lenses = (spot_lens, vol_lens, rate_lens)
 

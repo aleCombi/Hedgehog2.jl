@@ -1,5 +1,5 @@
 using Revise
-using Hedgehog2  # your library
+using Hedgehog  # your library
 using DataInterpolations
 using Plots
 

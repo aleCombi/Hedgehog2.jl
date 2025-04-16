@@ -1,13 +1,13 @@
-using Hedgehog2, Accessors, Dates
+using Hedgehog, Accessors, Dates
 
 begin
     # define payoff
     strike = 5
     expiry = Date(2017, 7, 26)
-    call_put = Hedgehog2.Put()
-    underlying = Hedgehog2.Forward()
+    call_put = Hedgehog.Put()
+    underlying = Hedgehog.Forward()
     american_payoff =
-        VanillaOption(strike, expiry, Hedgehog2.American(), call_put, underlying)
+        VanillaOption(strike, expiry, Hedgehog.American(), call_put, underlying)
 
     # define market inputs
     reference_date = Date(2017, 6, 29)

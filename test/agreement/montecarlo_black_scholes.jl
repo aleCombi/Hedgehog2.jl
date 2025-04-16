@@ -1,5 +1,5 @@
 using Test
-using Hedgehog2
+using Hedgehog
 using Dates
 using Random
 using Statistics
@@ -56,7 +56,7 @@ using Printf
             "BlackScholesExact without antithetic",
             BlackScholesExact(),
             LognormalDynamics(),
-            SimulationConfig(trajectories, seeds = nothing, variance_reduction=Hedgehog2.NoVarianceReduction())
+            SimulationConfig(trajectories, seeds = nothing, variance_reduction=Hedgehog.NoVarianceReduction())
         ),
         (
             "BlackScholesExact with antithetic",
@@ -68,7 +68,7 @@ using Printf
             "EulerMaruyama without antithetic",
             EulerMaruyama(),
             LognormalDynamics(),
-            SimulationConfig(trajectories, seeds = nothing, variance_reduction=Hedgehog2.NoVarianceReduction())
+            SimulationConfig(trajectories, seeds = nothing, variance_reduction=Hedgehog.NoVarianceReduction())
         ),
         (
             "EulerMaruyama with antithetic",

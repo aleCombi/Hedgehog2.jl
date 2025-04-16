@@ -2,7 +2,7 @@
     # Define payoff
     strike = 1.0
     expiry = Date(2021, 1, 1)
-    american_payoff = VanillaOption(strike, expiry, Hedgehog2.American(), Call(), Spot())
+    american_payoff = VanillaOption(strike, expiry, Hedgehog.American(), Call(), Spot())
 
     # Define market inputs
     reference_date = Date(2020, 1, 1)

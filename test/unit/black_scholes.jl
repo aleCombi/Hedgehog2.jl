@@ -19,7 +19,7 @@ end
     # --- Test 1: log_dynamics Function ---
     @testset "Dynamics Type" begin
         # Assumes LognormalDynamics struct is defined
-        @test Hedgehog2.log_dynamics(method) == LognormalDynamics()
+        @test Hedgehog.log_dynamics(method) == LognormalDynamics()
     end
 
     # --- Test 2: Zero Volatility Cases ---
@@ -134,7 +134,7 @@ end
         r = 0.03
         sigma = 0.25
         T = 0.75
-        expiry_date = Hedgehog2.add_yearfrac(ref_date, T)
+        expiry_date = Hedgehog.add_yearfrac(ref_date, T)
         market_inputs = BlackScholesInputs(ref_date, r, spot, sigma)
         D = df_simple(r, T)
         F = spot / D

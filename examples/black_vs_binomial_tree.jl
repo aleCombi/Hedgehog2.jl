@@ -1,10 +1,10 @@
-using Revise, Hedgehog2, BenchmarkTools, Dates
+using Revise, Hedgehog, BenchmarkTools, Dates
 
 # define payoff
 strike = 1.2
 expiry = Date(2021, 1, 1)
-underlying = Hedgehog2.Forward()
-american_payoff = VanillaOption(strike, expiry, Hedgehog2.American(), Put(), underlying)
+underlying = Hedgehog.Forward()
+american_payoff = VanillaOption(strike, expiry, Hedgehog.American(), Put(), underlying)
 euro_payoff = VanillaOption(strike, expiry, European(), Put(), underlying)
 
 # define market inputs

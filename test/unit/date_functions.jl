@@ -1,4 +1,4 @@
-using Hedgehog2: SECONDS_IN_YEAR_365, MILLISECONDS_IN_YEAR_365, MILLISECONDS_IN_DAY, to_ticks, yearfrac, add_yearfrac
+using Hedgehog: SECONDS_IN_YEAR_365, MILLISECONDS_IN_YEAR_365, MILLISECONDS_IN_DAY, to_ticks, yearfrac, add_yearfrac
 
 # --- Test Constants ---
 @testset "Date Functions" begin

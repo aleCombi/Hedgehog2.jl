@@ -1,4 +1,4 @@
-module Hedgehog2
+module Hedgehog
 
 using DifferentialEquations, ForwardDiff, Distributions, Dates
 using NonlinearSolve, Roots

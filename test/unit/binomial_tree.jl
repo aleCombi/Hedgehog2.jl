@@ -4,7 +4,7 @@
         strike = 1.0
         reference_date = Date(2020, 1, 1)
         expiry = reference_date + Day(365)
-        american_payoff = VanillaOption(strike, expiry, Hedgehog2.American(), Call(), Spot())
+        american_payoff = VanillaOption(strike, expiry, Hedgehog.American(), Call(), Spot())
 
         rate = 0.2
         spot = 1.0
@@ -19,7 +19,7 @@
 
         # American put option on forward
         american_payoff_fwd =
-            VanillaOption(strike, expiry, Hedgehog2.American(), Put(), Forward())
+            VanillaOption(strike, expiry, Hedgehog.American(), Put(), Forward())
         prob_fwd = PricingProblem(american_payoff_fwd, market_inputs)
         crr_sol_fwd = solve(prob_fwd, crr_method)
 

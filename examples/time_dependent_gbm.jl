@@ -1,4 +1,4 @@
-using Revise, Hedgehog2, DifferentialEquations, Plots
+using Revise, Hedgehog, DifferentialEquations, Plots
 
 # Define a constant volatility function and its integral
 σ_const = t -> 0.2  # Constant volatility (σ_0 = 0.2)

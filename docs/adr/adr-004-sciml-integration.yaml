@@ -18,10 +18,10 @@ context: |
   - `solve(problem, method)` dispatch
   - `Solution` objects with metadata, diagnostics, and result fields
 
-  To align Hedgehog2 with modern Julia practices, we adopt a similar architecture.
+  To align Hedgehog with modern Julia practices, we adopt a similar architecture.
 
 decision: |
-  - All pricing logic in Hedgehog2 will follow the `solve(problem, method)` pattern.
+  - All pricing logic in Hedgehog will follow the `solve(problem, method)` pattern.
   - Define a problem type, typically a subtype of `PricingProblem{P<:AbstractPayoff, M<:AbstractMarketInputs}`.
   - A `PricingProblem` is constructed from a payoff and market data.
   - Dispatch `solve(prob, method::AbstractPricingMethod)` to compute the price.
@@ -38,7 +38,7 @@ consequences:
     - "Enables compatibility with SciML tooling, logging, and differentiation"
     - "Encourages consistent structure across analytical, simulation, and numerical methods"
     - "Simplifies calibration, volatility surface inversion, and multi-method workflows"
-    - "Makes it easy to extend Hedgehog2 to new solvers or problem types"
+    - "Makes it easy to extend Hedgehog to new solvers or problem types"
   negative:
     - "Requires rewriting existing pricing method implementations and examples"
     - "May introduce a steeper learning curve for users unfamiliar with SciML design"

@@ -1,4 +1,4 @@
-using Revise, Dates, Hedgehog2
+using Revise, Dates, Hedgehog
 
 reference_date = Date(2020, 1, 1)
 r, S0, sigma = 0.05, 100.0, 0.25

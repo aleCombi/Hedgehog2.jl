@@ -32,7 +32,7 @@ function heston_problem()
 end
 
 # Running the simulations
-using Revise, Plots, Hedgehog2, DifferentialEquations
+using Revise, Plots, Hedgehog, DifferentialEquations
 
 gbm = gbm_problem()
 heston = heston_problem()

@@ -1,4 +1,4 @@
-using Revise, Hedgehog2, Distributions, DifferentialEquations, Random, Plots, Dates
+using Revise, Hedgehog, Distributions, DifferentialEquations, Random, Plots, Dates
 
 reference_date = Date(2020, 1, 1)
 # Define Heston model parameters like in Broadie-Kaya
@@ -10,25 +10,25 @@ V0 = 0.010201  # Initial variance
 ρ = -0.7     # Correlation
 r = 0.0319     # Risk-free rate
 T = 1.0       # Time to maturity
-market_inputs = Hedgehog2.HestonInputs(reference_date, r, S0, V0, κ, θ, σ, ρ)
+market_inputs = Hedgehog.HestonInputs(reference_date, r, S0, V0, κ, θ, σ, ρ)
 
 # Define option payoff
 expiry = reference_date + Day(365)
 strike = S0 # ATM call
 payoff =
-    VanillaOption(strike, expiry, Hedgehog2.European(), Hedgehog2.Call(), Hedgehog2.Spot())
+    VanillaOption(strike, expiry, Hedgehog.European(), Hedgehog.Call(), Hedgehog.Spot())
 
 # Define Carr-Madan pricer as benchmark
 boundary = 32
 α = 1
-distribution = Hedgehog2.HestonDynamics()
-method = Hedgehog2.CarrMadan(α, boundary, distribution)
+distribution = Hedgehog.HestonDynamics()
+method = Hedgehog.CarrMadan(α, boundary, distribution)
 carr_madan_pricer = Pricer(payoff, market_inputs, method)
 carr_madan_price = carr_madan_pricer()
 
 # Construct the Heston Noise Process
 # TODO: this should be embedded in the Montecarlo pricer
-heston_noise = Hedgehog2.HestonNoise(0, dynamics(market_inputs), Z0 = nothing)
+heston_noise = Hedgehog.HestonNoise(0, dynamics(market_inputs), Z0 = nothing)
 
 # Define `NoiseProblem`
 # TODO: this should be embedded in the Montecarlo pricer
@@ -41,7 +41,7 @@ using Statistics, Plots, PrettyTables
 
 # Your simulation function
 function simulated_prices(N)
-    values = [Hedgehog2.rand(rng, heston_dist(T)) for i = 1:N]
+    values = [Hedgehog.rand(rng, heston_dist(T)) for i = 1:N]
     final_payoffs = exp(-r) .* payoff.(values)
     price = mean(final_payoffs)
     payoff_variance = var(final_payoffs)

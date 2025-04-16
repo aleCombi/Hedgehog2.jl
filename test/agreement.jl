@@ -1,10 +1,10 @@
 using Test
-using Hedgehog2
+using Hedgehog
 
 function test_model_price_agreement_over_problems(
     problems::Vector{PricingProblem},
-    model1::Hedgehog2.AbstractPricingMethod,
-    model2::Hedgehog2.AbstractPricingMethod;
+    model1::Hedgehog.AbstractPricingMethod,
+    model2::Hedgehog.AbstractPricingMethod;
     rtol::Real = 1e-8,
     atol::Real = 1e-10,
 )
@@ -14,8 +14,8 @@ function test_model_price_agreement_over_problems(
     @testset "Price Agreement for $name1 vs $name2 over $(length(problems)) problems" begin
         for (i, prob) in enumerate(problems)
             @testset "Problem $i: $(prob.payoff)" begin
-                price1 = Hedgehog2.solve(prob, model1).price
-                price2 = Hedgehog2.solve(prob, model2).price
+                price1 = Hedgehog.solve(prob, model1).price
+                price2 = Hedgehog.solve(prob, model2).price
 
                 @test isapprox(price1, price2; rtol=rtol, atol=atol)
             end

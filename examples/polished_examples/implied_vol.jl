@@ -1,7 +1,7 @@
 using Dates
 using Accessors
 using Optimization
-using Hedgehog2
+using Hedgehog
 
 # Inputs
 reference_date = Date(2025, 1, 1)
@@ -25,7 +25,7 @@ vol = 0.3
 
 # Create the pricing problem
 pricing_problem = PricingProblem(payoff, market_inputs)
-market_price = Hedgehog2.solve(pricing_problem, BlackScholesAnalytic()).price
+market_price = Hedgehog.solve(pricing_problem, BlackScholesAnalytic()).price
 
 # Wrap in a calibration problem
 calib = CalibrationProblem(
@@ -37,7 +37,7 @@ calib = CalibrationProblem(
 )
 
 # Solve for implied vol using root finding
-sol = Hedgehog2.solve(calib, RootFinderAlgo())
+sol = Hedgehog.solve(calib, RootFinderAlgo())
 
 # Extract implied vol
 implied_vol = sol.u

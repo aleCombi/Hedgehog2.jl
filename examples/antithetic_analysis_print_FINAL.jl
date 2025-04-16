@@ -1,4 +1,4 @@
-using Hedgehog2
+using Hedgehog
 using Dates
 using Random
 using Statistics
@@ -36,10 +36,10 @@ function analyze_antithetic_variance_reduction(
 
     # Extract terminal values
     original_terminals = [
-        Hedgehog2.get_terminal_value(all_paths[i], mc_method.dynamics, mc_method.strategy) for i = 1:half_paths
+        Hedgehog.get_terminal_value(all_paths[i], mc_method.dynamics, mc_method.strategy) for i = 1:half_paths
     ]
     antithetic_terminals = [
-        Hedgehog2.get_terminal_value(
+        Hedgehog.get_terminal_value(
             all_paths[i+half_paths],
             mc_method.dynamics,
             mc_method.strategy,

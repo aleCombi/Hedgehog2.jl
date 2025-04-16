@@ -19,14 +19,14 @@ end
 # ╔═╡ 3517e1c0-00ba-11f0-08bf-d37b642b75dc
 begin
     using Pkg
-    Pkg.develop(path = "C:\\repos\\Hedgehog2.jl")
+    Pkg.develop(path = "C:\\repos\\Hedgehog.jl")
     Pkg.instantiate()
     Pkg.add("Accessors")
     Pkg.add("Plots")
     Pkg.add("ForwardDiff")
     Pkg.add("PlutoUI")
     Pkg.add("Interpolations")
-    using Hedgehog2, Dates, Accessors, Plots, ForwardDiff, PlutoUI, Interpolations
+    using Hedgehog, Dates, Accessors, Plots, ForwardDiff, PlutoUI, Interpolations
 end
 
 # ╔═╡ d275bd54-fa00-4412-b105-2907d62c9da0
@@ -34,10 +34,10 @@ begin
     # define payoff
     strike = 5
     expiry = Date(2017, 7, 26)
-    call_put = Hedgehog2.Put()
-    underlying = Hedgehog2.Forward()
+    call_put = Hedgehog.Put()
+    underlying = Hedgehog.Forward()
     american_payoff =
-        VanillaOption(strike, expiry, Hedgehog2.American(), call_put, underlying)
+        VanillaOption(strike, expiry, Hedgehog.American(), call_put, underlying)
 
     # define market inputs
     reference_date = Date(2017, 6, 29)

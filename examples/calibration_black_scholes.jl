@@ -1,4 +1,4 @@
-using Revise, Hedgehog2, Dates, Accessors
+using Revise, Hedgehog, Dates, Accessors
 # True model inputs
 # -- Market Inputs
 reference_date = Date(2020, 1, 1)
@@ -19,8 +19,8 @@ pricing_method = BlackScholesAnalytic()
 price = solve(pp, pricing_method).price  # True model price
 
 # Define calibration problem
-calib_problem = Hedgehog2.CalibrationProblem(
-    Hedgehog2.BasketPricingProblem([payoff], market),
+calib_problem = Hedgehog.CalibrationProblem(
+    Hedgehog.BasketPricingProblem([payoff], market),
     pricing_method,
     [@optic _.market_inputs.sigma],
     [price],

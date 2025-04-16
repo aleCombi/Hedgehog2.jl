@@ -3,10 +3,10 @@ using DataFrames
 
 function run_model_comparison_table(
     prob::PricingProblem,
-    models::Vector{Hedgehog2.AbstractPricingMethod},
+    models::Vector{Hedgehog.AbstractPricingMethod},
     lenses::Tuple;
-    ad_method::Hedgehog2.GreekMethod = ForwardAD(),
-    fd_method::Hedgehog2.GreekMethod = FiniteDifference(1e-3),
+    ad_method::Hedgehog.GreekMethod = ForwardAD(),
+    fd_method::Hedgehog.GreekMethod = FiniteDifference(1e-3),
 )
 
     results = Dict{String, Any}()
@@ -16,8 +16,8 @@ function run_model_comparison_table(
         model_name = string(typeof(model).name.name)
 
         # Price
-        price_time = @belapsed Hedgehog2.solve($prob, $model)
-        sol = Hedgehog2.solve(prob, model)
+        price_time = @belapsed Hedgehog.solve($prob, $model)
+        sol = Hedgehog.solve(prob, model)
         price = sol.price
 
         # AD Greeks
@@ -106,7 +106,7 @@ prob = PricingProblem(payoff, market_inputs)
 
 # Lenses
 spot_lens = @optic _.market_inputs.spot
-sigma_lens = Hedgehog2.VolLens(1, 1)
+sigma_lens = Hedgehog.VolLens(1, 1)
 lenses = (spot_lens, sigma_lens)
 
 # Models

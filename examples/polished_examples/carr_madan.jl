@@ -1,4 +1,4 @@
-using Revise, Hedgehog2, BenchmarkTools, Dates, Accessors
+using Revise, Hedgehog, BenchmarkTools, Dates, Accessors
 
 # -- Market Inputs
 reference_date = Date(2020, 1, 1)
@@ -20,18 +20,18 @@ method_analytic = BlackScholesAnalytic()
 method_carr_madan = CarrMadan(1.0, 16.0, LognormalDynamics())
 
 # -- Solve for prices
-@btime Hedgehog2.solve($prob, $method_analytic)
-@btime Hedgehog2.solve($prob, $method_carr_madan)
+@btime Hedgehog.solve($prob, $method_analytic)
+@btime Hedgehog.solve($prob, $method_carr_madan)
 
-sol_analytic = Hedgehog2.solve(prob, method_analytic)
-sol_carr = Hedgehog2.solve(prob, method_carr_madan)
+sol_analytic = Hedgehog.solve(prob, method_analytic)
+sol_carr = Hedgehog.solve(prob, method_carr_madan)
 
 println("Analytic price:   ", sol_analytic.price)
 println("Carr-Madan price: ", sol_carr.price)
 
 # --- Greeks via Accessors
 spot_lens = @optic _.market_inputs.spot
-sigma_lens = Hedgehog2.VolLens(1, 1)
+sigma_lens = Hedgehog.VolLens(1, 1)
 lenses = (sigma_lens, spot_lens)
 
 # -- Greek methods

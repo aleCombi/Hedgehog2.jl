@@ -1,5 +1,5 @@
 using Test
-using Hedgehog2
+using Hedgehog
 using Accessors
 import Accessors: @optic
 using Random
@@ -65,7 +65,7 @@ using Random
     end
 
     using Test
-    using Hedgehog2
+    using Hedgehog
     using Dates
     using Accessors
     import Accessors: @optic
@@ -78,7 +78,7 @@ using Random
         spot = 1.0
         sigma = 1.0
 
-        underlying = Hedgehog2.Forward()
+        underlying = Hedgehog.Forward()
         payoff = VanillaOption(strike, expiry, European(), Call(), underlying)
         market_inputs = BlackScholesInputs(reference_date, rate, spot, sigma)
         pricing_prob = PricingProblem(payoff, market_inputs)
@@ -121,7 +121,7 @@ using Random
     end
 
     using Test
-    using Hedgehog2
+    using Hedgehog
     using Dates
     using Accessors
     import Accessors: @optic
@@ -131,7 +131,7 @@ using Random
         # Define the vanilla option
         strike = 1.0
         expiry = Date(2020, 4, 2)
-        underlying = Hedgehog2.Forward()
+        underlying = Hedgehog.Forward()
         payoff = VanillaOption(strike, expiry, European(), Put(), underlying)
 
         # Reference date and market inputs

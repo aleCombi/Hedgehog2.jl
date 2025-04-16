@@ -1,4 +1,4 @@
-using Revise, Dates, Hedgehog2, Distributions, Test
+using Revise, Dates, Hedgehog, Distributions, Test
 method = BlackScholesAnalytic()
 reference_date = Date(2024, 1, 1)
 expiry_date = reference_date + Day(365)

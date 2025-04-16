@@ -1,4 +1,4 @@
-using Revise, Hedgehog2, Dates, Accessors
+using Revise, Hedgehog, Dates, Accessors
 
 # --- True model inputs (used to generate quotes)
 reference_date = Date(2020, 1, 1)
@@ -57,9 +57,9 @@ accessors = [
 
 
 # CalibrationProblem
-basket_problem = Hedgehog2.BasketPricingProblem(payoffs, market_inputs)
+basket_problem = Hedgehog.BasketPricingProblem(payoffs, market_inputs)
 
-calib_problem = Hedgehog2.CalibrationProblem(
+calib_problem = Hedgehog.CalibrationProblem(
     basket_problem,
     method_heston,
     accessors,
@@ -67,7 +67,7 @@ calib_problem = Hedgehog2.CalibrationProblem(
     initial_guess,
 )
 
-calib_algo = Hedgehog2.OptimizerAlgo()
+calib_algo = Hedgehog.OptimizerAlgo()
 # --- Solve calibration
 result = solve(calib_problem, calib_algo)
 
