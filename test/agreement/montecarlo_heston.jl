@@ -5,7 +5,7 @@ using Random
 using Statistics
 using Printf
 
-@testset "Heston Model Monte Carlo Test" begin
+@testset "Heston Model Monte Carlo Test / Variance reduction test" begin
     # --------------------------
     # Setup common test parameters
     # --------------------------
@@ -55,25 +55,22 @@ using Printf
     scenarios = [
         (
             "Euler-Maruyama without antithetic",
-            EulerMaruyama(trajectories, steps = steps, seeds = nothing),
+            EulerMaruyama(),
             HestonDynamics(),
+            SimulationConfig(trajectories, seeds = nothing, variance_reduction=Hedgehog2.NoVarianceReduction())
         ),
         (
             "Euler-Maruyama with antithetic",
-            EulerMaruyama(
-                trajectories ÷ 2,
-                steps = steps,
-                antithetic = true,
-                seeds = nothing,
-            ),
+            EulerMaruyama(),
             HestonDynamics(),
+            SimulationConfig(trajectories ÷ 2, seeds = nothing, variance_reduction=Hedgehog2.Antithetic())
         ),
     ]
 
     results = Dict()
 
     # Run all scenarios
-    for (scenario_name, strategy, dynamics) in scenarios
+    for (scenario_name, strategy, dynamics, config) in scenarios
         # Print current scenario
         println("Running scenario: ", scenario_name)
 
@@ -87,10 +84,10 @@ using Printf
             trial_seeds = rand(trial_rng, 1:10^9, trajectories)
 
             # Create modified strategy with trial seeds
-            modified_strategy = @set strategy.seeds = trial_seeds
+            modified_config = @set config.seeds = trial_seeds
 
             # Create Monte Carlo method
-            mc_method = MonteCarlo(dynamics, modified_strategy)
+            mc_method = MonteCarlo(dynamics, strategy, modified_config)
 
             # Solve with current seed
             sol = solve(prob, mc_method)

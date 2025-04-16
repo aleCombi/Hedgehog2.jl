@@ -5,7 +5,7 @@ using Random
 using Statistics
 using Printf
 
-@testset "Black-Scholes Monte Carlo vs Analytic" begin
+@testset "Black-Scholes Monte Carlo vs Analytic - Antithetic effectiveness" begin
     # --------------------------
     # Setup common test parameters
     # --------------------------
@@ -56,28 +56,32 @@ using Printf
             "BlackScholesExact without antithetic",
             BlackScholesExact(),
             LognormalDynamics(),
+            SimulationConfig(trajectories, seeds = nothing, variance_reduction=Hedgehog2.NoVarianceReduction())
         ),
         (
             "BlackScholesExact with antithetic",
             BlackScholesExact(),
             LognormalDynamics(),
+            SimulationConfig(trajectories, seeds = nothing)
         ),
         (
             "EulerMaruyama without antithetic",
             EulerMaruyama(),
             LognormalDynamics(),
+            SimulationConfig(trajectories, seeds = nothing, variance_reduction=Hedgehog2.NoVarianceReduction())
         ),
         (
             "EulerMaruyama with antithetic",
             EulerMaruyama(),
             LognormalDynamics(),
+            SimulationConfig(trajectories, seeds = nothing)
         ),
     ]
 
     results = Dict()
 
     # Run all scenarios
-    for (scenario_name, strategy, dynamics) in scenarios
+    for (scenario_name, strategy, dynamics, config) in scenarios
         # Print current scenario for debugging
         println("Running scenario: ", scenario_name)
 
@@ -93,10 +97,10 @@ using Printf
             trial_seeds = rand(trial_rng, 1:10^9, trajectories)
 
             # Create modified strategy with updated kwargs
-            modified_strategy = @set strategy.seeds = trial_seeds
+            modified_config = @set config.seeds = trial_seeds
 
             # Create Monte Carlo method with modified strategy
-            mc_method = MonteCarlo(dynamics, modified_strategy)
+            mc_method = MonteCarlo(dynamics, strategy, modified_config)
 
             # Solve with current seed
             sol = solve(prob, mc_method)
