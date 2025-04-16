@@ -61,7 +61,7 @@ function solve(
     integrand(v, p) =
         damp * call_transform(r, prob.payoff.expiry, ϕ, v, method) * exp(-im * v * logK)
 
-    iprob = IntegralProblem{false}(integrand, -method.bound, method.bound, nothing)
+    iprob = IntegralProblem{false}(integrand, (-method.bound, method.bound), nothing)
     integral_result = Integrals.solve(iprob, method.integral_method; method.kwargs...)
 
     call_price = real(integral_result.u)

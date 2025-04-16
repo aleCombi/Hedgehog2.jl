@@ -2,6 +2,7 @@ using Test
 using Hedgehog2
 using Accessors
 import Accessors: @optic
+using Random
 
 @testset "Greeks agreement" begin
     @testset "Greek agreement: ForwardAD vs FiniteDifference" begin
