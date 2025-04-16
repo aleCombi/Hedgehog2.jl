@@ -49,26 +49,27 @@ using Printf
     manual_bs_price = spot * cdf(Normal(), d1) - strike * exp(-rate) * cdf(Normal(), d2)
     println("Manual Black-Scholes calculation: $manual_bs_price")
 
+    simulation_config = SimulationConfig(trajectories, seeds = nothing)
     # Test scenarios - we'll use Accessors to set seeds in the trial loop
     scenarios = [
         (
             "BlackScholesExact without antithetic",
-            BlackScholesExact(trajectories, seeds = nothing),
+            BlackScholesExact(),
             LognormalDynamics(),
         ),
         (
             "BlackScholesExact with antithetic",
-            BlackScholesExact(trajectories, antithetic = true, seeds = nothing),
+            BlackScholesExact(),
             LognormalDynamics(),
         ),
         (
             "EulerMaruyama without antithetic",
-            EulerMaruyama(trajectories, steps = steps, seeds = nothing),
+            EulerMaruyama(),
             LognormalDynamics(),
         ),
         (
             "EulerMaruyama with antithetic",
-            EulerMaruyama(trajectories, steps = steps, antithetic = true, seeds = nothing),
+            EulerMaruyama(),
             LognormalDynamics(),
         ),
     ]
