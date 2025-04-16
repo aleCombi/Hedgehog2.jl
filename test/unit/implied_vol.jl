@@ -4,7 +4,7 @@ using Dates
 using Test
 using DataInterpolations
 using Accessors
-@testset "Implied Vol Calibration Consistency (New Style)" begin
+@testset "Implied Vol Calibration Consistency" begin
     reference_date = Date(2020, 1, 1)
     expiry_date = reference_date + Year(1)
     r = 0.02
@@ -25,7 +25,7 @@ using Accessors
     calib_problem = CalibrationProblem(
         basket_prob,
         BlackScholesAnalytic(),
-        [@optic _.market_inputs.sigma],
+        [VolLens(1,1)],
         [price],
         [0.2],
     )

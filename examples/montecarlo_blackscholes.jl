@@ -1,3 +1,4 @@
+using Revise
 using Hedgehog2
 using Dates
 using Printf
@@ -27,14 +28,15 @@ bs_solution = solve(prob, bs_method)
 # Using 100,000 paths for more accurate results
 trajectories = 5_000
 mc_exact_method =
-    MonteCarlo(LognormalDynamics(), BlackScholesExact(trajectories, antithetic = true))
+    MonteCarlo(LognormalDynamics(), BlackScholesExact(), SimulationConfig(trajectories))
 mc_exact_solution = solve(prob, mc_exact_method)
 
 # Method 3: Monte Carlo with Euler-Maruyama discretization
 # Using 100,000 paths and 100 time steps
+trajectories = 10_000
 steps = 100
 mc_euler_method =
-    MonteCarlo(LognormalDynamics(), EulerMaruyama(trajectories, steps, antithetic = true))
+    MonteCarlo(LognormalDynamics(), EulerMaruyama(), SimulationConfig(trajectories, steps=steps, variance_reduction=Hedgehog2.Antithetic()))
 mc_euler_solution = solve(prob, mc_euler_method)
 
 # Print the results

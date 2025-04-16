@@ -137,5 +137,5 @@ function solve(
         )
     end
 
-    return CRRSolution(value[1])
+    return CRRSolution(prob, method, value[1])
 end

@@ -46,7 +46,7 @@ function _set_rate_curve(prob, lens::ZeroRateSpineLens, new_zᵢ, curve::RateCur
     z = spine_zeros(curve)
     z_bumped = @set z[lens.i] = new_zᵢ
     new_itp = curve.builder(z_bumped, t)
-    new_curve = InterpolatedRateCurve(curve.reference_date, new_itp, curve.builder)
+    new_curve = RateCurve(curve.reference_date, new_itp, curve.builder)
     return @set prob.market_inputs.rate = new_curve
 end
 

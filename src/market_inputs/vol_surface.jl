@@ -211,7 +211,7 @@ function RectVolSurface(
     end
 
     vols = Matrix{Float64}(undef, nrows, ncols)
-    accessor = @optic _.market_inputs.sigma
+    accessor = VolLens(1,1)
     for i = 1:nrows, j = 1:ncols
         expiry = reference_date + tenors[i]
         strike = strikes[j]

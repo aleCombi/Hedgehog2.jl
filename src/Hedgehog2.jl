@@ -19,11 +19,11 @@ end
 
 if false
     include("../test/runtests.jl")
+    include("../test/calibration.jl")
 end
 
 # utilities
 include("date_functions.jl")
-include("solutions/pricing_solutions.jl")
 
 # payoffs
 include("payoffs/payoffs.jl")
@@ -35,6 +35,7 @@ include("market_inputs/market_inputs.jl")
 
 # pricing methods
 include("pricing_methods/pricing_methods.jl")
+include("solutions/pricing_solutions.jl")
 include("pricing_methods/black_scholes.jl")
 include("pricing_methods/cox_ross_rubinstein.jl")
 include("pricing_methods/montecarlo.jl")

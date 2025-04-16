@@ -5,7 +5,7 @@ using Random
 using Statistics
 using Printf
 
-@testset "Black-Scholes Monte Carlo vs Analytic" begin
+@testset "Black-Scholes Monte Carlo vs Analytic - Antithetic effectiveness" begin
     # --------------------------
     # Setup common test parameters
     # --------------------------
@@ -49,34 +49,39 @@ using Printf
     manual_bs_price = spot * cdf(Normal(), d1) - strike * exp(-rate) * cdf(Normal(), d2)
     println("Manual Black-Scholes calculation: $manual_bs_price")
 
+    simulation_config = SimulationConfig(trajectories, seeds = nothing)
     # Test scenarios - we'll use Accessors to set seeds in the trial loop
     scenarios = [
         (
             "BlackScholesExact without antithetic",
-            BlackScholesExact(trajectories, seeds = nothing),
+            BlackScholesExact(),
             LognormalDynamics(),
+            SimulationConfig(trajectories, seeds = nothing, variance_reduction=Hedgehog2.NoVarianceReduction())
         ),
         (
             "BlackScholesExact with antithetic",
-            BlackScholesExact(trajectories, antithetic = true, seeds = nothing),
+            BlackScholesExact(),
             LognormalDynamics(),
+            SimulationConfig(trajectories, seeds = nothing)
         ),
         (
             "EulerMaruyama without antithetic",
-            EulerMaruyama(trajectories, steps = steps, seeds = nothing),
+            EulerMaruyama(),
             LognormalDynamics(),
+            SimulationConfig(trajectories, seeds = nothing, variance_reduction=Hedgehog2.NoVarianceReduction())
         ),
         (
             "EulerMaruyama with antithetic",
-            EulerMaruyama(trajectories, steps = steps, antithetic = true, seeds = nothing),
+            EulerMaruyama(),
             LognormalDynamics(),
+            SimulationConfig(trajectories, seeds = nothing)
         ),
     ]
 
     results = Dict()
 
     # Run all scenarios
-    for (scenario_name, strategy, dynamics) in scenarios
+    for (scenario_name, strategy, dynamics, config) in scenarios
         # Print current scenario for debugging
         println("Running scenario: ", scenario_name)
 
@@ -92,10 +97,10 @@ using Printf
             trial_seeds = rand(trial_rng, 1:10^9, trajectories)
 
             # Create modified strategy with updated kwargs
-            modified_strategy = @set strategy.seeds = trial_seeds
+            modified_config = @set config.seeds = trial_seeds
 
             # Create Monte Carlo method with modified strategy
-            mc_method = MonteCarlo(dynamics, modified_strategy)
+            mc_method = MonteCarlo(dynamics, strategy, modified_config)
 
             # Solve with current seed
             sol = solve(prob, mc_method)

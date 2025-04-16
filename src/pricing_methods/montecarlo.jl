@@ -185,9 +185,9 @@ function get_antithetic_ensemble_problem(
     market_inputs,
     tspan
 )
-    prob_func = function (_base_prob, _seed, i)
+    prob_func = function (prob, i, repeat)
         flipped_noise = NoiseGrid(normal_sol.u[i].W.t, -normal_sol.u[i].W.W)
-        return remake(_base_prob; noise = flipped_noise)
+        return remake(prob; noise = flipped_noise, seed=config.seeds[i])
     end
 
     return EnsembleProblem(problem, prob_func=prob_func)
@@ -255,10 +255,8 @@ Constructs an `EnsembleProblem` with fixed seeds for reproducible simulations.
 """
 function get_ensemble_problem(prob, strategy_config::SimulationConfig)
     seeds = strategy_config.seeds
-    let seeds = seeds
-        prob_func = (prob, i, repeat) -> remake(prob; seed=seeds[i])
-        EnsembleProblem(prob, prob_func=prob_func)
-    end
+    prob_func = (prob, i, repeat) -> remake(prob; seed=seeds[i])
+    EnsembleProblem(prob, prob_func=prob_func)
 end
 
 # ------------------ Terminal Value Extractors ------------------
@@ -392,5 +390,5 @@ function solve(
     discount = df(prob.market_inputs.rate, prob.payoff.expiry)
     price = discount * mean(payoffs)
 
-    return MonteCarloSolution(price, ens)
+    return MonteCarloSolution(prob, method, price, ens)
 end
