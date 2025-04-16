@@ -27,15 +27,13 @@ price = sol.price
 
 - European Call / Put
 - American Call / Put
-- Digital and Barrier (in progress)
-- Asian and Path-Dependent (planned)
+- Planned: Digital and Barrier, Asian
 
 ## 🧠 Supported Models (Price Dynamics)
 
 - Black-Scholes (`LognormalDynamics`)
-- Heston
-- Hull-White (short-rate)
-- Planned: Variance Gamma, Rough Bergomi
+- Heston (`HestonDynamics`)
+- Planned: Hull-White (short-rate), Variance Gamma, Rough Bergomi
 
 ## ⚙️ Pricing Methods
 
@@ -43,14 +41,13 @@ price = sol.price
 - Binomial Trees (Cox–Ross–Rubinstein)
 - Monte Carlo:
   - Euler–Maruyama
-  - Exact simulation (Black-Scholes)
-  - Broadie–Kaya for Heston
+  - Exact simulation (Black-Scholes, Broadie–Kaya for Heston)
 - Fourier methods (Carr–Madan; COS coming soon)
 - PDE methods (Crank–Nicolson, in progress)
 
 ## 📊 Calibration
 
-Hedgehog supports calibration via a unified nonlinear solver interface:
+Hedgehog supports calibration via a unified interface:
 
 - Solve for implied volatility using `CalibrationProblem`
 - Invert volatility surfaces
@@ -58,10 +55,10 @@ Hedgehog supports calibration via a unified nonlinear solver interface:
 
 ## 🧮 Sensitivities
 
-- Greeks supported via:
+- Greeks supported via a `GreekProblem` interface:
   - Finite differences
-  - Automatic differentiation (planned)
-- Extensible `GreekProblem` interface is under development
+  - Automatic differentiation
+  - `BatchGreekProblem` to compute a full gradient of sensitivities
 
 ## 🚀 Highlights
 
