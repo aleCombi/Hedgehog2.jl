@@ -17,6 +17,8 @@ accessors = [VolLens(1,1)]
 initial_guess = [0.15]
 
 basket = BasketPricingProblem(payoffs, market_inputs)
-calib = CalibrationProblem(basket, BlackScholesAnalytic(), accessors, quotes, 0.7*ones(length(payoffs)))
+calib = CalibrationProblem(basket, BlackScholesAnalytic(), accessors, quotes, [0.7])
 result = solve(calib, OptimizerAlgo())
 @show result.objective
+@show result.u
+@show σ

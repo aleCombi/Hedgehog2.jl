@@ -28,10 +28,10 @@ crr_american_price = solve(crr_american_prob, crr)
 
 # print results
 println("Cox Ross Rubinstein European Price:")
-println(crr_euro_price)
+println(crr_euro_price.price)
 
 println("Cox Ross Rubinstein American Price:")
-println(crr_american_price)
+println(crr_american_price.price)
 
 println("Analytical European price:")
-println(analytical_price)
+println(analytical_price.price)
