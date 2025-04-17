@@ -6,9 +6,10 @@ using Hedgehog
 # Inputs
 reference_date = Date(2025, 1, 1)
 expiry = Date(2025, 7, 1)
-strike = 100.0
-spot = 100.0
-rate = FlatRateCurve(0.01)  # assume this gives df(t)
+strike = 1.0
+spot = 1.0
+rate = 0.01
+vol = 0.36
 
 # Build payoff
 payoff = VanillaOption(strike, expiry, European(), Call(), Spot())
@@ -18,10 +19,9 @@ market_inputs = BlackScholesInputs(
     reference_date,
     rate,
     spot,
-    0.2
+    vol
 )
 
-vol = 0.3
 
 # Create the pricing problem
 pricing_problem = PricingProblem(payoff, market_inputs)
@@ -31,9 +31,9 @@ market_price = Hedgehog.solve(pricing_problem, BlackScholesAnalytic()).price
 calib = CalibrationProblem(
     BasketPricingProblem([payoff], market_inputs),   # pricing problem container
     BlackScholesAnalytic(),                    # method
-    [@optic _.market_inputs.sigma],             # parameter to calibrate
+    [VolLens(1,1)],             # parameter to calibrate
     [market_price],                            # target price
-    [vol],                                     # initial guess
+    [0.05],                                     # initial guess
 )
 
 # Solve for implied vol using root finding
