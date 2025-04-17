@@ -299,13 +299,22 @@ function simulate_paths(
     method::M,
     ::NoVarianceReduction
 ) where {M<:MonteCarlo}
+    return simulate_paths(prob.market_inputs, prob.payoff.expiry, method, NoVarianceReduction())
+end
+
+function simulate_paths(
+    market_inputs::MI,    
+    date,
+    method::M,
+    ::NoVarianceReduction
+) where {M<:MonteCarlo, MI<:AbstractMarketInputs}
     strategy = method.strategy
     dynamics = method.dynamics
     config = method.config
-    T = yearfrac(prob.market_inputs.referenceDate, prob.payoff.expiry)
+    T = yearfrac(market_inputs.referenceDate, date)
     tspan = (0.0, T)
     dt = T / config.steps
-    normal_prob = sde_problem(dynamics, strategy, prob.market_inputs, tspan)
+    normal_prob = sde_problem(dynamics, strategy, market_inputs, tspan)
     ensemble_prob = get_ensemble_problem(normal_prob, config)
     normal_sol = DifferentialEquations.solve(ensemble_prob, EM(); dt = dt, trajectories=config.trajectories)
     return normal_sol
@@ -321,18 +330,27 @@ function simulate_paths(
     method::M,
     ::Antithetic
 ) where {M<:MonteCarlo}
+    return simulate_paths(prob.market_inputs, prob.payoff.expiry, method, Antithetic())
+end
+
+function simulate_paths(
+    market_inputs::MI,
+    date,
+    method::M,
+    ::Antithetic
+) where {M<:MonteCarlo, MI<:AbstractMarketInputs}
     strategy = method.strategy
     dynamics = method.dynamics
     config = method.config
-    T = yearfrac(prob.market_inputs.referenceDate, prob.payoff.expiry)
+    T = yearfrac(market_inputs.referenceDate, date)
     tspan = (0.0, T)
     dt = T / config.steps
 
-    normal_prob = sde_problem(dynamics, strategy, prob.market_inputs, tspan)
+    normal_prob = sde_problem(dynamics, strategy, market_inputs, tspan)
     ensemble_prob = get_ensemble_problem(normal_prob, config)
     normal_sol = DifferentialEquations.solve(ensemble_prob, EM(); dt = dt, trajectories=config.trajectories, save_noise=true)
 
-    antithetic_prob = get_antithetic_ensemble_problem(normal_prob, dynamics, strategy, config, normal_sol, prob.market_inputs, tspan)
+    antithetic_prob = get_antithetic_ensemble_problem(normal_prob, dynamics, strategy, config, normal_sol, market_inputs, tspan)
     antithetic_sol = DifferentialEquations.solve(antithetic_prob, EM(); dt = dt, trajectories=config.trajectories)
     return (normal_sol, antithetic_sol)
 end
