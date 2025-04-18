@@ -39,7 +39,7 @@ function LogGBMProblem(μ, σ, u0, tspan; seed = UInt64(0), kwargs...)
     noise = WienerProcess(tspan[1], 0.0)
 
     sde_f = SDEFunction(f, g)
-    return SDEProblem(
+    return SDEProblem{false}(
         sde_f,
         u0,
         (tspan[1], tspan[2]),
