@@ -270,7 +270,12 @@ end
 
 Returns the marginal distribution of log-price under Black-Scholes dynamics.
 """
-function marginal_law(::LognormalDynamics, m::BlackScholesInputs, t)
+function marginal_law(
+    problem::PricingProblem{P, I},
+    ::LognormalDynamics, 
+    t
+) where {P, I <: BlackScholesInputs}
+    m = problem.market_inputs
     rate = zero_rate(m.rate, t)
     σ = get_vol(m.sigma, nothing, nothing)
     α = yearfrac(m.rate.reference_date, t)
@@ -282,7 +287,13 @@ end
 
 Returns the marginal distribution of price under Heston dynamics.
 """
-function marginal_law(::HestonDynamics, m::HestonInputs, t)
+function marginal_law(
+    problem::PricingProblem{P, I},
+    ::HestonDynamics,
+    t
+) where {P, I <: HestonInputs}
+
+    m = problem.market_inputs
     α = yearfrac(m.rate.reference_date, t)
     rate = zero_rate(m.rate, t)
     return HestonDistribution(m.spot, m.V0, m.κ, m.θ, m.σ, m.ρ, rate, α)

@@ -53,7 +53,7 @@ function solve(
     r = prob.market_inputs.rate
     S = prob.market_inputs.spot
 
-    terminal_law = marginal_law(method.dynamics, prob.market_inputs, prob.payoff.expiry)
+    terminal_law = marginal_law(prob, method.dynamics, prob.payoff.expiry)
     ϕ(u) = cf(terminal_law, u)
 
     logK = log(K)
