@@ -17,7 +17,7 @@ struct LognormalDynamics <: PriceDynamics end
 """
     struct HestonDynamics <: PriceDynamics
 
-Stochastic volatility model where the variance follows a CIR process.
+Stochastic volatility model where the variance follows a Cox-Ingersoll-Ross (CIR) process.
 """
 struct HestonDynamics <: PriceDynamics end
 
@@ -45,17 +45,17 @@ struct Antithetic <: VarianceReductionStrategy end
 # ------------------ Simulation Strategies ------------------
 
 """
-    struct SimulationConfig{I, S, V<:VarianceReductionStrategy}
+    struct SimulationConfig{I, S, V<:VarianceReductionStrategy, TSeeds}
 
 Configuration for Monte Carlo simulations.
 
 # Fields
 - `trajectories`: Number of Monte Carlo paths.
-- `steps`: Number of time steps.
-- `variance_reduction`: Strategy to reduce variance (e.g., `Antithetic`).
-- `seeds`: RNG seeds used to control simulations.
+- `steps`: Number of time steps in each simulation.
+- `variance_reduction`: Strategy to reduce variance (e.g., `Antithetic()`).
+- `seeds`: Vector of RNG seeds used to initialize simulations for reproducibility.
 """
-struct SimulationConfig{I, S, V<:VarianceReductionStrategy,TSeeds}
+struct SimulationConfig{I, S, V<:VarianceReductionStrategy, TSeeds}
     trajectories::I
     steps::S
     variance_reduction::V
@@ -65,7 +65,7 @@ end
 """
     SimulationConfig(trajectories; steps=1, seeds=nothing, variance_reduction=Antithetic())
 
-Constructor for `SimulationConfig`, generating random seeds if not provided.
+Constructor for `SimulationConfig`. If `seeds` is not provided, random seeds are generated.
 """
 SimulationConfig(trajectories; steps = 1, seeds = nothing, variance_reduction=Antithetic()) = begin
     seeds === nothing && (seeds = Base.rand(UInt64, trajectories))
@@ -82,24 +82,23 @@ abstract type SimulationStrategy end
 """
     struct EulerMaruyama <: SimulationStrategy
 
-Standard Euler-Maruyama discretization for SDEs.
+Euler-Maruyama discretization for simulating SDEs.
 """
 struct EulerMaruyama <: SimulationStrategy end
 
 """
     struct HestonBroadieKaya <: SimulationStrategy
 
-Exact sampling scheme for the Heston model using Broadie-Kaya method.
+Exact sampling scheme for the Heston model using the Broadie-Kaya method.
 """
 struct HestonBroadieKaya <: SimulationStrategy end
 
 """
     struct BlackScholesExact <: SimulationStrategy
 
-Exact solution for geometric Brownian motion.
+Exact sampling of the Black-Scholes model using closed-form solution.
 """
 struct BlackScholesExact <: SimulationStrategy end
-
 
 """
     struct MonteCarlo{P<:PriceDynamics, S<:SimulationStrategy, C<:SimulationConfig}
@@ -107,11 +106,11 @@ struct BlackScholesExact <: SimulationStrategy end
 Monte Carlo pricing method combining price dynamics, simulation strategy, and configuration.
 
 # Fields
-- `dynamics`: The model for asset price dynamics (e.g., `HestonDynamics`).
-- `strategy`: Numerical discretization method (e.g., `EulerMaruyama`).
-- `config`: Simulation parameters (number of paths, steps, variance reduction, etc.).
+- `dynamics`: The model for asset price dynamics.
+- `strategy`: Numerical simulation method.
+- `config`: Simulation configuration (paths, steps, seeds, etc.).
 """
-struct MonteCarlo{P<:PriceDynamics,S<:SimulationStrategy, C<:SimulationConfig} <: AbstractPricingMethod
+struct MonteCarlo{P<:PriceDynamics, S<:SimulationStrategy, C<:SimulationConfig} <: AbstractPricingMethod
     dynamics::P
     strategy::S
     config::C
@@ -120,9 +119,9 @@ end
 # ------------------ SDE Problem Builders ------------------
 
 """
-    sde_problem(::LognormalDynamics, ::BlackScholesExact, market, tspan)
+    sde_problem(problem::PricingProblem, ::LognormalDynamics, ::BlackScholesExact)
 
-Constructs a `NoiseProblem` for Black-Scholes dynamics with exact solution.
+Constructs a `NoiseProblem` for exact simulation of Black-Scholes dynamics.
 """
 function sde_problem(
     problem::PricingProblem{Payoff, Inputs},
@@ -133,12 +132,12 @@ function sde_problem(
     market = problem.market_inputs
     T = yearfrac(market.referenceDate, problem.payoff.expiry)
     tspan = (0.0, T)
-       
+
     r = zero_rate(market.rate, 0.0)
     σ = get_vol(market.sigma, nothing, nothing)
     S₀ = market.spot
     t₀ = zero(S₀)
-    
+
     r, σ, t₀, S₀ = promote(r, σ, t₀, S₀)
     noise = GeometricBrownianMotionProcess(r, σ, t₀, S₀)
     noise_problem = NoiseProblem(noise, tspan)
@@ -146,14 +145,14 @@ function sde_problem(
 end
 
 """
-    sde_problem(::LognormalDynamics, ::EulerMaruyama, market, tspan)
+    sde_problem(problem::PricingProblem, ::LognormalDynamics, ::EulerMaruyama)
 
-Constructs a `LogGBMProblem` using Euler-Maruyama for Black-Scholes dynamics.
+Constructs a `LogGBMProblem` for Euler-Maruyama simulation of Black-Scholes dynamics.
 """
 function sde_problem(
     problem::PricingProblem{Payoff, Inputs},
     ::LognormalDynamics,
-    ::EulerMaruyama, 
+    ::EulerMaruyama,
     ) where {Payoff, Inputs <: BlackScholesInputs}
 
     m = problem.market_inputs
@@ -161,7 +160,7 @@ function sde_problem(
     tspan = (0.0, T)
 
     rate = zero_rate(m.rate, 0.0)
-    σ = get_vol(m.sigma, nothing, nothing)      
+    σ = get_vol(m.sigma, nothing, nothing)
     S₀ = m.spot
 
     rate, σ, S₀ = promote(rate, σ, S₀)
@@ -170,13 +169,13 @@ function sde_problem(
 end
 
 """
-    sde_problem(::HestonDynamics, ::EulerMaruyama, market, tspan)
+    sde_problem(problem::PricingProblem, ::HestonDynamics, ::EulerMaruyama)
 
-Constructs a `HestonProblem` using Euler-Maruyama for Heston dynamics.
+Constructs a `HestonProblem` for Euler-Maruyama simulation of the Heston model.
 """
 function sde_problem(
     problem::PricingProblem{Payoff, Inputs},
-    ::HestonDynamics, 
+    ::HestonDynamics,
     ::EulerMaruyama,
     ) where {Payoff, Inputs <: HestonInputs}
 
@@ -189,14 +188,14 @@ function sde_problem(
 end
 
 """
-    sde_problem(::HestonDynamics, ::HestonBroadieKaya, market, tspan)
+    sde_problem(problem::PricingProblem, ::HestonDynamics, ::HestonBroadieKaya)
 
-Constructs a `NoiseProblem` for Heston model using the Broadie-Kaya method.
+Constructs a `NoiseProblem` using Broadie-Kaya sampling for Heston dynamics.
 """
 function sde_problem(
     problem::PricingProblem{Payoff, Inputs},
-    ::HestonDynamics, 
-    strategy::HestonBroadieKaya, 
+    ::HestonDynamics,
+    strategy::HestonBroadieKaya,
     ) where {Payoff, Inputs <: HestonInputs}
 
     m = problem.market_inputs
@@ -217,6 +216,11 @@ function sde_problem(
     return NoiseProblem(noise, tspan)
 end
 
+"""
+    sde_problem(problem, method)
+
+Dispatches to the appropriate SDE constructor based on the method's dynamics and strategy.
+"""
 function sde_problem(
     problem::P,
     method::M
@@ -224,10 +228,12 @@ function sde_problem(
     return sde_problem(problem, method.dynamics, method.strategy)
 end
 
-"""
-    get_antithetic_ensemble_problem(...)
+# ------------------ Antithetic Path Constructors ------------------
 
-Builds an antithetic ensemble problem by mirroring noise paths from a base solution.
+"""
+    get_antithetic_ensemble_problem(problem, normal_sol, method)
+
+Constructs an ensemble problem by mirroring noise from a base solution for Euler-Maruyama.
 """
 function get_antithetic_ensemble_problem(
     problem,
@@ -243,9 +249,9 @@ function get_antithetic_ensemble_problem(
 end
 
 """
-    get_antithetic_ensemble_problem(...)
+    get_antithetic_ensemble_problem(problem, normal_sol, method)
 
-Constructs an antithetic ensemble problem for exact Black-Scholes dynamics.
+Constructs an ensemble problem by flipping volatility for exact Black-Scholes simulation.
 """
 function get_antithetic_ensemble_problem(
     problem,
@@ -263,16 +269,16 @@ function get_antithetic_ensemble_problem(
     return get_ensemble_problem(noise_problem, method.config)
 end
 
-# ------------------ Marginal Laws (optional) ------------------
+# ------------------ Marginal Laws ------------------
 
 """
-    marginal_law(::LognormalDynamics, market, t)
+    marginal_law(problem::PricingProblem, ::LognormalDynamics, t)
 
-Returns the marginal distribution of log-price under Black-Scholes dynamics.
+Returns the marginal distribution of log-price under Black-Scholes dynamics at time `t`.
 """
 function marginal_law(
     problem::PricingProblem{P, I},
-    ::LognormalDynamics, 
+    ::LognormalDynamics,
     t
 ) where {P, I <: BlackScholesInputs}
     m = problem.market_inputs
@@ -283,9 +289,9 @@ function marginal_law(
 end
 
 """
-    marginal_law(::HestonDynamics, market, t)
+    marginal_law(problem::PricingProblem, ::HestonDynamics, t)
 
-Returns the marginal distribution of price under Heston dynamics.
+Returns the marginal distribution of log-price under Heston dynamics at time `t`.
 """
 function marginal_law(
     problem::PricingProblem{P, I},
@@ -304,7 +310,7 @@ end
 """
     get_ensemble_problem(prob, config)
 
-Constructs an `EnsembleProblem` with fixed seeds for reproducible simulations.
+Wraps a simulation problem into an `EnsembleProblem` with seed control.
 """
 function get_ensemble_problem(prob, strategy_config::SimulationConfig)
     seeds = strategy_config.seeds
@@ -317,7 +323,7 @@ end
 """
     get_terminal_value(path, dynamics, strategy)
 
-Extracts the terminal asset value from a simulated path.
+Extracts the terminal asset value from a simulated path, depending on model and strategy.
 """
 get_terminal_value(path, ::HestonDynamics, ::HestonBroadieKaya) = exp(last(path)[1])
 get_terminal_value(path, ::LognormalDynamics, ::EulerMaruyama) = exp(last(path))
@@ -326,8 +332,13 @@ get_terminal_value(path, ::PriceDynamics, ::SimulationStrategy) =
 
 # ------------------ Monte Carlo Method ------------------
 
+"""
+    simulate_paths(sde_prob, method, ::NoVarianceReduction)
+
+Simulates paths using standard Monte Carlo (no variance reduction).
+"""
 function simulate_paths(
-    sde_prob,    
+    sde_prob,
     method::M,
     ::NoVarianceReduction
 ) where { M<:MonteCarlo}
@@ -339,9 +350,13 @@ function simulate_paths(
     return normal_sol
 end
 
+"""
+    simulate_paths(sde_prob, method, ::Antithetic)
 
+Simulates paths using antithetic variates for variance reduction.
+"""
 function simulate_paths(
-    sde_prob,    
+    sde_prob,
     method::M,
     ::Antithetic
     ) where {M<:MonteCarlo}
@@ -360,7 +375,7 @@ end
 """
     reduce_payoffs(result, payoff, ::NoVarianceReduction, dynamics, strategy)
 
-Computes payoffs from simulated terminal values without variance reduction.
+Computes the payoff from terminal values without applying variance reduction.
 """
 function reduce_payoffs(
     result::EnsembleSolution,
@@ -375,7 +390,7 @@ end
 """
     reduce_payoffs(result, payoff, ::Antithetic, dynamics, strategy)
 
-Computes payoffs from paired antithetic simulations and averages them.
+Computes the average payoff over paired antithetic paths.
 """
 function reduce_payoffs(
     result::Tuple{EnsembleSolution, EnsembleSolution},
@@ -393,9 +408,9 @@ function reduce_payoffs(
 end
 
 """
-    solve(prob, method)
+    solve(prob::PricingProblem, method::MonteCarlo)
 
-Solves a `PricingProblem` using the specified Monte Carlo method.
+Solves the pricing problem using Monte Carlo simulation and returns the discounted expected payoff.
 """
 function solve(
     prob::PricingProblem{VanillaOption{TS, TE, European, C, Spot}, I},
