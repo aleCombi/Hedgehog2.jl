@@ -1,6 +1,6 @@
 module Hedgehog
 
-using DifferentialEquations, ForwardDiff, Distributions, Dates
+using ForwardDiff, Distributions, Dates, DifferentialEquations
 using NonlinearSolve, Roots
 using Integrals
 using Polynomials
@@ -19,7 +19,6 @@ end
 
 if false
     include("../test/runtests.jl")
-    include("../test/calibration.jl")
 end
 
 # utilities

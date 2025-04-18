@@ -74,7 +74,8 @@ function solve(
 ) where {TS,TE,I<:AbstractMarketInputs,C,S, L<:LSM}
 
     T = yearfrac(prob.market_inputs.referenceDate, prob.payoff.expiry)
-    sol = Hedgehog.simulate_paths(prob, method.mc_method, method.mc_method.config.variance_reduction)
+    sde_prob = sde_problem(prob, method.mc_method.dynamics, method.mc_method.strategy)
+    sol = Hedgehog.simulate_paths(sde_prob, method.mc_method, method.mc_method.config.variance_reduction)
     spot_grid = Hedgehog.extract_spot_grid(sol)
     ntimes, npaths = size(spot_grid)
     nsteps = ntimes - 1
