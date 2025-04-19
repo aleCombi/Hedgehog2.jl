@@ -27,8 +27,22 @@ function RateCurve(
     interp = (u, t) ->
         LinearInterpolation(u, t; extrapolation = ExtrapolationType.Constant),
 )
-    @assert length(tenors) == length(dfs) "Mismatched tenor/DF lengths"
-    @assert issorted(tenors) "Tenors must be sorted"
+    # --- Validation ---
+    if isempty(tenors)
+        throw(ArgumentError("Input 'tenors' cannot be empty."))
+    end
+    if length(tenors) != length(dfs)
+        throw(ArgumentError("Mismatched lengths for 'tenors' ($(length(tenors))) and 'dfs' ($(length(dfs)))."))
+    end
+    if !issorted(tenors)
+        throw(ArgumentError("'tenors' must be sorted in ascending order."))
+    end
+        if !(tenors[1] >= 0) # Allow zero tenor for spot rate
+            throw(ArgumentError("First tenor must be non-negative. Found: $(tenors[1])"))
+        end
+    if !all(>(0), dfs)
+            throw(ArgumentError("All discount factors ('dfs') must be positive."))
+    end
 
     zr = @. -log(dfs) / tenors  # continuous zero rate
     itp = interp(zr, tenors)
@@ -72,6 +86,11 @@ zero_rate_yf(curve::FlatRateCurve, yf::R) where R <: Number = curve.rate
 # -- Forward Rates --
 
 function forward_rate(curve::RateCurve, t1::Real, t2::Real)
+    # --- Validation ---
+    if t1 >= t2
+        throw(ArgumentError("Start time t1 ($t1) must be less than end time t2 ($t2) for forward rate calculation."))
+    end
+
     df1 = df(curve, t1)
     df2 = df(curve, t2)
     return log(df1 / df2) / (t2 - t1)
