@@ -1,2 +1,17 @@
+# Original entries
 **/Manifest.toml
 **/.vscode
+
+# Documentation
+docs/build/
+docsbuild/
+
+# Keys (in case they accidentally get placed in the repo directory)
+*-key
+*-key.pub
+.documenter-key*
+
+# Build artifacts
+*.jl.cov
+*.jl.*.cov
+*.jl.mem
