@@ -72,7 +72,3 @@ Hedgehog supports calibration via a unified interface:
 ## 📖 Documentation
 
 Complete documentation is available at [https://alecombi.github.io/Hedgehog.jl/](https://alecombi.github.io/Hedgehog.jl/)
-
-## 📄 License
-
-MIT
