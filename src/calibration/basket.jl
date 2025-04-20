@@ -1,4 +1,3 @@
-""
 """
     BasketPricingProblem(payoffs, market_inputs)
 
