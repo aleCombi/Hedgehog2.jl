@@ -1,3 +1,96 @@
+abstract type GreekLens end
+struct SpotLens <: GreekLens end
+
+function (::SpotLens)(p)
+    return p.market_inputs.spot
+end
+
+function set(p, ::SpotLens, newval)
+    return @set p.market_inputs.spot = newval
+end
+
+"""
+    VolLens(strike, expiry)
+
+Lens structure for accessing and mutating specific vol entries by strike and expiry.
+"""
+struct VolLens{S, T} <: GreekLens
+    strike::S
+    expiry::T
+end
+
+"""
+    (lens::VolLens)(prob)
+
+Reads the volatility at a specific strike and expiry from a `CalibrationProblem`.
+"""
+function (lens::VolLens)(prob)
+    sigma = prob.market_inputs.sigma
+    return _get_vol_lens(sigma, lens.expiry, lens.strike)
+end
+
+"""
+    set(prob, lens::VolLens, new_val)
+
+Returns a modified `CalibrationProblem` with the volatility at the lens location updated to `new_val`.
+"""
+function set(prob, lens::VolLens{S, T}, new_val) where {S, T}
+    sigma = prob.market_inputs.sigma
+    sigma′ = _set_vol_lens(sigma, lens.expiry, lens.strike, new_val)
+    return @set prob.market_inputs.sigma = sigma′
+end
+
+"""
+    _get_vol_lens(sigma::RectVolSurface, expiry, strike)
+
+Internal helper to extract volatility from a rectangular surface at a given point.
+Throws an error if exact match is not found.
+"""
+function _get_vol_lens(sigma::RectVolSurface, T::Real, K::Real)
+    i = findfirst(==(T), sigma.interpolator.x_vals)
+    j = findfirst(==(K), sigma.interpolator.y_vals)
+    if i === nothing || j === nothing
+        error("VolLens: no exact match found for expiry=$T and strike=$K in RectVolSurface.")
+    end
+    return sigma.vols[i, j]
+end
+
+"""
+    _set_vol_lens(sigma::RectVolSurface, expiry, strike, new_val)
+
+Internal helper to return a new `RectVolSurface` with one vol entry updated.
+Rebuilds the interpolator.
+"""
+function _set_vol_lens(sigma::RectVolSurface, T::Real, K::Real, new_val)
+    i = findfirst(==(T), sigma.interpolator.x_vals)
+    j = findfirst(==(K), sigma.interpolator.y_vals)
+    if i === nothing || j === nothing
+        error("VolLens: cannot set value — expiry=$T or strike=$K not found in RectVolSurface grid.")
+    end
+    bumped_vols = @set sigma.vols[i, j] = new_val
+    new_itp = sigma.builder(bumped_vols, sigma.interpolator.x_vals, sigma.interpolator.y_vals)
+    return RectVolSurface(sigma.reference_date, new_itp, bumped_vols, sigma.builder)
+end
+
+"""
+    _get_vol_lens(sigma::FlatVolSurface, _, _)
+
+Returns the constant volatility for a flat surface.
+"""
+function _get_vol_lens(sigma::FlatVolSurface, T, K)
+    return sigma.σ
+end
+
+"""
+    _set_vol_lens(sigma::FlatVolSurface, _, _, new_val)
+
+Returns a new `FlatVolSurface` with updated constant volatility.
+"""
+function _set_vol_lens(sigma::FlatVolSurface, T, K, new_val)
+    return FlatVolSurface(new_val)
+end
+
+
 # Method types
 abstract type GreekMethod end
 
