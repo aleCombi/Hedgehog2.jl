@@ -15,15 +15,18 @@ struct LSM{M<:MonteCarlo} <: AbstractPricingMethod
 end
 
 """
-    LSM(dynamics::PriceDynamics, strategy::SimulationStrategy, degree::Int; kwargs...)
+    LSM(dynamics::PriceDynamics, strategy::SimulationStrategy, config::SimulationConfig, degree::Int)
 
-Constructs an `LSM` pricing method with a given degree polynomial regression and Monte Carlo simulation backend.
+Constructs an `LSM` pricing method with polynomial regression and Monte Carlo simulation.
 
 # Arguments
-- `dynamics`: The price dynamics.
-- `strategy`: The simulation strategy.
-- `degree`: Degree of polynomial basis.
-- `kwargs...`: Additional arguments passed to the `MonteCarlo` constructor.
+- `dynamics`: Price dynamics.
+- `strategy`: Simulation strategy.
+- `config`: Monte Carlo configuration.
+- `degree`: Degree of polynomial regression.
+
+# Returns
+- An `LSM` instance.
 """
 function LSM(dynamics::PriceDynamics, strategy::SimulationStrategy, config::SimulationConfig, degree::Int)
     mc = MonteCarlo(dynamics, strategy, config)
@@ -33,10 +36,13 @@ end
 """
     extract_spot_grid(sol::EnsembleSolution)
 
-Extracts the simulated spot paths from an `EnsembleSolution`. Returns a matrix of size `(nsteps, npaths)`,
-where each column corresponds to one simulation path, and each row to a time step.
+Extracts the simulated spot paths from an `EnsembleSolution`.
 
-Assumes that `sol.u[i].u[j][1]` contains the spot at time `t[j]` for trajectory `i`.
+# Arguments
+- `sol`: The ensemble simulation result.
+
+# Returns
+- A matrix of spot values of size `(nsteps, npaths)`.
 """
 function extract_spot_grid(sol::EnsembleSolution)
     npaths = length(sol.u)
@@ -50,24 +56,46 @@ function extract_spot_grid(sol::EnsembleSolution)
     return spot_grid
 end
 
+"""
+    extract_spot_grid(sol_anti::Tuple{EnsembleSolution, EnsembleSolution})
+
+Extracts spot paths from a pair of ensemble simulations with antithetic variates.
+
+# Arguments
+- `sol_anti`: Tuple of original and antithetic ensemble simulations.
+
+# Returns
+- A matrix of spot values of size `(nsteps, 2 * npaths)`.
+"""
 function extract_spot_grid(sol_anti::Tuple{EnsembleSolution,EnsembleSolution})
     sol, antithetic = sol_anti
     npaths = length(sol.u)
     nsteps = length(sol.u[1].t)
-    spot_grid = Matrix{eltype(sol.u[1].u[1][1])}(undef, nsteps, 2*npaths)
+    spot_grid = Matrix{eltype(sol.u[1].u[1][1])}(undef, nsteps, 2 * npaths)
 
     @inbounds for j in 1:npaths
         @views spot_grid[:, j] = getindex.(sol.u[j].u, 1)
     end
 
-    @inbounds for k in (npaths+1):(2*npaths)
-        @views spot_grid[:, k] = getindex.(antithetic.u[k-npaths].u, 1)
+    @inbounds for k in (npaths + 1):(2 * npaths)
+        @views spot_grid[:, k] = getindex.(antithetic.u[k - npaths].u, 1)
     end
 
     return spot_grid
 end
 
+"""
+    solve(prob::PricingProblem, method::LSM)
 
+Prices an American option using the Least Squares Monte Carlo method.
+
+# Arguments
+- `prob`: A `PricingProblem` containing an American `VanillaOption`.
+- `method`: An `LSM` pricing method.
+
+# Returns
+- An `LSMSolution` containing price and stopping strategy.
+"""
 function solve(
     prob::PricingProblem{VanillaOption{TS,TE,American,C,S},I},
     method::L,
@@ -81,7 +109,6 @@ function solve(
     nsteps = ntimes - 1
     discount = df(prob.market_inputs.rate, add_yearfrac(prob.market_inputs.referenceDate, T / nsteps))
 
-    # (time_index, value) for each path
     stopping_info = [(nsteps, prob.payoff(spot_grid[nsteps+1, p])) for p = 1:npaths]
 
     for i = nsteps:-1:2
@@ -110,15 +137,21 @@ end
 
 """
     update_stopping_info!(
-        stopping_info::Vector{Tuple{Int, Float64}},
+        stopping_info::Vector{Tuple{Int, U}},
         paths::Vector{Int},
-        cont_value::Vector{Float64},
-        payoff_t::Vector{Float64},
+        cont_value::Vector{T},
+        payoff_t::Vector{S},
         t::Int
     )
 
-Updates the stopping times and payoffs based on exercise decision.
-Replaces values in `stopping_info` if immediate exercise is better than continuation.
+Updates the stopping times and values in-place based on immediate vs. continuation value comparison.
+
+# Arguments
+- `stopping_info`: Current best (time, value) for each path.
+- `paths`: Indices of in-the-money paths.
+- `cont_value`: Estimated continuation values.
+- `payoff_t`: Immediate exercise values.
+- `t`: Current time index.
 """
 function update_stopping_info!(
     stopping_info::Vector{Tuple{Int,U}},
