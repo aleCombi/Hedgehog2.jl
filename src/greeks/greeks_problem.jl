@@ -1,10 +1,49 @@
+"""
+    GreekLens
+
+Abstract supertype for all lens types used to extract or modify model inputs
+(e.g., spot, volatilities, rates) for sensitivity analysis or automatic differentiation.
+
+Concrete subtypes define how to access and mutate a particular model input from a `PricingProblem`.
+"""
 abstract type GreekLens end
+
+"""
+    SpotLens <: GreekLens
+
+Lens for accessing and modifying the spot price within a `PricingProblem` object.
+
+Used to compute sensitivities (e.g., delta) with respect to the spot.
+"""
 struct SpotLens <: GreekLens end
 
+"""
+    (::SpotLens)(p::PricingProblem)
+
+Extract the spot value from the `market_inputs` field of the pricing problem `p`.
+
+# Arguments
+- `p`: A `PricingProblem` that contains `market_inputs.spot`.
+
+# Returns
+- The current spot value.
+"""
 function (::SpotLens)(p)
     return p.market_inputs.spot
 end
 
+"""
+    set(p::PricingProblem, ::SpotLens, newval)
+
+Return a modified copy of the pricing problem `p` with its spot value updated to `newval`.
+
+# Arguments
+- `p`: A `PricingProblem` with a `market_inputs` field containing `spot`.
+- `newval`: The new value to assign to `spot`.
+
+# Returns
+- A new `PricingProblem` instance with updated spot value.
+"""
 function set(p, ::SpotLens, newval)
     return @set p.market_inputs.spot = newval
 end
