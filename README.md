@@ -3,6 +3,7 @@
 **Hedgehog** is a modular, SciML-inspired derivatives pricing library in Julia.
 
 [![Build Status](https://github.com/aleCombi/Hedgehog.jl/actions/workflows/CI.yml/badge.svg?branch=master)](https://github.com/aleCombi/Hedgehog.jl/actions/workflows/CI.yml?query=branch%3Amaster)
+[![Documentation](https://img.shields.io/badge/docs-stable-blue.svg)](https://alecombi.github.io/Hedgehog.jl/)
 
 ## 📐 Design Overview
 
@@ -67,6 +68,10 @@ Hedgehog supports calibration via a unified interface:
 - Inspired by the SciML architecture and ecosystem
 - Built on top of SciML components (DifferentialEquations.jl, NonlinearSolve.jl, Integrals.jl)
 - Open-source and focused on prototyping cutting-edge methods
+
+## 📖 Documentation
+
+Complete documentation is available at [https://alecombi.github.io/Hedgehog.jl/](https://alecombi.github.io/Hedgehog.jl/)
 
 ## 📄 License
 
