@@ -140,7 +140,7 @@ function VanillaOption(
 end
 
 """
-    (payoff::VanillaOption)(spot) -> Float64 or Array{Float64}
+    (payoff::VanillaOption)(spot)
 
 Computes the intrinsic payoff of a vanilla option for a given spot price or array of spot prices.
 
@@ -156,7 +156,7 @@ function (payoff::VanillaOption)(spot)
 end
 
 """
-    parity_transform(call_price, opt::VanillaOption{T, E, Call, U}, spot) -> Float64
+    parity_transform(call_price, opt::VanillaOption{T, E, Call, U}, spot, rate_curve)
 
 Returns the call price unchanged. Useful for unified pricing APIs that accept both calls and puts.
 
@@ -164,16 +164,17 @@ Returns the call price unchanged. Useful for unified pricing APIs that accept bo
 - `call_price`: Price of the call option.
 - `opt`: A `VanillaOption` with `Call()` payoff.
 - `spot`: Spot price.
+- `rate_curve`: Rate curve.
 
 # Returns
 - The same `call_price`, unchanged.
 """
-function parity_transform(call_price, ::VanillaOption{TS,TE,E,Call,U}, spot) where {TS,TE,E,U}
+function parity_transform(call_price, ::VanillaOption{TS,TE,E,Call,U}, spot, rate) where {TS,TE,E,U}
     return call_price
 end
 
 """
-    parity_transform(call_price, opt::VanillaOption{T, E, Put, U}, spot) -> Float64
+    parity_transform(call_price, opt::VanillaOption{T, E, Put, U}, spot, rate_curve)
 
 Applies put-call parity to recover the put price from a known call price.
 
@@ -181,11 +182,12 @@ Applies put-call parity to recover the put price from a known call price.
 - `call_price`: Price of the call option.
 - `opt`: A `VanillaOption` with `Put()` payoff.
 - `spot`: Spot price.
+- `rate_curve`: Rate curve.
 
 # Returns
 - The corresponding put price using the formula: `put = call - S + K * exp(-rT)`
   where `T` is extracted from `opt.expiry`.
 """
-function parity_transform(call_price, opt::VanillaOption{TS,TE,E,Put,U}, spot) where {TS,TE,E,U}
-    return call_price - spot + opt.strike * exp(-opt.expiry)
+function parity_transform(call_price, opt::VanillaOption{TS,TE,E,Put,U}, spot, rate_curve) where {TS,TE,E,U}
+    return call_price - spot + opt.strike * df(rate_curve, opt.expiry)
 end

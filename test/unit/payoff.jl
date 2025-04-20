@@ -9,7 +9,7 @@
 
         # Put-call parity
         call_price = call(100.0)
-        parity_put = parity_transform(call_price, put, 100.0)
+        parity_put = parity_transform(call_price, put, 100.0, FlatRateCurve(1.0))
         @test parity_put ≈ call_price - 100.0 + 100.0 * exp(-1.0)
 
         # Type check

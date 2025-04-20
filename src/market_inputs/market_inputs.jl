@@ -35,23 +35,6 @@ BlackScholesInputs(reference_date::TimeType, rate::Real, spot, sigma) = BlackSch
     sigma,
 )
 
-# in distribution.jl t is Real, hence we need to redefine it.
-"""
-    cf(d::Normal, t) -> Complex
-
-Computes the characteristic function of a normal distribution `d` evaluated at `t`.
-
-# Arguments
-- `d`: A `Normal` distribution.
-- `t`: The evaluation point (can be real or complex).
-
-# Returns
-- The characteristic function value `E[e^{itX}]`.
-"""
-function cf(d::Normal, t)
-    return exp(im * t * d.μ - d.σ^2 / 2 * t^2)
-end
-
 """
     HestonInputs <: AbstractMarketInputs
 

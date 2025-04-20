@@ -1,3 +1,20 @@
+# in distribution.jl t is Real, hence we need to redefine it.
+"""
+    cf(d::Normal, t) -> Complex
+
+Computes the characteristic function of a normal distribution `d` evaluated at `t`.
+
+# Arguments
+- `d`: A `Normal` distribution.
+- `t`: The evaluation point (can be real or complex).
+
+# Returns
+- The characteristic function value `E[e^{itX}]`.
+"""
+function cf(d::Normal, t)
+    return exp(im * t * d.μ - d.σ^2 / 2 * t^2)
+end
+
 # sample a distribution knowing its characteristic function ϕ. ϵ is the error tolerance. 
 # n is the choice of how many standard deviations to use in h derivation (check Broadie Kaya)
 """

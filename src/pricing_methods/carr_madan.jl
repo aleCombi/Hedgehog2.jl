@@ -65,7 +65,7 @@ function solve(
     integral_result = Integrals.solve(iprob, method.integral_method; method.kwargs...)
 
     call_price = real(integral_result.u)
-    price = parity_transform(call_price, prob.payoff, S)
+    price = parity_transform(call_price, prob.payoff, S, prob.market_inputs.rate)
 
     return CarrMadanSolution(prob, method, price, integral_result)
 end
