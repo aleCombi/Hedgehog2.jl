@@ -1,0 +1,169 @@
+adr_id: 006
+title: "Calibration System Design"
+status: Accepted
+date: 2025-04-21
+context: |
+  Model calibration is a critical component of any pricing library. A properly calibrated model 
+  ensures that theoretical prices match observable market prices. In Hedgehog, we need a 
+  calibration system that:
+  
+  1. Is consistent with our SciML-based architecture (ADR-004)
+  2. Supports multiple optimization methods and algorithms
+  3. Can calibrate to various market observables (option prices, implied volatilities, etc.)
+  4. Provides clear diagnostics and quality metrics
+  5. Is extensible to new models and market data types
+  
+  Different models require different calibration approaches:
+  - Implied volatility inversion for individual options
+  - Volatility surfaces: Fitting to a grid of market quotes
+  - Heston model: Multi-dimensional optimization against a volatility surface
+  - Term structure models: Bootstrapping or global fitting to yield curve instruments
+
+decision: |
+  - Define a `CalibrationProblem` type that follows our SciML pattern:
+    ```julia
+    struct CalibrationProblem{M, D, O, P}
+        model::M              # The model to calibrate
+        data::D               # Market observables
+        objective::O          # Function to measure calibration quality
+        params::P             # Parameters to calibrate with bounds
+    end
+    ```
+  
+  - Create a uniform interface using `solve`:
+    ```julia
+    # Implement a set of calibration methods
+    abstract type AbstractCalibrationMethod end
+    
+    # Example calibration methods
+    struct OptimizationMethod <: AbstractCalibrationMethod
+        algorithm            # The optimization algorithm to use
+        options::NamedTuple  # Configuration options
+    end
+    
+    # Solve the calibration problem with a chosen method
+    calibrated_model = solve(problem, method)
+    ```
+  
+  - Return a `CalibrationSolution` with results and diagnostics:
+    ```julia
+    struct CalibrationSolution{M, R}
+        calibrated_model::M   # The calibrated model with optimized parameters
+        residuals::Vector{R}  # Residuals between model and market data
+        error::R              # Error metric (RMSE or other)
+        metadata::Dict        # Additional calibration diagnostics
+    end
+    ```
+  
+  - Leverage existing Julia optimization packages:
+    ```julia
+    # Integration with Optim.jl
+    function solve(prob::CalibrationProblem, method::OptimizationMethod)
+        # Convert to optimization problem and solve
+    end
+    ```
+  
+  - Use lens-based access (via Accessors.jl) to specify which parameters to calibrate:
+    ```julia
+    # Specify what params to calibrate with lenses
+    calibration_params = [
+        (@optic _.kappa, (0.1, 10.0)),    # Parameter name and bounds
+        (@optic _.theta, (0.01, 0.5)),
+        (@optic _.sigma, (0.05, 1.0)),
+        (@optic _.rho, (-0.9, 0.9))
+    ]
+    
+    problem = CalibrationProblem(
+        model,
+        market_quotes,
+        SquaredError(),
+        calibration_params
+    )
+    ```
+
+consequences:
+  positive:
+    - "Maintains consistency with SciML design pattern"
+    - "Provides flexibility to use different optimization algorithms"
+    - "Enables clean separation between problem definition and solution method"
+    - "Allows precise control over which parameters get calibrated"
+    - "Easily extensible to new models and objective functions"
+  negative:
+    - "May have performance overhead compared to model-specific calibration routines"
+    - "Requires understanding of lens-based access for parameter specification"
+    - "More complex than direct function calls for simple cases"
+
+alternatives:
+  - name: "Model-specific calibration methods"
+    pros: "Could be more efficient for specific models with known calibration techniques"
+    cons: "Less extensible and would lead to code duplication across models"
+  
+  - name: "Direct exposure of optimization interfaces"
+    pros: "More flexibility for advanced users familiar with optimization packages"
+    cons: "Inconsistent API and more complexity for typical use cases"
+  
+  - name: "Global vs. local parameter specification"
+    pros: "Could specify all parameters at model level rather than with lenses"
+    cons: "Less flexibility for calibrating subset of parameters or nested structures"
+
+examples: |
+  ```julia
+  using Hedgehog
+  using Accessors
+  using Dates
+  using Optim
+  
+  # Market data: option quotes at different strikes and maturities
+  strikes = [90.0, 95.0, 100.0, 105.0, 110.0]
+  maturities = [Date(2023, 1, 1) + Month(i) for i in [1, 2, 3, 6, 12]]
+  
+  # Create synthetic market data (in real usage, this would be actual market quotes)
+  market_quotes = [
+      OptionQuote(strike, maturity, Call(), price=price_value, implied_vol=vol_value)
+      for strike in strikes, (i, maturity) in enumerate(maturities)
+  ]
+  
+  # Create initial Heston model with guess parameters
+  initial_model = HestonModel(
+      kappa = 1.5,    # Mean reversion speed
+      theta = 0.04,   # Long-term variance
+      sigma = 0.3,    # Volatility of volatility
+      rho = -0.6,     # Correlation
+      v0 = 0.04       # Initial variance
+  )
+  
+  # Define which parameters to calibrate and their bounds
+  calibration_params = [
+      (@optic _.kappa, (0.1, 10.0)),
+      (@optic _.theta, (0.01, 0.5)),
+      (@optic _.sigma, (0.05, 1.0)),
+      (@optic _.rho, (-0.9, 0.9))
+  ]
+  
+  # Create the calibration problem
+  problem = CalibrationProblem(
+      initial_model,
+      market_quotes,
+      SquaredError(),          # Objective function
+      calibration_params
+  )
+  
+  # Solve using an optimization algorithm from Optim.jl
+  solution = solve(problem, OptimizationMethod(
+      LBFGS(),
+      (iterations = 1000, g_tol = 1e-6)
+  ))
+  
+  # Access the calibrated model and diagnostics
+  calibrated_model = solution.calibrated_model
+  println("Calibrated Heston parameters:")
+  println("κ = $(calibrated_model.kappa)")
+  println("θ = $(calibrated_model.theta)")
+  println("σ = $(calibrated_model.sigma)")
+  println("ρ = $(calibrated_model.rho)")
+  println("Error = $(solution.error)")
+  ```
+
+references:
+  - adr-004-sciml-integration.yaml
+  - adr-005-greeks-calculation-design.yaml

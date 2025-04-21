@@ -56,13 +56,13 @@
 
 **🌟 Goal**: Registry submission with clean, reproducible functionality and docs
 
-- [ ] Public API audit and finalization
-- [ ] Add docstrings for all exported types/functions
-- [ ] Create `/docs/` folder with basic Documenter.jl setup
+- [x] Public API audit and finalization
+- [x] Add docstrings for all exported types/functions
+- [x] Create `/docs/` folder with basic Documenter.jl setup
 - [ ] Include example scripts: pricing, Greeks, calibration
-- [ ] Add Project.toml metadata (UUID, compat)
-- [ ] Ensure full test suite runs via `Pkg.test()`
-- [ ] CI: GitHub Actions with coverage and doc build
+- [x] Add Project.toml metadata (UUID, compat)
+- [x] Ensure full test suite runs via `Pkg.test()`
+- [/] CI: GitHub Actions with coverage and doc build
 - [ ] Tag `v0.1.0` and submit to Julia registry
 - [ ] Soft launch: share with trusted peers, hold off on broad announcement
 

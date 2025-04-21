@@ -1,0 +1,149 @@
+adr_id: 005
+title: "Greeks Calculation Design"
+status: Accepted
+date: 2025-04-01
+replaces:
+  - adr-005-greeks-calculation-design
+context: |
+  In ADR-004, we introduced the SciML-style `solve(problem, method)` pattern, replacing the previous `Pricer{P, M, S}` design. 
+  
+  This alignment with SciML requires a compatible approach for calculating Greeks (sensitivities). 
+  Greeks measure how a derivative's price changes with respect to input variables such as:
+  - Spot price (delta, gamma)
+  - Volatility (vega)
+  - Interest rates (rho)
+  - Time (theta)
+  
+  We need a design for Greeks calculation that:
+  1. Maintains consistency with the SciML pattern
+  2. Leverages Julia's AD ecosystem
+  3. Provides flexibility in calculation methods
+  4. Enables targeted sensitivity analysis
+
+decision: |
+  - Introduce a dedicated `GreekProblem` type for computing Greeks:
+    ```julia
+    struct GreekProblem{P, L}
+        pricing_problem::P  # The underlying pricing problem
+        lens::L             # Accessor lens indicating what to differentiate with respect to
+    end
+    ```
+  
+  - Use Accessors.jl for lens-based targeting of specific parameters:
+    ```julia
+    # Create a pricing problem
+    problem = PricingProblem(payoff, market_inputs)
+    
+    # Calculate delta (sensitivity to spot price) using the @optic macro
+    spot_lens = @optic _.market_inputs.spot
+    delta_problem = GreekProblem(problem, spot_lens)
+    ```
+  
+  - Support multiple calculation methods that subtype `AbstractGreekMethod`:
+    ```julia
+    # Base types
+    abstract type AbstractGreekMethod end
+    struct ForwardAD <: AbstractGreekMethod end
+    struct FiniteDifference <: AbstractGreekMethod end
+    struct Analytical <: AbstractGreekMethod end
+    ```
+  
+  - Use the consistent `solve` interface with method dispatch:
+    ```julia
+    # Calculate delta using forward-mode automatic differentiation
+    delta_solution = solve(delta_problem, ForwardAD(), BlackScholesAnalytic())
+    delta = delta_solution.greek
+    
+    # Calculate gamma with finite differences
+    gamma_config = FiniteDifferenceConfig(order=2, step=1e-4)
+    gamma_solution = solve(delta_problem, FiniteDifference(gamma_config), BlackScholesAnalytic())
+    gamma = gamma_solution.greek
+    ```
+  
+  - Return a `GreekSolution` struct with the computed sensitivity and metadata:
+    ```julia
+    struct GreekSolution{T, M}
+        greek::T            # The computed sensitivity value
+        metadata::M         # Additional information (e.g., error estimates)
+    end
+    ```
+  
+  - Leverage Julia's AD ecosystem (ForwardDiff.jl, Zygote.jl) for implementation:
+    ```julia
+    # Example internal implementation using ForwardDiff
+    function solve(prob::GreekProblem, ::ForwardAD, method)
+        f = x -> begin
+            # Create a modified problem with the parameter changed
+            new_problem = lens_modify(prob.pricing_problem, prob.lens, x)
+            # Solve the modified problem
+            solution = solve(new_problem, method)
+            return solution.price
+        end
+        
+        # Get the current parameter value
+        x0 = lens_get(prob.pricing_problem, prob.lens)
+        
+        # Compute the derivative
+        derivative = ForwardDiff.derivative(f, x0)
+        
+        return GreekSolution(derivative, nothing)
+    end
+    ```
+
+consequences:
+  positive:
+    - "Maintains SciML-compatible pattern with `solve(problem, method)` interface"
+    - "Lens-based approach provides flexible targeting of any parameter in the pricing problem"
+    - "Multiple Greek calculation methods can be swapped independently"
+    - "Leverages Julia's AD ecosystem for efficient sensitivity calculation"
+    - "Solution objects can include error estimates and convergence information"
+  negative:
+    - "Requires understanding of lens-based access patterns"
+    - "Higher-order Greeks (e.g., gamma) require chained operations"
+
+alternatives:
+  - name: "Standalone Greek functions"
+    pros: "Simpler API with intuitive function names (delta, vega, etc.)"
+    cons: "Less flexible, harder to extend to arbitrary parameters"
+  
+  - name: "Include Greeks in pricing solutions"
+    pros: "Compute price and Greeks in a single operation"
+    cons: "Inefficient for cases where only the price is needed"
+  
+  - name: "Lambda-based parameter selection"
+    pros: "Could use functions like (inputs -> inputs.spot) instead of lenses"
+    cons: "Less composable and harder to use with AD frameworks"
+
+examples: |
+  ```julia
+  # Setup
+  using Hedgehog
+  using Accessors  # For @optic macro
+  
+  # Define the option and market data
+  option = VanillaOption(100.0, Date(2023, 12, 31), European(), Call())
+  market = BlackScholesInputs(Date(2023, 1, 1), 0.05, 100.0, 0.2)
+  
+  # Create the pricing problem
+  problem = PricingProblem(option, market)
+  
+  # Calculate price
+  price_solution = solve(problem, BlackScholesAnalytic())
+  price = price_solution.price
+  
+  # Calculate delta (first-order sensitivity to spot)
+  spot_lens = @optic _.market_inputs.spot
+  delta_problem = GreekProblem(problem, spot_lens)
+  delta = solve(delta_problem, ForwardAD(), BlackScholesAnalytic()).greek
+  
+  # Calculate vega (sensitivity to volatility)
+  vol_lens = @optic _.market_inputs.volatility
+  vega = solve(GreekProblem(problem, vol_lens), ForwardAD(), BlackScholesAnalytic()).greek
+  
+  # Calculate gamma (second-order sensitivity to spot)
+  gamma_problem = GreekProblem(delta_problem, spot_lens)  # Note: problem composition
+  gamma = solve(gamma_problem, ForwardAD(), BlackScholesAnalytic()).greek
+  ```
+
+references:
+  - adr-004-sciml-integration.yaml

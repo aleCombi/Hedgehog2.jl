@@ -84,12 +84,3 @@ Hedgehog development follows a structured roadmap with clearly defined phases:
 8. Final polish and publication
 
 Check the internal ADRs for more details on the design and implementation plan.
-
----
-
-## 📖 Documentation Sections
-
-- **API Reference**: Full function and type documentation
-- **Examples**: Example scripts to reproduce test cases and pricing results
-- **Design Notes**: Detailed internal architecture
-- **Pricing Methods**: Overview of available pricing algorithms

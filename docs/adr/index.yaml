@@ -3,4 +3,5 @@ adr_index:
   - "adr-002-market-inputs.yaml"
   - "adr-003-pricing-methods.yaml"
   - "adr-004-sciml-integration.yaml"
-  - "adr-005-greeks-calculation-design.yaml"
+  - "adr-005-greeks.yaml"
+  - "adr-006-calibration.yaml"
