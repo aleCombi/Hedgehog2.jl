@@ -66,7 +66,7 @@ Hedgehog supports calibration via a unified interface:
 - Modular by construction: models, payoffs, and methods are swappable
 - Unified `solve(problem, method)` interface across pricing and calibration
 - Inspired by the SciML architecture and ecosystem
-- Built on top of SciML components (DifferentialEquations.jl, NonlinearSolve.jl, Integrals.jl)
+- Built on top of SciML components (StochasticDiffEqs.jl, NonlinearSolve.jl, Integrals.jl)
 - Open-source and focused on prototyping cutting-edge methods
 
 ## 📖 Documentation

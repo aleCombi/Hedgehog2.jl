@@ -1,0 +1,1 @@
+This folder contains notebooks that showcase Hedgehog.jl in various examples. They are loaded to Google Colab to allow running without even installing Julia.

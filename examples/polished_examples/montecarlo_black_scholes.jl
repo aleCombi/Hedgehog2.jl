@@ -1,7 +1,7 @@
 using Revise, Hedgehog, BenchmarkTools, Dates
 using Accessors
 import Accessors: @optic
-using DifferentialEquations
+using StochasticDiffEq
 
 # ------------------------------
 # Define payoff and pricing problem

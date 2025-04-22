@@ -1,4 +1,4 @@
-using DifferentialEquations
+using StochasticDiffEq
 
 μ = 0.02
 σ = 0.04

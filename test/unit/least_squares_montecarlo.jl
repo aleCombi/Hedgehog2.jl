@@ -23,7 +23,7 @@
 
     # Define problem and solve
     prob = PricingProblem(american_payoff, market_inputs)
-    sol = solve(prob, method)
+    sol = Hedgehog.solve(prob, method)
 
     @test isapprox(sol.price, 0.22536692592893945, atol = 1e-8)
 end

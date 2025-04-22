@@ -1,6 +1,6 @@
 module Hedgehog
 
-using ForwardDiff, Distributions, Dates, DifferentialEquations
+using ForwardDiff, Distributions, Dates, StochasticDiffEq
 using NonlinearSolve, Roots
 using Integrals
 using Polynomials

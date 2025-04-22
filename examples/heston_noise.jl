@@ -1,4 +1,4 @@
-using Revise, Hedgehog, Distributions, DifferentialEquations, Random, Plots, Dates
+using Revise, Hedgehog, Distributions, StochasticDiffEqs, Random, Plots, Dates
 
 reference_date = Date(2020, 1, 1)
 # Define Heston model parameters like in Broadie-Kaya

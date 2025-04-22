@@ -37,7 +37,7 @@ using Printf
 
     # Analytic reference solution
     analytic_method = BlackScholesAnalytic()
-    analytic_sol = solve(prob, analytic_method)
+    analytic_sol = Hedgehog.solve(prob, analytic_method)
     reference_price = analytic_sol.price
 
     # Print reference price for debugging
@@ -103,7 +103,7 @@ using Printf
             mc_method = MonteCarlo(dynamics, strategy, modified_config)
 
             # Solve with current seed
-            sol = solve(prob, mc_method)
+            sol = Hedgehog.solve(prob, mc_method)
             push!(prices, sol.price)
 
             # Print diagnostic info

@@ -1,4 +1,4 @@
-using DifferentialEquations
+using StochasticDiffEq
 using Hedgehog
 
 μ = 0.01
@@ -11,4 +11,4 @@ ensemble_prob = EnsembleProblem(problem)
 
 steps = 100
 trajectories = 2
-DifferentialEquations.solve(ensemble_prob, EM(); dt=1.0/steps, trajectories=trajectories)
+StochasticDiffEq.solve(ensemble_prob, EM(); dt=1.0/steps, trajectories=trajectories)

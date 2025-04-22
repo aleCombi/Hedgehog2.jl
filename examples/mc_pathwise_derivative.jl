@@ -1,4 +1,4 @@
-using DifferentialEquations
+using StochasticDiffEq
 using DiffEqNoiseProcess
 using ForwardDiff
 using Plots
@@ -23,7 +23,7 @@ function terminal_value(σ_val::Real)
 
     proc = GeometricBrownianMotionProcess(μ_, σ_val, t0_, W0_)
     prob = NoiseProblem(proc, tspan; seed = seed)
-    sol = DifferentialEquations.solve(prob, EM(); dt = dt)
+    sol = StochasticDiffEq.solve(prob, EM(); dt = dt)
     return sol.u[end]
 end
 
@@ -43,11 +43,11 @@ println("∂Value/∂σ (FD): ", grad_fd)
 
 # --- Plot
 σ_bumped = σ + 0.05
-sol = DifferentialEquations.solve(
+sol = StochasticDiffEq.solve(
     NoiseProblem(GeometricBrownianMotionProcess(μ, σ, t0, W0), tspan; seed = seed),
     dt = dt,
 )
-sol_bumped = DifferentialEquations.solve(
+sol_bumped = StochasticDiffEq.solve(
     NoiseProblem(GeometricBrownianMotionProcess(μ, σ_bumped, t0, W0), tspan; seed = seed),
     dt = dt,
 )

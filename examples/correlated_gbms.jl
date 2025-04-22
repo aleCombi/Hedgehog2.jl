@@ -1,4 +1,4 @@
-using Revise, Hedgehog, DifferentialEquations, Plots
+using Revise, Hedgehog, StochasticDiffEqs, Plots
 
 process = GBMProcess(0.05, 0.2)  # μ = 5%, σ = 20%
 sde_function_1 = get_sde_function(process)

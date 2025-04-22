@@ -1,4 +1,4 @@
-using DifferentialEquations
+using StochasticDiffEq
 using ForwardDiff
 using Plots
 
@@ -32,7 +32,7 @@ function terminal_value_sde(σ_val::Real)
     p = [μ_, σ_val]
 
     prob = SDEProblem(drift!, diffusion!, u0, tspan, p; seed = seed)
-    sol = DifferentialEquations.solve(prob, EM(); dt = dt)
+    sol = StochasticDiffEq.solve(prob, EM(); dt = dt)
     return sol.u[end][1]
 end
 
@@ -55,8 +55,8 @@ println("∂Value/∂σ (FD): ", grad_fd)
 prob = SDEProblem(drift!, diffusion!, [W0], tspan, [μ, σ]; seed = seed)
 prob_bumped = SDEProblem(drift!, diffusion!, [W0], tspan, [μ, σ_bumped]; seed = seed)
 
-sol = DifferentialEquations.solve(prob, EM(); dt = dt)
-sol_bumped = DifferentialEquations.solve(prob_bumped, EM(); dt = dt)
+sol = StochasticDiffEq.solve(prob, EM(); dt = dt)
+sol_bumped = StochasticDiffEq.solve(prob_bumped, EM(); dt = dt)
 
 plot(sol.t, first.(sol.u), label = "σ = $σ", linewidth = 2)
 plot!(

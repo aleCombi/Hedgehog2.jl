@@ -32,7 +32,7 @@ function heston_problem()
 end
 
 # Running the simulations
-using Revise, Plots, Hedgehog, DifferentialEquations
+using Revise, Plots, Hedgehog, StochasticDiffEqs
 
 gbm = gbm_problem()
 heston = heston_problem()
@@ -64,7 +64,7 @@ plot(sol_heston.t, [u[2] for u in sol_heston.u], label = "Variance", lw = 2)
 ensembleprob = EnsembleProblem(gbm)
 sol = solve(ensembleprob, EnsembleThreads(), trajectories = 1000)
 
-using DifferentialEquations.EnsembleAnalysis
+using StochasticDiffEqs.EnsembleAnalysis
 summ = EnsembleSummary(sol, 0:0.01:1)
 plot(summ, labels = "Middle 95%")
 summ = EnsembleSummary(sol, 0:0.01:1; quantiles = [0.25, 0.75])

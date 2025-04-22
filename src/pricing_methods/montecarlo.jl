@@ -346,7 +346,7 @@ function simulate_paths(
     config = method.config
     dt = sde_prob.tspan[2] / config.steps
     ensemble_prob = get_ensemble_problem(sde_prob, config)
-    normal_sol = DifferentialEquations.solve(ensemble_prob, EM(); dt = dt, trajectories=config.trajectories)
+    normal_sol = StochasticDiffEq.solve(ensemble_prob, EM(); dt = dt, trajectories=config.trajectories)
     return normal_sol
 end
 
@@ -365,10 +365,10 @@ function simulate_paths(
     dt = sde_prob.tspan[2] / config.steps
 
     ensemble_prob = get_ensemble_problem(sde_prob, config)
-    normal_sol = DifferentialEquations.solve(ensemble_prob, EM(); dt = dt, trajectories=config.trajectories, save_noise=true)
+    normal_sol = StochasticDiffEq.solve(ensemble_prob, EM(); dt = dt, trajectories=config.trajectories, save_noise=true)
 
     antithetic_prob = get_antithetic_ensemble_problem(sde_prob, normal_sol, method)
-    antithetic_sol = DifferentialEquations.solve(antithetic_prob, EM(); dt = dt, trajectories=config.trajectories)
+    antithetic_sol = StochasticDiffEq.solve(antithetic_prob, EM(); dt = dt, trajectories=config.trajectories)
     return (normal_sol, antithetic_sol)
 end
 

@@ -14,7 +14,7 @@ using Accessors
         payoffs = [VanillaOption(K, expiry, European(), Call(), Spot()) for K in strikes]
 
         quotes = [
-            solve(PricingProblem(p, market_inputs), BlackScholesAnalytic()).price for
+           Hedgehog.solve(PricingProblem(p, market_inputs), BlackScholesAnalytic()).price for
             p in payoffs
         ]
 
@@ -23,7 +23,7 @@ using Accessors
 
         basket = BasketPricingProblem(payoffs, market_inputs)
         calib = CalibrationProblem(basket, BlackScholesAnalytic(), accessors, quotes, 0.5*ones(length(payoffs)))
-        result = solve(calib, OptimizerAlgo())
+        result = Hedgehog.solve(calib, OptimizerAlgo())
 
         @test isapprox(result.u[1], sigma; atol = 1e-5)
     end
@@ -65,7 +65,7 @@ using Accessors
         α, boundary = 1.0, 32.0
         method_heston = CarrMadan(α, boundary, HestonDynamics())
 
-        quotes = [solve(PricingProblem(p, market_inputs), method_heston).price for p in payoffs]
+        quotes = [Hedgehog.solve(PricingProblem(p, market_inputs), method_heston).price for p in payoffs]
 
         initial_guess = [0.02, 3.0, 0.03, 0.4, -0.3]
         accessors = [
@@ -87,7 +87,7 @@ using Accessors
         )
 
         calib_algo = OptimizerAlgo()
-        result = solve(calib_problem, calib_algo)
+        result = Hedgehog.solve(calib_problem, calib_algo)
 
         # Extract calibrated parameters
         @test isapprox(result.u[1], true_params.v0, rtol=1e-1)

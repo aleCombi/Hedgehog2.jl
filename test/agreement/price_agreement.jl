@@ -16,11 +16,11 @@
         prob = PricingProblem(euro_payoff, market_inputs)
 
         # Solve using Black-Scholes analytic
-        analytic_sol = solve(prob, BlackScholesAnalytic())
+        analytic_sol = Hedgehog.solve(prob, BlackScholesAnalytic())
 
         # Solve using binomial tree (CRR)
         crr_method = CoxRossRubinsteinMethod(100)
-        crr_sol = solve(prob, crr_method)
+        crr_sol = Hedgehog.solve(prob, crr_method)
 
         @test isapprox(analytic_sol.price, crr_sol.price; atol = 1e-3)
     end
@@ -45,10 +45,10 @@
         boundary = 16
         α = 1.0
         carr_madan_method = CarrMadan(α, boundary, LognormalDynamics())
-        carr_madan_solution = solve(prob, carr_madan_method)
+        carr_madan_solution = Hedgehog.solve(prob, carr_madan_method)
     
         # Analytical Black-Scholes method
-        bs_solution = solve(prob, BlackScholesAnalytic())
+        bs_solution = Hedgehog.solve(prob, BlackScholesAnalytic())
     
         @test isapprox(carr_madan_solution.price, bs_solution.price; atol = 1e-6)
     end

@@ -42,7 +42,7 @@ end
         # Assumes PricingProblem constructor and fields are correct
         prob_call_otm = PricingProblem(payoff_call_otm, market_inputs_zero_vol)
         # Assumes solve function and AnalyticSolution struct (with price field) are correct
-        sol_call_otm = solve(prob_call_otm, method)
+        sol_call_otm = Hedgehog.solve(prob_call_otm, method)
         expected_call_otm = D * max(F - K_otm, 0.0)
         @test isapprox(sol_call_otm.price, expected_call_otm, atol=1e-9)
 
@@ -50,7 +50,7 @@ end
         K_itm = 90.0
         payoff_call_itm = VanillaOption(K_itm, expiry_date, European(), Call(), Spot())
         prob_call_itm = PricingProblem(payoff_call_itm, market_inputs_zero_vol)
-        sol_call_itm = solve(prob_call_itm, method)
+        sol_call_itm = Hedgehog.solve(prob_call_itm, method)
         expected_call_itm = D * max(F - K_itm, 0.0)
         @test isapprox(sol_call_itm.price, expected_call_itm, atol=1e-9)
 
@@ -58,14 +58,14 @@ end
         # Assumes Put type is defined
         payoff_put_otm = VanillaOption(K_itm, expiry_date, European(), Put(), Spot()) # Use K_itm=90
         prob_put_otm = PricingProblem(payoff_put_otm, market_inputs_zero_vol)
-        sol_put_otm = solve(prob_put_otm, method)
+        sol_put_otm = Hedgehog.solve(prob_put_otm, method)
         expected_put_otm = D * max(K_itm - F, 0.0)
         @test isapprox(sol_put_otm.price, expected_put_otm, atol=1e-9)
 
         # ITM Put
         payoff_put_itm = VanillaOption(K_otm, expiry_date, European(), Put(), Spot()) # Use K_otm=110
         prob_put_itm = PricingProblem(payoff_put_itm, market_inputs_zero_vol)
-        sol_put_itm = solve(prob_put_itm, method)
+        sol_put_itm = Hedgehog.solve(prob_put_itm, method)
         expected_put_itm = D * max(K_otm - F, 0.0)
         @test isapprox(sol_put_itm.price, expected_put_itm, atol=1e-9)
     end
@@ -87,7 +87,7 @@ end
         K_atm = F # Approximately 100 * exp(0.05) ≈ 105.13
         payoff_call_atm = VanillaOption(K_atm, expiry_date, European(), Call(), Spot())
         prob_call_atm = PricingProblem(payoff_call_atm, market_inputs)
-        sol_call_atm = solve(prob_call_atm, method)
+        sol_call_atm = Hedgehog.solve(prob_call_atm, method)
         # *** REPLACE WITH ACTUAL BENCHMARK VALUE ***
         # Value for S=100, K=F=105.127..., r=0.05, σ=0.2, T=1
         expected_call_atm = 7.9655
@@ -97,7 +97,7 @@ end
         K_itm = 90.0
         payoff_call_itm = VanillaOption(K_itm, expiry_date, European(), Call(), Spot())
         prob_call_itm = PricingProblem(payoff_call_itm, market_inputs)
-        sol_call_itm = solve(prob_call_itm, method)
+        sol_call_itm = Hedgehog.solve(prob_call_itm, method)
         # Benchmark value from Quantlib
         # Value for S=100, K=90, r=0.05, sigma=0.2, T=1
         expected_call_itm = 16.6994
@@ -107,7 +107,7 @@ end
         K_otm = 90.0 # Same strike as ITM Call
         payoff_put_otm = VanillaOption(K_otm, expiry_date, European(), Put(), Spot())
         prob_put_otm = PricingProblem(payoff_put_otm, market_inputs)
-        sol_put_otm = solve(prob_put_otm, method)
+        sol_put_otm = Hedgehog.solve(prob_put_otm, method)
         # Benchmark value from Quantlib
         # Value for S=100, K=90, r=0.05, sigma=0.2, T=1
         expected_put_otm = 2.3101
@@ -120,7 +120,7 @@ end
         market_inputs_short = BlackScholesInputs(ref_date, r, spot, sigma) # Re-use r, spot, sigma
         payoff_put_itm_short = VanillaOption(K_itm_put, expiry_short, European(), Put(), Spot())
         prob_put_itm_short = PricingProblem(payoff_put_itm_short, market_inputs_short)
-        sol_put_itm_short = solve(prob_put_itm_short, method)
+        sol_put_itm_short = Hedgehog.solve(prob_put_itm_short, method)
         # Benchmark value from Quantlib
         # Value S=100, K=110, r=0.05, sigma=0.2, T=0.25
         expected_put_itm_short = 9.8237
@@ -141,11 +141,11 @@ end
 
         payoff_call = VanillaOption(K, expiry_date, European(), Call(), Spot())
         prob_call = PricingProblem(payoff_call, market_inputs)
-        sol_call = solve(prob_call, method)
+        sol_call = Hedgehog.solve(prob_call, method)
 
         payoff_put = VanillaOption(K, expiry_date, European(), Put(), Spot())
         prob_put = PricingProblem(payoff_put, market_inputs)
-        sol_put = solve(prob_put, method)
+        sol_put = Hedgehog.solve(prob_put, method)
 
         # Parity: C - P = D * (F - K)
         @test isapprox(sol_call.price - sol_put.price, D * (F - K), atol=1e-6)
@@ -169,7 +169,7 @@ end
         # OTM Call
         payoff_call = VanillaOption(K, expiry_date, European(), Call(), Spot())
         prob_call = PricingProblem(payoff_call, market_inputs)
-        sol_call = solve(prob_call, method)
+        sol_call = Hedgehog.solve(prob_call, method)
         expected_call_intrinsic = D * max(F - K, 0.0)
         # Allow slightly larger tolerance because BS price isn't exactly intrinsic for T>0
         # A more precise test would calculate the exact BS value for T_tiny.
@@ -178,7 +178,7 @@ end
         # ITM Put
         payoff_put = VanillaOption(K, expiry_date, European(), Put(), Spot())
         prob_put = PricingProblem(payoff_put, market_inputs)
-        sol_put = solve(prob_put, method)
+        sol_put = Hedgehog.solve(prob_put, method)
         expected_put_intrinsic = D * max(K - F, 0.0)
         @test isapprox(sol_put.price, expected_put_intrinsic, atol=0.1)
     end

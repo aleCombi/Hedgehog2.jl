@@ -27,7 +27,7 @@ decision: |
   - Dispatch `solve(prob, method::AbstractPricingMethod)` to compute the price.
   - Return a `PricingSolution` struct, which at minimum contains a `.price::Real` field, and may include additional solver outputs.
   - Where possible, pricing methods will delegate to solvers from the SciML ecosystem:
-    - `DifferentialEquations.jl` for simulation methods
+    - `StochasticDiffEqs.jl` for simulation methods
     - `NonlinearSolve.jl` for calibration/inversion
     - `Integrals.jl` or `Quadrature.jl` for Fourier pricing
   - Each pricing method is responsible for constructing an appropriate SciML-style problem (e.g., `SDEProblem`, `NonlinearProblem`, `IntegralProblem`) if applicable, and wrapping the result in a `PricingSolution`.

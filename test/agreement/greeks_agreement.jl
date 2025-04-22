@@ -26,8 +26,8 @@ using Random
             lens = VolLens(1,1)
             gprob = GreekProblem(prob, lens)
 
-            ad_val = solve(gprob, ForwardAD(), method).greek
-            fd_val = solve(gprob, FiniteDifference(ε), method).greek
+            ad_val =Hedgehog.solve(gprob, ForwardAD(), method).greek
+            fd_val =Hedgehog.solve(gprob, FiniteDifference(ε), method).greek
 
             @test isapprox(ad_val, fd_val; rtol = 1e-5)
         end
@@ -36,8 +36,8 @@ using Random
             lens = @optic _.market_inputs.spot
             gprob = GreekProblem(prob, lens)
 
-            ad_val = solve(gprob, ForwardAD(), method).greek
-            fd_val = solve(gprob, FiniteDifference(ε), method).greek
+            ad_val =Hedgehog.solve(gprob, ForwardAD(), method).greek
+            fd_val =Hedgehog.solve(gprob, FiniteDifference(ε), method).greek
 
             @test isapprox(ad_val, fd_val; rtol = 1e-5)
         end
@@ -47,8 +47,8 @@ using Random
             lens = @optic _.market_inputs.spot
             gprob = SecondOrderGreekProblem(prob, lens, lens)
 
-            ad_val = solve(gprob, ForwardAD(), method).greek
-            fd_val = solve(gprob, FiniteDifference(ε), method).greek
+            ad_val =Hedgehog.solve(gprob, ForwardAD(), method).greek
+            fd_val =Hedgehog.solve(gprob, FiniteDifference(ε), method).greek
 
             @test isapprox(ad_val, fd_val; rtol = 1e-5)
         end
@@ -57,8 +57,8 @@ using Random
             lens = VolLens(1,1)
             gprob = SecondOrderGreekProblem(prob, lens, lens)
 
-            ad_val = solve(gprob, ForwardAD(), method).greek
-            fd_val = solve(gprob, FiniteDifference(ε), method).greek
+            ad_val =Hedgehog.solve(gprob, ForwardAD(), method).greek
+            fd_val =Hedgehog.solve(gprob, FiniteDifference(ε), method).greek
 
             @test isapprox(ad_val, fd_val; rtol = 1e-5)
         end
@@ -89,33 +89,33 @@ using Random
 
         # Vega
         gprob = GreekProblem(pricing_prob, vol_lens)
-        vega_ad = solve(gprob, ForwardAD(), bs_method).greek
-        vega_fd = solve(gprob, FiniteDifference(1e-4), bs_method).greek
-        vega_an = solve(gprob, AnalyticGreek(), bs_method).greek
+        vega_ad =Hedgehog.solve(gprob, ForwardAD(), bs_method).greek
+        vega_fd =Hedgehog.solve(gprob, FiniteDifference(1e-4), bs_method).greek
+        vega_an =Hedgehog.solve(gprob, AnalyticGreek(), bs_method).greek
         @test isapprox(vega_ad, vega_fd; rtol = 1e-5)
         @test isapprox(vega_ad, vega_an; rtol = 1e-5)
 
         # Gamma
         gammaprob = SecondOrderGreekProblem(pricing_prob, spot_lens, spot_lens)
-        gamma_ad = solve(gammaprob, ForwardAD(), bs_method).greek
-        gamma_fd = solve(gammaprob, FiniteDifference(1e-4), bs_method).greek
-        gamma_an = solve(gammaprob, AnalyticGreek(), bs_method).greek
+        gamma_ad =Hedgehog.solve(gammaprob, ForwardAD(), bs_method).greek
+        gamma_fd =Hedgehog.solve(gammaprob, FiniteDifference(1e-4), bs_method).greek
+        gamma_an =Hedgehog.solve(gammaprob, AnalyticGreek(), bs_method).greek
         @test isapprox(gamma_ad, gamma_fd; rtol = 1e-5)
         @test isapprox(gamma_ad, gamma_an; rtol = 1e-5)
 
         # Volga
         volgaprob = SecondOrderGreekProblem(pricing_prob, vol_lens, vol_lens)
-        volga_ad = solve(volgaprob, ForwardAD(), bs_method).greek
-        volga_fd = solve(volgaprob, FiniteDifference(1e-4), bs_method).greek
-        volga_an = solve(volgaprob, AnalyticGreek(), bs_method).greek
+        volga_ad =Hedgehog.solve(volgaprob, ForwardAD(), bs_method).greek
+        volga_fd =Hedgehog.solve(volgaprob, FiniteDifference(1e-4), bs_method).greek
+        volga_an =Hedgehog.solve(volgaprob, AnalyticGreek(), bs_method).greek
         @test isapprox(volga_ad, volga_fd; rtol = 1e-3)
         @test isapprox(volga_ad, volga_an; rtol = 1e-5)
 
         # Theta (no analytic)
         thetaprob = GreekProblem(pricing_prob, @optic _.payoff.expiry)
-        theta_ad = solve(thetaprob, ForwardAD(), bs_method).greek
-        theta_fd = solve(thetaprob, FiniteDifference(1e-12), bs_method).greek
-        theta_analytic = solve(thetaprob, AnalyticGreek(), bs_method).greek
+        theta_ad =Hedgehog.solve(thetaprob, ForwardAD(), bs_method).greek
+        theta_fd =Hedgehog.solve(thetaprob, FiniteDifference(1e-12), bs_method).greek
+        theta_analytic =Hedgehog.solve(thetaprob, AnalyticGreek(), bs_method).greek
         @test isapprox(theta_ad, theta_fd; rtol = 5e-3)
         @test isapprox(theta_ad, theta_analytic; rtol = 1e-8)
     end
@@ -160,8 +160,8 @@ using Random
         for i = 1:length(spine_zeros(rate_curve))
             lens = ZeroRateSpineLens(i)
 
-            g_ad = solve(GreekProblem(prob, lens), ad_method, pricing_method).greek
-            g_fd = solve(GreekProblem(prob, lens), fd_method, pricing_method).greek
+            g_ad =Hedgehog.solve(GreekProblem(prob, lens), ad_method, pricing_method).greek
+            g_fd =Hedgehog.solve(GreekProblem(prob, lens), fd_method, pricing_method).greek
             @test isapprox(g_ad, g_fd; rtol = 1e-6, atol = 1e-10) ||
                 @warn "Mismatch at zero rate spine index $i" ad = g_ad fd = g_fd
         end
@@ -203,40 +203,40 @@ using Random
         # --------------------------
         # Price Comparison
         # --------------------------
-        price_mc = solve(prob, mc_method).price
-        price_an = solve(prob, analytic_method).price
+        price_mc = Hedgehog.solve(prob, mc_method).price
+        price_an = Hedgehog.solve(prob, analytic_method).price
         @test isapprox(price_mc, price_an; rtol = 3e-2)
     
         # --------------------------
         # Delta
         # --------------------------
         gprob = GreekProblem(prob, spot_lens)
-        delta_mc = solve(gprob, ForwardAD(), mc_method).greek
-        delta_an = solve(gprob, AnalyticGreek(), analytic_method).greek
+        delta_mc = Hedgehog.solve(gprob, ForwardAD(), mc_method).greek
+        delta_an = Hedgehog.solve(gprob, AnalyticGreek(), analytic_method).greek
         @test isapprox(delta_mc, delta_an; rtol = 3e-2)
     
         # --------------------------
         # Gamma (FD due to AD instability)
         # --------------------------
         gprob2 = SecondOrderGreekProblem(prob, spot_lens, spot_lens)
-        gamma_mc = solve(gprob2, FiniteDifference(1E-1), mc_method).greek
-        gamma_an = solve(gprob2, AnalyticGreek(), analytic_method).greek
+        gamma_mc = Hedgehog.solve(gprob2, FiniteDifference(1E-1), mc_method).greek
+        gamma_an = Hedgehog.solve(gprob2, AnalyticGreek(), analytic_method).greek
         @test isapprox(gamma_mc, gamma_an; rtol = 2e-1)
     
         # --------------------------
         # Vega
         # --------------------------
         gprob = GreekProblem(prob, vol_lens)
-        vega_mc = solve(gprob, ForwardAD(), mc_method).greek
-        vega_an = solve(gprob, AnalyticGreek(), analytic_method).greek
+        vega_mc = Hedgehog.solve(gprob, ForwardAD(), mc_method).greek
+        vega_an = Hedgehog.solve(gprob, AnalyticGreek(), analytic_method).greek
         @test isapprox(vega_mc, vega_an; rtol = 1e-1)
     
         # --------------------------
         # Rho (flat curve, first zero rate)
         # --------------------------
         gprob = GreekProblem(prob, rate_lens)
-        rho_mc = solve(gprob, ForwardAD(), mc_method).greek
-        rho_an = solve(gprob, ForwardAD(), analytic_method).greek
+        rho_mc = Hedgehog.solve(gprob, ForwardAD(), mc_method).greek
+        rho_an = Hedgehog.solve(gprob, ForwardAD(), analytic_method).greek
         @test isapprox(rho_mc, rho_an; rtol = 1e-2)
     end    
 end

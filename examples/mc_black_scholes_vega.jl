@@ -1,4 +1,4 @@
-using DifferentialEquations
+using StochasticDiffEq
 using DiffEqNoiseProcess
 using ForwardDiff
 using Statistics
@@ -33,7 +33,7 @@ function solve_custom_ensemble(
     Threads.@threads for i = 1:N
         seed = seeds[i]
         pmod = prob.modify(prob.base_problem, seed, i)
-        sols[i] = DifferentialEquations.solve(pmod, solver; dt = dt)
+        sols[i] = StochasticDiffEq.solve(pmod, solver; dt = dt)
     end
 
     return CustomEnsembleSolution(sols, seeds)

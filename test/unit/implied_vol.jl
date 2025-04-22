@@ -16,7 +16,7 @@ using Accessors
     market_inputs = BlackScholesInputs(reference_date, r, spot, true_vol)
     payoff = VanillaOption(strike, expiry_date, European(), Call(), Spot())
     pricing_problem = PricingProblem(payoff, market_inputs)
-    price = solve(pricing_problem, BlackScholesAnalytic()).price
+    price = Hedgehog.solve(pricing_problem, BlackScholesAnalytic()).price
 
     # Step 2: Recover implied vol with new-style calibration
     dummy_inputs = BlackScholesInputs(reference_date, r, spot, 0.2)  # dummy vol
@@ -30,7 +30,7 @@ using Accessors
         [0.2],
     )
 
-    implied_vol = solve(calib_problem, RootFinderAlgo()).u
+    implied_vol = Hedgehog.solve(calib_problem, RootFinderAlgo()).u
 
     @test isapprox(implied_vol, true_vol; atol = 1e-8)
 end
@@ -67,7 +67,7 @@ end
         market = BlackScholesInputs(reference_date, rate, spot, σ)
 
         prob = PricingProblem(payoff, market)
-        sol = solve(prob, BlackScholesAnalytic())
+        sol = Hedgehog.solve(prob, BlackScholesAnalytic())
         recomputed_prices[i, j] = sol.price
     end
 
