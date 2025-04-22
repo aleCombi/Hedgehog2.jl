@@ -8,7 +8,6 @@ makedocs(
         prettyurls = true,
         canonical = "https://aleCombi.github.io/Hedgehog.jl/stable/",
         assets = ["assets/favicon.ico"],
-        highlights = ["julia", "yaml"],
     ),
     clean = true,
     checkdocs = :exports,
