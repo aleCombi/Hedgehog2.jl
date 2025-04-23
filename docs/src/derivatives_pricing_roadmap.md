@@ -42,7 +42,7 @@
 
 ---
 
-## PHASE 3.5 — Monte Carlo Enhancements (Light, 1 week)
+## PHASE 3.5 — Monte Carlo Enhancements [✅ Completed]
 
 - [x] Add antithetic variates toggle to `MonteCarlo` method (Discrete and Exact Black-Scholes [x], Discrete and Exact Heston [x])
 - [x] Unit tests: check variance reduction and correctness vs analytic prices
@@ -52,23 +52,23 @@
 
 ---
 
-## 🛠 PHASE 4 — Polishing & Pre-Release Prep (1–2 weeks)
+## 🛠 PHASE 4 — Polishing & Pre-Release Prep [✅ Completed]
 
 **🌟 Goal**: Registry submission with clean, reproducible functionality and docs
 
 - [x] Public API audit and finalization
 - [x] Add docstrings for all exported types/functions
 - [x] Create `/docs/` folder with basic Documenter.jl setup
-- [ ] Include example scripts: pricing, Greeks, calibration
+- [x] Include example scripts: pricing, Greeks, calibration
 - [x] Add Project.toml metadata (UUID, compat)
 - [x] Ensure full test suite runs via `Pkg.test()`
-- [/] CI: GitHub Actions with coverage and doc build
-- [ ] Tag `v0.1.0` and submit to Julia registry
+- [x] CI: GitHub Actions with coverage and doc build
+- [x] Tag `v0.1.0` and submit to Julia registry
 - [ ] Soft launch: share with trusted peers, hold off on broad announcement
 
 ---
 
-## PHASE 5 — Structured Payoffs (2–3 weeks)
+## PHASE 5 — Structured Payoffs
 
 - [ ] Arithmetic Asian pricing via Monte Carlo
 - [ ] Geometric Asian pricing via closed-form
@@ -79,7 +79,7 @@
 
 ---
 
-## PHASE 6 — Interest Rate Products & Models (3–4 weeks)
+## PHASE 6 — Interest Rate Products & Models
 
 - [ ] Implement zero-coupon and fixed-coupon bond pricing
 - [ ] Build FRA and IRS support with schedule engine and stub logic
@@ -91,7 +91,7 @@
 
 ---
 
-## PHASE 7 — Multi-Curve Support & Calibration (3 weeks)
+## PHASE 7 — Multi-Curve Support & Calibration
 
 - [ ] Introduce multi-curve framework (OIS + forwarding curves)
 - [ ] Curve bootstrapping: deposit, futures, swaps
@@ -101,7 +101,7 @@
 
 ---
 
-## PHASE 7.5 — PDE Framework (2–3 weeks)
+## PHASE 7.5 — PDE Framework
 
 - [ ] Implement Crank–Nicolson solver for Black-Scholes PDE
 - [ ] Define `PDEProblem` type with boundary conditions and solver settings
@@ -110,7 +110,7 @@
 
 ---
 
-## PHASE 8 — SABR, Local Vol, Rough Vol (4–5 weeks)
+## PHASE 8 — SABR, Local Vol, Rough Vol
 
 - [ ] SABR model implementation (Hagan approximation)
 - [ ] Calibration to vanilla vol surface
@@ -121,7 +121,7 @@
 
 ---
 
-## PHASE 9 — Robustness & Performance (3–4 weeks)
+## PHASE 9 — Robustness & Performance
 
 - [ ] Edge case test suite: deep ITM/OTM, short maturity, extreme vol
 - [ ] Sensitivity exploration tools (Greeks wrt model parameters)
@@ -133,7 +133,7 @@
 
 ---
 
-## PHASE 10 — Model-Free Pricing & Arbitrage Detection (2–3 weeks)
+## PHASE 10 — Model-Free Pricing & Arbitrage Detection
 
 - [ ] Risk-neutral density extraction from call spread surface
 - [ ] Variance swap pricing via replication
@@ -144,7 +144,7 @@
 
 ---
 
-## PHASE 11 — Documentation & Launch Prep (2 weeks)
+## PHASE 11 — Documentation & Launch Prep
 
 - [ ] Full docstrings for all exported types and functions
 - [ ] Notebooks covering pricing, Greeks, calibration, and structured payoffs
