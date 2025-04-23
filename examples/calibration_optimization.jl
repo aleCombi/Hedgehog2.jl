@@ -21,4 +21,4 @@ calib = CalibrationProblem(basket, BlackScholesAnalytic(), accessors, quotes, [0
 result = solve(calib, OptimizerAlgo())
 @show result.objective
 @show result.u
-@show σ
+@show sigma

@@ -66,9 +66,32 @@ Hedgehog supports calibration via a unified interface:
 - Modular by construction: models, payoffs, and methods are swappable
 - Unified `solve(problem, method)` interface across pricing and calibration
 - Inspired by the SciML architecture and ecosystem
-- Built on top of SciML components (StochasticDiffEqs.jl, NonlinearSolve.jl, Integrals.jl)
+- Built on top of SciML components (StochasticDiffEq.jl, NonlinearSolve.jl, Integrals.jl)
 - Open-source and focused on prototyping cutting-edge methods
+
+## 📦 Dependencies
+
+Hedgehog is built on several high-quality Julia packages:
+
+- [SciML Ecosystem](https://sciml.ai/): 
+  - [StochasticDiffEq.jl](https://github.com/SciML/StochasticDiffEq.jl) - For stochastic simulation
+  - [NonlinearSolve.jl](https://github.com/SciML/NonlinearSolve.jl) - For calibration and implied volatility
+  - [Integrals.jl](https://github.com/SciML/Integrals.jl) - For Fourier-based pricing methods
+  - [Optimization.jl](https://github.com/SciML/Optimization.jl) - For advanced calibration
+  - [DataInterpolations.jl](https://github.com/SciML/DataInterpolations.jl) - For volatility surfaces and rate curves
+
+- [Accessors.jl](https://github.com/JuliaObjects/Accessors.jl) - Functional lens-based access for Greeks and calibration
+- [Distributions.jl](https://github.com/JuliaStats/Distributions.jl) - For statistical distributions and sampling
 
 ## 📖 Documentation
 
 Complete documentation is available at [https://alecombi.github.io/Hedgehog.jl/](https://alecombi.github.io/Hedgehog.jl/)
+
+## 🔍 Examples
+
+Example scripts demonstrating Hedgehog's functionality can be found in the `examples/` directory:
+
+- `examples/` - Standalone Julia scripts for various pricing scenarios
+- `examples/notebooks/` - Jupyter and Pluto notebooks for interactive exploration (in progress)
+
+These examples cover various use cases from basic option pricing to advanced calibration scenarios and are designed to help you get started with the library.

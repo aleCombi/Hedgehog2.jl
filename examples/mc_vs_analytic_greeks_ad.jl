@@ -21,15 +21,15 @@ prob = PricingProblem(payoff, market_inputs)
 # --------------------------
 # Lenses
 # --------------------------
-vol_lens = @optic _.market.sigma
-spot_lens = @optic _.market.spot
+vol_lens = VolLens(1,1)
+spot_lens = @optic _.market_inputs.spot
 rate_lens = ZeroRateSpineLens(1)
 
 # --------------------------
 # Methods
 # --------------------------
 trajectories = 100_000
-mc_method = MonteCarlo(LognormalDynamics(), BlackScholesExact(trajectories))
+mc_method = MonteCarlo(LognormalDynamics(), BlackScholesExact(), SimulationConfig(trajectories))
 analytic_method = BlackScholesAnalytic()
 ε = 1e-4
 

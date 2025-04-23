@@ -79,7 +79,7 @@ dividend_market = BlackScholesInputs(reference_date, rate, spot, sigma)
 american_call_div = VanillaOption(strike * 0.8, expiry, American(), Call(), Spot()) # ITM call
 div_call_prob = PricingProblem(american_call_div, dividend_market)
 
-println("\nAmerican Call Option (1-year maturity, with 4% dividend yield, ITM):")
+println("\nAmerican Call Option (1-year maturity, ITM):")
 df_call_div = run_model_comparison_table(
     div_call_prob,
     [crr_method, lsm_method],
