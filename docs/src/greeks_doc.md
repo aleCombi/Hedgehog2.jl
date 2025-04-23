@@ -1,14 +1,14 @@
 # Greeks Calculation
 
-Hedgehog implements various methods for computing sensitivities (Greeks) of derivative prices, using a unified [`solve`](@ref) interface with the `GreekProblem` type.
+Hedgehog implements various methods for computing sensitivities (Greeks) of derivative prices, using a unified `solve` interface with the `GreekProblem` type.
 
 ---
 
 ## Greek Methods
 
-### [`ForwardAD`](@ref)
+### `ForwardAD`
 
-The [`ForwardAD`](@ref) method uses forward-mode automatic differentiation to compute sensitivities. It typically provides precise results with good performance, especially for first-order Greeks.
+The `ForwardAD` method uses forward-mode automatic differentiation to compute sensitivities. It typically provides precise results with good performance, especially for first-order Greeks.
 
 ```julia
 # Calculate delta using automatic differentiation
@@ -20,9 +20,9 @@ delta = solution.greek
 
 ---
 
-### [`FiniteDifference`](@ref)
+### `FiniteDifference`
 
-The [`FiniteDifference`](@ref) method approximates derivatives using numerical differencing. It provides flexibility in choice of scheme (forward, backward, central) and step size.
+The `FiniteDifference` method approximates derivatives using numerical differencing. It provides flexibility in choice of scheme (forward, backward, central) and step size.
 
 ```julia
 # Calculate delta using central finite differences
@@ -33,9 +33,9 @@ delta = solution.greek
 
 ---
 
-### [`AnalyticGreek`](@ref)
+### `AnalyticGreek`
 
-The [`AnalyticGreek`](@ref) method uses closed-form solutions for sensitivities when available. Currently supports Black-Scholes model Greeks (delta, gamma, vega, theta, rho).
+The `AnalyticGreek` method uses closed-form solutions for sensitivities when available. Currently supports Black-Scholes model Greeks (delta, gamma, vega, theta, rho).
 
 ```julia
 # Calculate delta using analytical formulas
@@ -47,7 +47,7 @@ delta = solution.greek
 
 ## Problem Types
 
-### [`GreekProblem`](@ref)
+### `GreekProblem`
 
 A `GreekProblem` represents a first-order sensitivity calculation with respect to a specific parameter.
 
@@ -59,7 +59,7 @@ where `lens` is an accessor (from Accessors.jl) that specifies which parameter t
 
 ---
 
-### [`SecondOrderGreekProblem`](@ref)
+### `SecondOrderGreekProblem`
 
 A `SecondOrderGreekProblem` represents a second-order sensitivity (e.g., gamma, volga) calculation.
 
@@ -71,9 +71,9 @@ When `lens1` and `lens2` are identical, this computes a pure second derivative. 
 
 ---
 
-### [`BatchGreekProblem`](@ref)
+### `BatchGreekProblem`
 
-The [`BatchGreekProblem`](@ref) allows calculating multiple Greeks in a single operation for efficiency.
+The `BatchGreekProblem` allows calculating multiple Greeks in a single operation for efficiency.
 
 ```julia
 spot_lens = @optic _.market_inputs.spot
