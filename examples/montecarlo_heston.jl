@@ -1,62 +1,51 @@
-using Revise
-using Hedgehog
-using Distributions
-using Random
-using Plots
-using Dates
+using Revise, Hedgehog, BenchmarkTools, Dates
 
-println("=== Heston: Carr-Madan vs Euler–Maruyama vs Broadie–Kaya ===")
+"""Example code with benchmarks"""
 
-# --- Market Inputs ---
+# Define market inputs
 reference_date = Date(2020, 1, 1)
 
-S0 = 1.0
-V0 = 0.010201
-κ = 6.21
-θ = 0.019
-σ = 0.61
-ρ = -0.7
-r = 0.0319
+# Define Heston model parameters
+S0 = 100    # Initial stock price
+V0 = 0.010201    # Initial variance
+κ = 6.21      # Mean reversion speed
+θ = 0.019      # Long-run variance
+σ = 0.61   # Volatility of variance
+ρ = -0.7     # Correlation
+r = 0.0319      # Risk-free rate
+T = 1.0       # Time to maturity
+market_inputs = Hedgehog.HestonInputs(reference_date, r, S0, V0, κ, θ, σ, ρ)
+bs_market_inputs = BlackScholesInputs(reference_date, r, S0, sqrt(V0))
+# Define payoff
+expiry = reference_date + Day(365)
+strike = 100
+payoff =
+    VanillaOption(strike, expiry, Hedgehog.European(), Hedgehog.Call(), Hedgehog.Spot())
 
-market_inputs = HestonInputs(reference_date, r, S0, V0, κ, θ, σ, ρ)
+# Define carr madan method
+boundary = 32
+α = 1
+method_heston = Hedgehog.CarrMadan(α, boundary, HestonDynamics())
 
-# --- Payoff ---
-expiry = reference_date + Year(5)
-strike = S0  # ATM put
-payoff = VanillaOption(strike, expiry, European(), Call(), Spot())
+# Define pricer
+pricing_problem = PricingProblem(payoff, market_inputs)
+analytic_sol = Hedgehog.solve(pricing_problem, method_heston)
 
-# --- Dynamics ---
 dynamics = HestonDynamics()
+trajectories = 10000
+config = Hedgehog.SimulationConfig(trajectories; steps=100, variance_reduction=Hedgehog.NoVarianceReduction())
+config_exact = Hedgehog.SimulationConfig(trajectories; steps=1, variance_reduction=Hedgehog.NoVarianceReduction())
 
-# --- Carr-Madan ---
-α = 1.0
-boundary = 32.0
-carr_madan_method = CarrMadan(α, boundary, dynamics)
-carr_madan_problem = PricingProblem(payoff, market_inputs)
-carr_madan_solution = solve(carr_madan_problem, carr_madan_method)
+montecarlo_method = MonteCarlo(dynamics, EulerMaruyama(), config)
+montecarlo_method_exact = MonteCarlo(dynamics, HestonBroadieKaya(), config_exact)
 
-# --- Monte Carlo Parameters ---
-trajectories = 1_000
-steps = 500
+solution = Hedgehog.solve(pricing_problem, montecarlo_method)
+solution_exact = Hedgehog.solve(pricing_problem, montecarlo_method_exact)
 
-# --- Euler–Maruyama ---
-euler_strategy = EulerMaruyama(trajectories, steps = steps)
-euler_method = MonteCarlo(dynamics, euler_strategy)
-euler_problem = PricingProblem(payoff, market_inputs)
-euler_solution = solve(euler_problem, euler_method)
+@show solution.price
+@show analytic_sol.price
+@show solution_exact.price
 
-# --- Broadie–Kaya ---
-bk_strategy = HestonBroadieKaya(trajectories, steps = 1)
-bk_method = MonteCarlo(dynamics, bk_strategy)
-bk_problem = PricingProblem(payoff, market_inputs)
-bk_solution = solve(bk_problem, bk_method)
+@btime Hedgehog.solve($pricing_problem, $montecarlo_method_exact).price
+@btime Hedgehog.solve($pricing_problem, $montecarlo_method).price
 
-# --- Results ---
-println("\nCarr-Madan price:")
-@time println(carr_madan_solution.price)
-
-println("\nEuler–Maruyama price:")
-@time println(euler_solution.price)
-
-println("\nBroadie–Kaya price:")
-@time println(bk_solution.price)

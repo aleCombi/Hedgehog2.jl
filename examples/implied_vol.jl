@@ -1,21 +1,45 @@
-using Revise, Hedgehog, Dates
+using Dates
+using Accessors
+using Optimization
+using Hedgehog
 
-reference_date = Date(2020, 1, 1)
+# Inputs
+reference_date = Date(2025, 1, 1)
+expiry = Date(2025, 7, 1)
+strike = 1.0
+spot = 1.0
+rate = 0.01
+vol = 0.36
 
-# Query interpolated vol
-T = 0.75
-K = 95.0
+# Build payoff
+payoff = VanillaOption(strike, expiry, European(), Call(), Spot())
 
-r = 0.02
-spot = 100.0
-market_inputs = BlackScholesInputs(reference_date, r, spot, 0.65)
-expiry_date = reference_date + Day(365)
-payoff_call = VanillaOption(80.0, expiry_date, European(), Call(), Spot())
-pricing_problem = PricingProblem(payoff_call, market_inputs)
-price = solve(pricing_problem, BlackScholesAnalytic()).price
+# Build market inputs with dummy sigma
+market_inputs = BlackScholesInputs(
+    reference_date,
+    rate,
+    spot,
+    vol
+)
 
-calibration_problem =
-    Hedgehog.BlackScholesCalibrationProblem(pricing_problem, BlackScholesAnalytic(), price)
-calibrated_vol = solve(calibration_problem)
-print(calibrated_vol)
-#TODO: test the inversion
+
+# Create the pricing problem
+pricing_problem = PricingProblem(payoff, market_inputs)
+market_price = Hedgehog.solve(pricing_problem, BlackScholesAnalytic()).price
+
+# Wrap in a calibration problem
+calib = CalibrationProblem(
+    BasketPricingProblem([payoff], market_inputs),   # pricing problem container
+    BlackScholesAnalytic(),                    # method
+    [VolLens(1,1)],             # parameter to calibrate
+    [market_price],                            # target price
+    [0.05],                                     # initial guess
+)
+
+# Solve for implied vol using root finding
+sol = Hedgehog.solve(calib, RootFinderAlgo())
+
+# Extract implied vol
+implied_vol = sol.u
+println("Implied vol = ", implied_vol)
+println("Real vol = ", vol)
