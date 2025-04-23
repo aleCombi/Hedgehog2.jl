@@ -80,6 +80,7 @@ Hedgehog is built on several high-quality Julia packages:
   - [Optimization.jl](https://github.com/SciML/Optimization.jl) - For advanced calibration
   - [DataInterpolations.jl](https://github.com/SciML/DataInterpolations.jl) - For volatility surfaces and rate curves
 
+- [ForwardDiff.jl](https://github.com/JuliaDiff/ForwardDiff.jl) - Automatic differentiation for Greeks calculation
 - [Accessors.jl](https://github.com/JuliaObjects/Accessors.jl) - Functional lens-based access for Greeks and calibration
 - [Distributions.jl](https://github.com/JuliaStats/Distributions.jl) - For statistical distributions and sampling
 

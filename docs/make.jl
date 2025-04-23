@@ -14,6 +14,7 @@ makedocs(
     pages = [
         "Home" => "index.md",
         "Pricing Methods" => "pricing_methods.md",
+        "Greek Methods" => "greek_doc.md",
         "Roadmap" => "derivatives_pricing_roadmap.md",
         "API Reference" => "api.md"
     ]
