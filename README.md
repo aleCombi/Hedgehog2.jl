@@ -86,3 +86,12 @@ Hedgehog is built on several high-quality Julia packages:
 ## 📖 Documentation
 
 Complete documentation is available at [https://alecombi.github.io/Hedgehog.jl/](https://alecombi.github.io/Hedgehog.jl/)
+
+## 🔍 Examples
+
+Example scripts demonstrating Hedgehog's functionality can be found in the `examples/` directory:
+
+- `examples/` - Standalone Julia scripts for various pricing scenarios
+- `examples/notebooks/` - Jupyter and Pluto notebooks for interactive exploration (in progress)
+
+These examples cover various use cases from basic option pricing to advanced calibration scenarios and are designed to help you get started with the library.
