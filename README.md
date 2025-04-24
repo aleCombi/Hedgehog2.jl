@@ -28,13 +28,11 @@ price = sol.price
 
 - European Call / Put
 - American Call / Put
-- Planned: Digital and Barrier, Asian
 
 ## 🧠 Supported Models (Price Dynamics)
 
 - Black-Scholes (`LognormalDynamics`)
 - Heston (`HestonDynamics`)
-- Planned: Hull-White (short-rate), Variance Gamma, Rough Bergomi
 
 ## ⚙️ Pricing Methods
 
@@ -43,8 +41,7 @@ price = sol.price
 - Monte Carlo:
   - Euler–Maruyama
   - Exact simulation (Black-Scholes, Broadie–Kaya for Heston)
-- Fourier methods (Carr–Madan; COS coming soon)
-- PDE methods (Crank–Nicolson, in progress)
+- Fourier methods (Carr–Madan)
 
 ## 📊 Calibration
 
@@ -95,4 +92,4 @@ Example scripts demonstrating Hedgehog's functionality can be found in the `exam
 - `examples/` - Standalone Julia scripts for various pricing scenarios
 - `examples/notebooks/` - Jupyter and Pluto notebooks for interactive exploration (in progress)
 
-These examples cover various use cases from basic option pricing to advanced calibration scenarios and are designed to help you get started with the library.
+These examples cover various use cases from basic option pricing to calibration scenarios and are designed to help you get started with the library.
