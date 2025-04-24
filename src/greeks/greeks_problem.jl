@@ -131,36 +131,121 @@ end
 
 
 # Method types
+"""
+    GreekMethod
+
+Abstract type representing different methods for Greek calculation.
+"""
 abstract type GreekMethod end
 
+"""
+    GreekResult{T}
+
+Container for the result of a Greek calculation.
+
+# Fields
+- `greek`: The calculated Greek value.
+"""
 struct GreekResult{T}
     greek::T
 end
 
+"""
+    FDScheme
 
+Abstract type representing different finite difference schemes.
+"""
 abstract type FDScheme end
 
+"""
+    FDForward <: FDScheme
+
+Finite difference scheme using forward differencing.
+"""
 struct FDForward <: FDScheme end
+
+"""
+    FDBackward <: FDScheme
+
+Finite difference scheme using backward differencing.
+"""
 struct FDBackward <: FDScheme end
+
+"""
+    FDCentral <: FDScheme
+
+Finite difference scheme using central differencing.
+"""
 struct FDCentral <: FDScheme end
 
+"""
+    AnalyticGreek <: GreekMethod
+
+Greek calculation method using closed-form analytic formulas.
+"""
 struct AnalyticGreek <: GreekMethod end
 
+"""
+    ForwardAD <: GreekMethod
+
+Greek calculation method using forward-mode automatic differentiation.
+"""
 struct ForwardAD <: GreekMethod end
 
+"""
+    FiniteDifference{S<:FDScheme, A <: Number} <: GreekMethod
+
+Greek calculation method using finite differences.
+
+# Fields
+- `bump`: The bump size for finite difference.
+- `scheme`: The finite difference scheme to use.
+"""
 struct FiniteDifference{S<:FDScheme, A <: Number} <: GreekMethod
     bump::A
     scheme::S
 end
 
+"""
+    FiniteDifference(bump)
+
+Convenience constructor for central finite differencing with a specified bump size.
+
+# Arguments
+- `bump`: The bump size for finite difference.
+
+# Returns
+- A `FiniteDifference` object with a central scheme.
+"""
 FiniteDifference(bump) = FiniteDifference(bump, FDCentral())
 
-# First-order GreekProblem
+"""
+    GreekProblem{P,L}
+
+Problem definition for calculating a first-order Greek.
+
+# Fields
+- `pricing_problem`: The underlying pricing problem.
+- `wrt`: The lens specifying which parameter to differentiate with respect to.
+"""
 struct GreekProblem{P,L}
     pricing_problem::P
     wrt::L  # accessor (from Accessors.jl)
 end
 
+"""
+    solve(gprob::GreekProblem, ::ForwardAD, pricing_method::P) where {P<:AbstractPricingMethod}
+
+Solve a first-order Greek problem using automatic differentiation.
+
+# Arguments
+- `gprob`: The Greek problem to solve.
+- `::ForwardAD`: The method to use (automatic differentiation).
+- `pricing_method`: The method to use for pricing.
+
+# Returns
+- A named tuple containing the calculated Greek.
+"""
 function solve(
     gprob::GreekProblem,
     ::ForwardAD,
@@ -176,6 +261,21 @@ function solve(
     return (greek = deriv,)
 end
 
+"""
+    compute_fd_derivative(scheme::FDScheme, prob, lens, ε, pricing_method)
+
+Calculate numerical derivative using finite difference schemes.
+
+# Arguments
+- `scheme`: The finite difference scheme to use (Forward, Backward, or Central).
+- `prob`: The pricing problem.
+- `lens`: The lens to access and modify the relevant parameter.
+- `ε`: The bump size for finite difference.
+- `pricing_method`: The method to price the derivative.
+
+# Returns
+- The calculated finite difference derivative.
+"""
 function compute_fd_derivative(::FDForward, prob, lens, ε, pricing_method)
     x₀ = lens(prob)
     prob_up = set(prob, lens, x₀ * (1 + ε))
@@ -202,6 +302,19 @@ function compute_fd_derivative(::FDCentral, prob, lens, ε, pricing_method)
     return (v_up - v_down) / (2ε * x₀)
 end
 
+"""
+    solve(gprob::GreekProblem, method::FiniteDifference{S,A}, pricing_method::P) where {S<:FDScheme,P<:AbstractPricingMethod,A}
+
+Solve a first-order Greek problem using finite differences.
+
+# Arguments
+- `gprob`: The Greek problem to solve.
+- `method`: Finite difference method configuration.
+- `pricing_method`: The method to use for pricing.
+
+# Returns
+- A `GreekResult` containing the calculated Greek.
+"""
 function solve(
     gprob::GreekProblem,
     method::FiniteDifference{S,A},
@@ -215,13 +328,35 @@ function solve(
     return GreekResult(deriv)
 end
 
-# Second-order GreekProblem
+"""
+    SecondOrderGreekProblem{P,L1,L2}
+
+Problem definition for calculating a second-order Greek.
+
+# Fields
+- `pricing_problem`: The underlying pricing problem.
+- `wrt1`: The first lens specifying the first parameter to differentiate with respect to.
+- `wrt2`: The second lens specifying the second parameter to differentiate with respect to.
+"""
 struct SecondOrderGreekProblem{P,L1,L2}
     pricing_problem::P
     wrt1::L1
     wrt2::L2
 end
 
+"""
+    solve(gprob::SecondOrderGreekProblem, ::ForwardAD, pricing_method::P) where {P<:AbstractPricingMethod}
+
+Solve a second-order Greek problem using automatic differentiation.
+
+# Arguments
+- `gprob`: The second-order Greek problem to solve.
+- `::ForwardAD`: The method to use (automatic differentiation).
+- `pricing_method`: The method to use for pricing.
+
+# Returns
+- A `GreekResult` containing the calculated second-order Greek.
+"""
 function solve(
     gprob::SecondOrderGreekProblem,
     ::ForwardAD,
@@ -244,6 +379,19 @@ function solve(
     return GreekResult(deriv)
 end
 
+"""
+    solve(gprob::SecondOrderGreekProblem, method::FiniteDifference, pricing_method::P) where {P<:AbstractPricingMethod}
+
+Solve a second-order Greek problem using finite differences.
+
+# Arguments
+- `gprob`: The second-order Greek problem to solve.
+- `method`: Finite difference method configuration.
+- `pricing_method`: The method to use for pricing.
+
+# Returns
+- A `GreekResult` containing the calculated second-order Greek.
+"""
 function solve(
     gprob::SecondOrderGreekProblem,
     method::FiniteDifference,
@@ -273,6 +421,19 @@ function solve(
     return GreekResult(deriv)
 end
 
+"""
+    solve(gprob::GreekProblem{PricingProblem{VanillaOption{TS,TE,European,B,C},I}, L}, ::AnalyticGreek, ::BlackScholesAnalytic) where {TS,TE,B,C,L, I<:BlackScholesInputs}
+
+Solve a first-order Greek problem for European vanilla options using closed-form Black-Scholes formulas.
+
+# Arguments
+- `gprob`: The Greek problem to solve.
+- `::AnalyticGreek`: The method to use (analytic formulas).
+- `::BlackScholesAnalytic`: The pricing method (Black-Scholes analytic).
+
+# Returns
+- A `GreekResult` containing the calculated Greek.
+"""
 function solve(
     gprob::GreekProblem{
         PricingProblem{VanillaOption{TS,TE,European,B,C},I},
@@ -320,6 +481,19 @@ function solve(
     return GreekResult(greek)
 end
 
+"""
+    solve(gprob::SecondOrderGreekProblem, ::AnalyticGreek, ::BlackScholesAnalytic)
+
+Solve a second-order Greek problem using closed-form Black-Scholes formulas.
+
+# Arguments
+- `gprob`: The second-order Greek problem to solve.
+- `::AnalyticGreek`: The method to use (analytic formulas).
+- `::BlackScholesAnalytic`: The pricing method (Black-Scholes analytic).
+
+# Returns
+- A `GreekResult` containing the calculated second-order Greek.
+"""
 function solve(gprob::SecondOrderGreekProblem, ::AnalyticGreek, ::BlackScholesAnalytic)
     prob = gprob.pricing_problem
     lens1 = gprob.wrt1
@@ -355,15 +529,37 @@ function solve(gprob::SecondOrderGreekProblem, ::AnalyticGreek, ::BlackScholesAn
     return GreekResult(greek)
 end
 
+"""
+    BatchGreekProblem{P,L}
+
+Problem definition for calculating multiple Greeks at once.
+
+# Fields
+- `pricing_problem`: The underlying pricing problem.
+- `lenses`: A collection of lenses, each specifying a parameter to differentiate with respect to.
+"""
 struct BatchGreekProblem{P,L}
     pricing_problem::P
     lenses::L
 end
 
+"""
+    solve(gprob::BatchGreekProblem{P,L}, method::GreekMethod, pricing_method::AbstractPricingMethod) where {P,L}
+
+Solve multiple Greek problems simultaneously.
+
+# Arguments
+- `gprob`: The batch Greek problem to solve.
+- `method`: The method to use for Greek calculation.
+- `pricing_method`: The method to use for pricing.
+
+# Returns
+- A dictionary mapping lenses to their corresponding Greeks.
+"""
 function solve(
     gprob::BatchGreekProblem{P,L},
     method::GreekMethod,
-    pricing_method::AbstractPricingMethod
+    pricing_method::AbstracstPricingMethod
 ) where {P,L}
     lenses = gprob.lenses
     prob = gprob.pricing_problem
