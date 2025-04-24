@@ -559,7 +559,7 @@ Solve multiple Greek problems simultaneously.
 function solve(
     gprob::BatchGreekProblem{P,L},
     method::GreekMethod,
-    pricing_method::AbstracstPricingMethod
+    pricing_method::AbstractPricingMethod
 ) where {P,L}
     lenses = gprob.lenses
     prob = gprob.pricing_problem
