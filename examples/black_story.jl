@@ -52,9 +52,6 @@ begin
     title!("European Option Payoffs (Strike = \$strike)")
 end
 
-# ╔═╡ 3ca56e4d-0b1f-418f-9ad6-ae19b0c82217
-using PlutoUI
-
 # ╔═╡ 4251d370-482b-4ff2-8973-b45348b4cbb5
 md"# 📈 Black-Scholes Option Pricing"
 
@@ -302,6 +299,7 @@ end
 
 # ╔═╡ 7681bf7e-8b29-49b6-a452-c5ae66f943c9
 begin
+	using PlutoUI
 	using Accessors
     # Define spot range
     spots = 0.0:1.0:200.0
@@ -355,15 +353,19 @@ md"""
 
 We first explore how the option price, Delta, and Vega change as a function of the **spot price**.
 
-You can adjust the **volatility** using the slider below to see how higher or lower implied volatilities impact the curves.
+You can adjust the **volatility** using the sliders above each plot to see how higher or lower implied volatilities impact the curves.
 """
 
 # ╔═╡ fba78c77-5baf-47f7-a789-cd020bb91a53
-# Define three sliders, one for each plot
-md"### Price Plot Volatility"
+md"### Price Plot Volatility
+Below you can see how a call price changes with the spot price. When the spot price is below the strike price the option is said In-The-Money (ITM), when it is equal it is said At-The-Money (ATM), when it is above it is said Out-of-The-Money (OTM).
+Recall that the strike price is fixed at 100. 
+One can see that the option price is a convex function of the spot.
+Playing with the volatility slider you can see how with low volatilities the graph resembles the payoff graphs, while with high volatilities the graph looks like a straight line, with the option price equaling the spot price. 
+"
 
 # ╔═╡ b007b80f-9da9-4f8b-ad32-5bce4dae0d97
-@bind vol_slider_price Slider(0.1:0.01:0.8, default=0.2)
+@bind vol_slider_price Slider(0.01:0.01:1.8, default=0.2)
 
 # ╔═╡ 46b114ab-954a-4e64-b69c-9dc33607feb0
 begin
@@ -377,10 +379,13 @@ begin
 end
 
 # ╔═╡ 68cae9fd-909f-4618-ac61-2151f11d182f
-md"### Delta Plot Volatility"
+md"### Delta Plot Volatility
+Below a similar graph is plotted for the delta. 
+The delta is also an increasing function of the spot price.
+"
 
 # ╔═╡ 7582c0e6-7c44-42d1-9db4-260bcff044c6
-@bind vol_slider_delta Slider(0.1:0.01:0.8, default=0.2)
+@bind vol_slider_delta Slider(0.001:0.01:0.8, default=0.2)
 
 # ╔═╡ 178eaf5d-74c8-4e48-bb96-5f8c0c97058c
 begin
@@ -392,6 +397,14 @@ begin
     ylabel!(p2, "Delta")
     title!(p2, "Option Delta vs Spot (Volatility = $(round(vol_slider_delta * 100))%)")
 end
+
+# ╔═╡ f02c1a0f-a30e-4f83-9fbe-8d93a2a80dc4
+md"### Vega Plot Volatility
+Below a similar graph is plotted for the vega. 
+Note the bell shape, with high vegas at ATM options, with low vegas at extreme values. 
+This is expected, as with extreme values the price is dominated by the instrinsic option value.
+Also see how increasing the volatility makes the bell larger.
+"
 
 # ╔═╡ 24aeee97-c9da-468a-8456-b3c94d61414f
 @bind vol_slider_vega Slider(0.1:0.01:0.8, default=0.2)
@@ -429,13 +442,13 @@ end
 # ╠═38417823-c778-47cc-b184-461e3f4dbef0
 # ╟─e485fff0-71a7-46fb-af1c-923ec0d99e36
 # ╟─07783212-6a2e-4ac2-934c-faf25eb74142
-# ╠═3ca56e4d-0b1f-418f-9ad6-ae19b0c82217
 # ╠═7681bf7e-8b29-49b6-a452-c5ae66f943c9
 # ╠═fba78c77-5baf-47f7-a789-cd020bb91a53
 # ╠═b007b80f-9da9-4f8b-ad32-5bce4dae0d97
 # ╠═46b114ab-954a-4e64-b69c-9dc33607feb0
-# ╟─68cae9fd-909f-4618-ac61-2151f11d182f
+# ╠═68cae9fd-909f-4618-ac61-2151f11d182f
 # ╠═7582c0e6-7c44-42d1-9db4-260bcff044c6
 # ╠═178eaf5d-74c8-4e48-bb96-5f8c0c97058c
+# ╠═f02c1a0f-a30e-4f83-9fbe-8d93a2a80dc4
 # ╠═24aeee97-c9da-468a-8456-b3c94d61414f
 # ╠═6384de4a-5c6e-4693-9334-6f7810d8fc2d
