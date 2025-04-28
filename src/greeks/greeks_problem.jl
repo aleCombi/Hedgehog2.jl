@@ -461,7 +461,7 @@ function solve(
     Φ = x -> cdf(Normal(), x)
     ϕ = x -> pdf(Normal(), x)
 
-    greek = if lens === @optic _.market_inputs.spot
+    greek = if (lens === (@optic _.market_inputs.spot) || lens isa SpotLens)
         # Delta = ∂V/∂S = ∂V/∂F * ∂F/∂S = (cp * N(cp·d1)) * (1/D)
         cp * Φ(cp * d1)
 
