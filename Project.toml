@@ -39,8 +39,10 @@ SciMLBase = "2.77.2"
 SpecialFunctions = "2.5.0"
 StaticArrays = "1.9.13"
 Statistics = "1.10"
+StochasticDiffEq = "6"
 Test = "1.10"
 julia = "1.10"
+
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
