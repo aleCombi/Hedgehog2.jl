@@ -1,6 +1,6 @@
 name = "Hedgehog"
 uuid = "7f16798b-0e18-40de-98af-932948254698"
-authors = ["aleCombi <alecombi94@gmail.com> and contributors"]
+authors = ["Alessandro Combi <alecombi94@gmail.com> and contributors"]
 version = "0.1.0"
 
 [deps]
