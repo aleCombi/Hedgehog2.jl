@@ -90,6 +90,6 @@ Complete documentation is available at [https://alecombi.github.io/Hedgehog.jl/]
 Example scripts demonstrating Hedgehog's functionality can be found in the `examples/` directory:
 
 - `examples/` - Standalone Julia scripts for various pricing scenarios
-- `examples/notebooks/` - Jupyter and Pluto notebooks for interactive exploration (in progress)
+- `examples/notebooks/` - Pluto notebooks for interactive exploration (in progress)
 
 These examples cover various use cases from basic option pricing to calibration scenarios and are designed to help you get started with the library.
