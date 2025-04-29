@@ -19,8 +19,8 @@ end
 # ╔═╡ 486b8480-235a-11f0-1d74-590ef52f1790
 begin
 	import Pkg
-	Pkg.activate(".")  
-	Pkg.instantiate()
+	Pkg.activate(".")  # activate the current folder (if opened inside `examples/`)
+	Pkg.instantiate()  # fetch any missing packages
 end
 
 # ╔═╡ d28428ae-bd56-4dd9-a08f-9c7616bdefc2
@@ -49,7 +49,7 @@ begin
     plot!(S, put_values, label="Put Payoff", lw=2)
     xlabel!("Spot Price")
     ylabel!("Payoff")
-    title!("European Option Payoffs (Strike = $strike)")
+    title!("European Option Payoffs (Strike = \$strike)")
 end
 
 # ╔═╡ 4251d370-482b-4ff2-8973-b45348b4cbb5
@@ -61,6 +61,8 @@ Our goal is to provide intuitive insights through simple plots and interactive g
 
 # ╔═╡ a5b28346-5966-419d-96c9-60df7494e915
 md"""
+# Black-Scholes Pricing
+
 ## Option Payoffs
 
 Options are financial contracts that provide the right, but not the obligation, to buy or sell an asset at a specified strike price at a future time.
@@ -441,12 +443,12 @@ end
 # ╟─e485fff0-71a7-46fb-af1c-923ec0d99e36
 # ╟─07783212-6a2e-4ac2-934c-faf25eb74142
 # ╠═7681bf7e-8b29-49b6-a452-c5ae66f943c9
-# ╟─fba78c77-5baf-47f7-a789-cd020bb91a53
+# ╠═fba78c77-5baf-47f7-a789-cd020bb91a53
 # ╠═b007b80f-9da9-4f8b-ad32-5bce4dae0d97
 # ╠═46b114ab-954a-4e64-b69c-9dc33607feb0
 # ╠═68cae9fd-909f-4618-ac61-2151f11d182f
 # ╠═7582c0e6-7c44-42d1-9db4-260bcff044c6
 # ╠═178eaf5d-74c8-4e48-bb96-5f8c0c97058c
-# ╟─f02c1a0f-a30e-4f83-9fbe-8d93a2a80dc4
+# ╠═f02c1a0f-a30e-4f83-9fbe-8d93a2a80dc4
 # ╠═24aeee97-c9da-468a-8456-b3c94d61414f
 # ╠═6384de4a-5c6e-4693-9334-6f7810d8fc2d
