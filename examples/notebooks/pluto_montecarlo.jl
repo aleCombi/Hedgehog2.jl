@@ -7,7 +7,7 @@ using InteractiveUtils
 # ╔═╡ f091db10-24d5-11f0-1c87-db62c36b849a
 begin
 	import Pkg
-	Pkg.activate(".")  # activate the current folder (if opened inside `examples/`)
+	Pkg.activate("..")  # activate the current folder (if opened inside `examples/notebooks`)
 	Pkg.instantiate()  # fetch any missing packages
 end
 

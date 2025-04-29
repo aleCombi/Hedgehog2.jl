@@ -19,7 +19,7 @@ end
 # ╔═╡ 486b8480-235a-11f0-1d74-590ef52f1790
 begin
 	import Pkg
-	Pkg.activate(".")  # activate the current folder (if opened inside `examples/`)
+	Pkg.activate("..")  # activate the current folder (if opened inside `examples/notebooks`)
 	Pkg.instantiate()  # fetch any missing packages
 end
 
