@@ -83,4 +83,4 @@ Hedgehog development follows a structured roadmap with clearly defined phases:
 7. Performance and production features
 8. Final polish and publication
 
-Check the internal ADRs for more details on the design and implementation plan.
+Check the [internal ADRs](https://github.com/aleCombi/Hedgehog.jl/blob/master/docs/adr) for more details on the design and implementation plan.

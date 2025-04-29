@@ -16,6 +16,7 @@ makedocs(
         "Pricing Methods" => "pricing_methods.md",
         "Greek Methods" => "greeks_doc.md",
         "Roadmap" => "derivatives_pricing_roadmap.md",
+        "Interactive Examples" => "interactive.md",
         "API Reference" => "api.md"
     ]
 )
