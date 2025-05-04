@@ -129,7 +129,7 @@ A pure Julia port of the C++ QuantLib library. It offers broad model coverage bu
 
 Hedgehog aims to provide a clean, Julia-native foundation for derivatives pricing, sensitivities, and calibration — suited for research, prototyping, and production use.
 
-👥 Collaboration
+## 👥 Collaboration
 
 Contributions are welcome! If you have ideas for new features, models, or improvements, feel free to open an issue or submit a pull request.
 
