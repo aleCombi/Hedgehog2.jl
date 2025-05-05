@@ -15,5 +15,3 @@ docsbuild/
 *.jl.cov
 *.jl.*.cov
 *.jl.mem
-
-testing_ground.jl
