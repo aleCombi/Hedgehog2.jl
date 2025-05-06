@@ -64,9 +64,11 @@
 - [x] Ensure full test suite runs via `Pkg.test()`
 - [x] CI: GitHub Actions with coverage and doc build
 - [x] Tag `v0.1.0` and submit to Julia registry
-- [ ] Soft launch: share with trusted peers, hold off on broad announcement
+- [x] Soft launch: annunce on JuliaDiscourse
 
----
+## PHASE 4.5 — Basic Jump support
+- [ ] Merton model with Carr Madan
+- [ ] Merton model with Montecarlo
 
 ## PHASE 5 — Structured Payoffs
 
