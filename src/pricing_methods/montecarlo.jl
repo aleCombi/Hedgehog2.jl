@@ -420,11 +420,93 @@ function solve(
     dynamics = method.dynamics
     config = method.config
 
-    sde_prob = sde_problem(prob, method.dynamics, method.strategy)
+    sde_prob = sde_problem(prob, dynamics, strategy)
     ens = simulate_paths(sde_prob, method, config.variance_reduction)
     payoffs = reduce_payoffs(ens, prob.payoff, config.variance_reduction, dynamics, strategy)
     discount = df(prob.market_inputs.rate, prob.payoff.expiry)
     price = discount * mean(payoffs)
 
     return MonteCarloSolution(prob, method, price, ens)
+end
+
+""" The proposed improvement to the `solve` function for Monte-Carlo methods: by calling simulate_paths_from_problem, we may dispatch on the problem type for more efficient path generation. """
+function solve_quick(
+    prob::PricingProblem{VanillaOption{TS, TE, European, C, Spot}, I},
+    method::MonteCarlo{D, S},
+) where {TS, TE, C, I<:AbstractMarketInputs, D<:PriceDynamics, S<:SimulationStrategy}
+    strategy = method.strategy
+    dynamics = method.dynamics
+    config = method.config
+
+    ens = simulate_paths_from_problem(prob, method, config.variance_reduction)
+    payoffs = reduce_payoffs(ens, prob.payoff, config.variance_reduction, dynamics, strategy)
+    discount = df(prob.market_inputs.rate, prob.payoff.expiry)
+    price = discount * mean(payoffs)
+
+    return MonteCarloSolution(prob, method, price, ens)
+end
+
+""" If a pricing problem is passed, it will be converted to an SDE problem first. """
+function simulate_paths_from_problem(
+    prob::PricingProblem{P, I},
+    method::M,
+    var_red::V
+) where {P, I, M<:MonteCarlo, V<:VarianceReductionStrategy}
+    return simulate_paths(sde_problem(prob, method.dynamics, method.strategy), method, var_red)
+end
+
+""" If a Black-Scholes pricing problem is passed, we use a specialized method. """
+function simulate_paths_from_problem(
+    prob::PricingProblem{P, I},
+    method::M,
+    var_red::V
+) where {P, I<:BlackScholesInputs, M<:MonteCarlo, V<:VarianceReductionStrategy}
+    market = prob.market_inputs
+    T = yearfrac(market.referenceDate, prob.payoff.expiry)
+
+    r = zero_rate(market.rate, 0.0)
+    σ = get_vol(market.sigma, nothing, nothing)
+    S₀ = market.spot
+    Δt = T
+    N = method.config.trajectories
+
+    return simulate_path_black_scholes(r, σ, S₀, Δt, N, var_red, method.config.seeds)
+end
+
+struct BlackScholesEndpoints{T}
+    endpoints::Vector{T}
+end
+
+function simulate_path_black_scholes(r, σ, S₀, Δt, N, ::NoVarianceReduction, seed)
+    drift_part = ((r - 0.5 * σ^2) * Δt)
+    diffusion_part = σ * sqrt(Δt)
+    return BlackScholesEndpoints(S₀ .* exp.(drift_part .+ diffusion_part .* randn(Xoshiro(seed[1]), N)))
+end
+function simulate_path_black_scholes(r, σ, S₀, Δt, N, ::Antithetic, seed)
+    drift_part = ((r - 0.5 * σ^2) * Δt)
+    diffusion_part = σ * sqrt(Δt)
+    normal_sol = Vector{typeof(drift_part*diffusion_part)}(undef, N)
+    randn!(Xoshiro(seed[1]), normal_sol)
+    antithetic_sol = S₀ .* exp.(drift_part .- diffusion_part .* normal_sol)
+    normal_sol .= S₀ .* exp.(drift_part .+ diffusion_part .* normal_sol)
+    return (BlackScholesEndpoints(normal_sol), BlackScholesEndpoints(antithetic_sol))
+end
+
+function reduce_payoffs(
+    result::BlackScholesEndpoints,
+    payoff::F,
+    ::Hedgehog.Antithetic,
+    ::Hedgehog.PriceDynamics,
+    ::Hedgehog.SimulationStrategy,
+) where {F}
+    return payoff(result.endpoints)
+end
+function reduce_payoffs(
+    result::Tuple{<:BlackScholesEndpoints, <:BlackScholesEndpoints},
+    payoff::F,
+    ::Hedgehog.Antithetic,
+    ::Hedgehog.PriceDynamics,
+    ::Hedgehog.SimulationStrategy,
+) where {F}
+    return (payoff(result[1].endpoints) + payoff(result[2].endpoints)) / 2
 end
