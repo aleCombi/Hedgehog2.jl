@@ -5,13 +5,21 @@ T = 1.0
 tspan = (t₀, T)
 noise = GeometricBrownianMotionProcess(r, σ, t₀, S₀)
 noise_problem = NoiseProblem(noise, tspan)
-
 ens_problem = EnsembleProblem(noise_problem)
 ens_sol = StochasticDiffEq.solve(ens_problem; dt=T, trajectories=1000)
 
 struct FakeSolution{T,U}
     t::Vector{T}
     u::Vector{U}
+end
+
+# Alias .W to .u
+function Base.getproperty(sol::FakeSolution, name::Symbol)
+    if name === :W
+        return getfield(sol, :u)
+    else
+        return getfield(sol, name)
+    end
 end
 
 struct FakeProblem{P<:NoiseProblem, F<:FakeSolution}
@@ -22,17 +30,37 @@ end
 using SciMLBase
 
 function simple_solve(r, σ, S₀, T, N)
+    rng = Random.default_rng()
     ΔT = T / N
-    times = collect(0:ΔT:T)
-    drift_part = (r - 0.5 * σ^2) * ΔT
-    diffusion_part = σ * sqrt(ΔT)
-    Z = randn(N)
-    log_returns = cumsum(drift_part .+ diffusion_part .* Z)
-    log_path = vcat(0.0, log_returns)  # prepend initial log(S₀)
-    S = S₀ .* exp.(log_path)
+    times = [0.0]
+    values = [S₀]
+    sol = FakeSolution(times, values)
 
-    return FakeSolution(times, S)
+    gbm = GeometricBrownianMotionProcess(r, σ, 0.0, S₀)
+    ΔW = 0.0
+
+    for i in 1:N
+        t_next = sol.t[end] + ΔT
+        ΔW = gbm.dist(ΔW, sol, ΔT, sol, nothing, t_next, rng)
+        push!(sol.t, t_next)
+        push!(sol.u, sol.W[end] + ΔW)
+    end
+
+    return sol
 end
+
+# function simple_solve(r, σ, S₀, T, N)
+#     ΔT = T / N
+#     times = collect(0:ΔT:T)
+#     drift_part = (r - 0.5 * σ^2) * ΔT
+#     diffusion_part = σ * sqrt(ΔT)
+#     Z = randn(N)
+#     log_returns = cumsum(drift_part .+ diffusion_part .* Z)
+#     log_path = vcat(0.0, log_returns)  # prepend initial log(S₀)
+#     S = S₀ .* exp.(log_path)
+
+#     return FakeSolution(times, S)
+# end
 
 function generate_ensemble_solution(r, σ, S₀, T, t₀, Nsteps, Npaths)
     noise = GeometricBrownianMotionProcess(r, σ, t₀, S₀)
