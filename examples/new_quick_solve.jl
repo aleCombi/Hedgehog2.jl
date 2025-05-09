@@ -85,7 +85,7 @@ function (X::MyDist)(dW, W, dt, u, p, t, rng) #dist
     end
 
     new_val = exp.(drift * dt .+ X.σ * sqrt(dt) .* rand_val)
-    return last.(W.W) .* (new_val .- 1)
+    return getindex.(W.W, i) .* (new_val .- 1)
 end
 
 function MyGeometricBrownianMotionProcess(μ, σ, t0, W0, Z0 = nothing; kwargs...)
@@ -95,12 +95,12 @@ function MyGeometricBrownianMotionProcess(μ, σ, t0, W0, Z0 = nothing; kwargs..
 end
 
 gbm = MyDist(0.05, 0.2)
-n = 5000  # or whatever dimension you want
+n = 5000
 dW = zeros(n)
 W = [[1.0] for _ in 1:n]
 dt = 0.1
 u, p, t, rng, i = W, nothing, 1.0, Xoshiro(), 1
-gbm(dW, W, dt, u, p, t, rng, i)
+# gbm(dW, W, dt, u, p, t, rng, i)
 
 
 noise = MyGeometricBrownianMotionProcess(r, σ, t₀, S₀)
@@ -108,23 +108,31 @@ noise_problem = NoiseProblem(noise, tspan)
 
 function simple_solve(noise_problem; steps, trajectories)
     N = trajectories
-    rng = Random.default_rng()
+    rng = Xoshiro()
     T = noise_problem.tspan[end]
     gbm = noise_problem.noise
     ΔT = T / steps
-    W = [[gbm.u[1]] for _ in 1:n]
-    times = [0.0]
+    # Preallocate W and u as vectors of vectors
+    W = [Vector{Float64}(undef, steps + 1) for _ in 1:N]
+
+    # Set initial values
+    for j in 1:N
+        W[j][1] = gbm.u[1]
+    end
+
+    times = collect(range(0.0, 1.0; length=steps+1))
     sol = FakeSolution(times, W)
-    ΔW = zeros(n)
+    ΔW = zeros(N)
 
     for i in 1:steps
         t_next = sol.t[end] + ΔT
-        ΔW = gbm.dist(ΔW, sol, ΔT, sol, nothing, t_next, rng)
-        push!(sol.t, t_next)
-        push!.(sol.u, last.(sol.W) .+ ΔW)
+        ΔW = gbm.dist(ΔW, sol, ΔT, sol, nothing, t_next, rng, i)
+        for j in eachindex(ΔW)
+            sol.W[j][i+1] = sol.W[j][i] + ΔW[j]
+        end
     end
 
     return sol
 end
 
-simple_solve(noise_problem; steps=1, trajectories=5000)
+s = simple_solve(noise_problem; steps=1, trajectories=5000)
