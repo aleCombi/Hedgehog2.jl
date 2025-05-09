@@ -1,4 +1,4 @@
-using StochasticDiffEq, DiffEqNoiseProcess, BenchmarkTools, Profile
+using StochasticDiffEq, DiffEqNoiseProcess, BenchmarkTools, Profile, Random
 
 r, σ, t₀, S₀ = 0.02, 0.3, 0.0, 1.0
 T = 1.0
@@ -29,17 +29,17 @@ end
 
 using SciMLBase
 
-function simple_solve(r, σ, S₀, T, N)
+function simple_solve(noise_problem; steps)
     rng = Random.default_rng()
-    ΔT = T / N
+    T = noise_problem.tspan[end]
+    gbm = noise_problem.noise
+    ΔT = T / steps
     times = [0.0]
-    values = [S₀]
+    values = [gbm.u[1]]
     sol = FakeSolution(times, values)
-
-    gbm = GeometricBrownianMotionProcess(r, σ, 0.0, S₀)
     ΔW = 0.0
 
-    for i in 1:N
+    for i in 1:steps
         t_next = sol.t[end] + ΔT
         ΔW = gbm.dist(ΔW, sol, ΔT, sol, nothing, t_next, rng)
         push!(sol.t, t_next)
@@ -49,25 +49,12 @@ function simple_solve(r, σ, S₀, T, N)
     return sol
 end
 
-# function simple_solve(r, σ, S₀, T, N)
-#     ΔT = T / N
-#     times = collect(0:ΔT:T)
-#     drift_part = (r - 0.5 * σ^2) * ΔT
-#     diffusion_part = σ * sqrt(ΔT)
-#     Z = randn(N)
-#     log_returns = cumsum(drift_part .+ diffusion_part .* Z)
-#     log_path = vcat(0.0, log_returns)  # prepend initial log(S₀)
-#     S = S₀ .* exp.(log_path)
-
-#     return FakeSolution(times, S)
-# end
-
-function generate_ensemble_solution(r, σ, S₀, T, t₀, Nsteps, Npaths)
+function generate_ensemble_solution(r, σ, S₀, T, t₀, steps, Npaths)
     noise = GeometricBrownianMotionProcess(r, σ, t₀, S₀)
     noise_problem = NoiseProblem(noise, (t₀, T))
     paths = Vector{FakeSolution{Float64, Float64}}(undef, Npaths)
     for i in 1:Npaths
-        paths[i] = simple_solve(r, σ, S₀, T, Nsteps)
+        paths[i] = simple_solve(noise_problem; steps=steps)
     end
     return SciMLBase.EnsembleSolution{FakeSolution{Float64, Float64}, 1, FakeProblem}(
         FakeProblem(noise_problem, paths), 1.0, true, nothing)
@@ -78,7 +65,7 @@ Base.getindex(fp::FakeProblem, i::Int) = fp.solutions[i]
 Base.iterate(fp::FakeProblem) = iterate(fp.solutions)
 Base.iterate(fp::FakeProblem, state) = iterate(fp.solutions, state)
 
-ens_sol = generate_ensemble_solution(r, σ, S₀, T,t₀, 1, 1000)
+ens_sol = generate_ensemble_solution(r, σ, S₀, T,t₀, 10, 100000)
 
 terminal_values = [el.u[end] for el in ens_sol.u]
 mean_exp = mean(log.(terminal_values))
@@ -87,4 +74,4 @@ mean_an = r - σ^2 / 2
 @show mean_an
 @show mean_exp
 
-@btime generate_ensemble_solution(r, σ, S₀, T,t₀, 1, 1000)
+display(@benchmark generate_ensemble_solution(r, σ, S₀, T,t₀, 1, 1000))
