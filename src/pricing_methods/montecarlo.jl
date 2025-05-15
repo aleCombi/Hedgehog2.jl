@@ -362,10 +362,56 @@ function simulate_paths(
     return (normal_sol, antithetic_sol)
 end
 
+# ------------------ Sampler ------------------
+
+# final_sample
+# Transform log-domain samples to price-domain (exponentiated) samples.
+#
+# - For plain samples: Apply exp() to convert from log-space
+# - For antithetic: Generate reflected samples around distribution mean
+# - For ensemble solutions: Extract final values and exponentiate
+# 
+# Internal helper function used within Monte Carlo simulation methods.
+final_sample(law, sample, ::NoVarianceReduction) = exp.(sample) 
+
+function final_sample(law, sample, ::Antithetic)
+    antithetic_sample = exp.(2 * mean(law) .- sample)
+    final_sample = exp.(sample) 
+    return final_sample, antithetic_sample
+end
+
+final_sample(ens::EnsembleSolution) = [exp(last(x.u)) for x in ens.u]
+
+function final_sample(ens::Tuple{EnsembleSolution,EnsembleSolution})
+    return (final_sample(ens[1]), final_sample(ens[2]))
+end
+
+# log_sample
+# Get log price samples.
+# Internal helper function used within Monte Carlo simulation methods.
+function log_sample(rng, law::ContinuousUnivariateDistribution, trajectories)
+    log_sample = Distributions.rand(rng, law, trajectories)
+    return log_sample
+end
+
+function log_sample(rng, law::ContinuousMultivariateDistribution, trajectories)
+    log_sample, _ = Distributions.rand(rng, law, trajectories)
+    return log_sample
+end
+
+# reduce_payoffs
+# Calculate the payoff estimators from the price samples, distinguish betweeen antithetic variates or not.
+reduce_payoffs(result::Vector{T}, payoff, ::NoVarianceReduction) where T = payoff.(result)
+
+function reduce_payoffs(result::Tuple{Vector{T}, Vector{T}}, payoff, ::Antithetic) where T
+    return (payoff.(result[1]) + payoff.(result[2])) / 2
+end
+
 """
     solve(prob::PricingProblem, method::MonteCarlo)
 
 Solves the pricing problem using Monte Carlo simulation and returns the discounted expected payoff.
+This method uses sampling of the price process at the expiry date using EulerMaruyama discretization.
 """
 function solve(
     prob::PricingProblem{VanillaOption{TS, TE, European, C, Spot}, I},
@@ -384,6 +430,12 @@ function solve(
     return MonteCarloSolution(prob, method, price, ens)
 end
 
+"""
+    solve(prob::PricingProblem, method::MonteCarlo)
+
+Solves the pricing problem using Monte Carlo simulation and returns the discounted expected payoff.
+This method uses sampling of the price process at the expiry date using the known law.
+"""
 function solve(
     prob::PricingProblem{VanillaOption{TS, TE, European, C, Spot}, I},
     method::MonteCarlo{D, S},
@@ -400,34 +452,4 @@ function solve(
     price = discount * mean(payoffs)
 
     return MonteCarloSolution(prob, method, price, sample_at_expiry)
-end
-
-final_sample(law, sample, ::NoVarianceReduction) = exp.(sample) 
-
-function final_sample(law, sample, ::Antithetic)
-    antithetic_sample = exp.(2 * mean(law) .- sample)
-    final_sample = exp.(sample) 
-    return final_sample, antithetic_sample
-end
-
-final_sample(ens::EnsembleSolution) = [exp(last(x.u)) for x in ens.u]
-
-function final_sample(ens::Tuple{EnsembleSolution,EnsembleSolution})
-    return (final_sample(ens[1]), final_sample(ens[2]))
-end
-
-function log_sample(rng, law::ContinuousUnivariateDistribution, trajectories)
-    log_sample = Distributions.rand(rng, law, trajectories)
-    return log_sample
-end
-
-function log_sample(rng, law::ContinuousMultivariateDistribution, trajectories)
-    log_sample, _ = Distributions.rand(rng, law, trajectories)
-    return log_sample
-end
-
-reduce_payoffs(result::Vector{T}, payoff, ::NoVarianceReduction) where T = payoff.(result)
-
-function reduce_payoffs(result::Tuple{Vector{T}, Vector{T}}, payoff, ::Antithetic) where T
-    return (payoff.(result[1]) + payoff.(result[2])) / 2
 end
