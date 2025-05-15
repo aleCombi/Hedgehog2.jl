@@ -86,19 +86,21 @@ Euler-Maruyama discretization for simulating SDEs.
 """
 struct EulerMaruyama <: SimulationStrategy end
 
+abstract type ExactSimulation <: SimulationStrategy end
+
 """
     struct HestonBroadieKaya <: SimulationStrategy
 
 Exact sampling scheme for the Heston model using the Broadie-Kaya method.
 """
-struct HestonBroadieKaya <: SimulationStrategy end
+struct HestonBroadieKaya <: ExactSimulation end
 
 """
     struct BlackScholesExact <: SimulationStrategy
 
 Exact sampling of the Black-Scholes model using closed-form solution.
 """
-struct BlackScholesExact <: SimulationStrategy end
+struct BlackScholesExact <: ExactSimulation end
 
 """
     struct MonteCarlo{P<:PriceDynamics, S<:SimulationStrategy, C<:SimulationConfig}
@@ -414,8 +416,8 @@ Solves the pricing problem using Monte Carlo simulation and returns the discount
 """
 function solve(
     prob::PricingProblem{VanillaOption{TS, TE, European, C, Spot}, I},
-    method::MonteCarlo{D, S},
-) where {TS, TE, C, I<:AbstractMarketInputs, D<:PriceDynamics, S<:SimulationStrategy}
+    method::MonteCarlo{D, EulerMaruyama},
+) where {TS, TE, C, I<:AbstractMarketInputs, D<:PriceDynamics}
     strategy = method.strategy
     dynamics = method.dynamics
     config = method.config
@@ -427,4 +429,46 @@ function solve(
     price = discount * mean(payoffs)
 
     return MonteCarloSolution(prob, method, price, ens)
+end
+
+function solve(
+    prob::PricingProblem{VanillaOption{TS, TE, European, C, Spot}, I},
+    method::MonteCarlo{D, S},
+) where {TS, TE, C, I<:AbstractMarketInputs, D<:PriceDynamics, S<:ExactSimulation}
+    config = method.config
+
+    log_law = marginal_law(prob, method.dynamics, prob.payoff.expiry)
+    sample_at_expiry = final_sample(log_law, config.trajectories, config.variance_reduction) 
+
+    payoffs = reduce_payoffs_new(sample_at_expiry, prob.payoff, config.variance_reduction)
+    discount = df(prob.market_inputs.rate, prob.payoff.expiry)
+    price = discount * mean(payoffs)
+
+    return MonteCarloSolution(prob, method, price, sample_at_expiry)
+end
+
+function final_sample(law, trajectories, ::NoVarianceReduction)
+    log_sample = Distributions.rand(law, trajectories)
+    final_sample = exp.(log_sample) 
+    return final_sample
+end
+
+function final_sample(law, trajectories, ::Antithetic)
+    log_sample = Distributions.rand(law, trajectories)
+    antithetic_sample = exp.(2 * mean(law) .- log_sample)
+    return log_sample, antithetic_sample
+end
+
+function reduce_payoffs_new(
+    result::Vector{T},
+    payoff::F,
+    ::NoVarianceReduction) where {F,T}
+    payoff.(result)
+end
+
+function reduce_payoffs_new(
+    result::Tuple{Vector{T}, Vector{T}},
+    payoff::F,
+    ::Antithetic) where {F,T}
+    return (payoff.(result[1]) + payoff.(result[2])) / 2
 end
