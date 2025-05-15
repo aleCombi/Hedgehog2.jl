@@ -86,19 +86,21 @@ Euler-Maruyama discretization for simulating SDEs.
 """
 struct EulerMaruyama <: SimulationStrategy end
 
+abstract type ExactSimulation <: SimulationStrategy end
+
 """
     struct HestonBroadieKaya <: SimulationStrategy
 
 Exact sampling scheme for the Heston model using the Broadie-Kaya method.
 """
-struct HestonBroadieKaya <: SimulationStrategy end
+struct HestonBroadieKaya <: ExactSimulation end
 
 """
     struct BlackScholesExact <: SimulationStrategy
 
 Exact sampling of the Black-Scholes model using closed-form solution.
 """
-struct BlackScholesExact <: SimulationStrategy end
+struct BlackScholesExact <: ExactSimulation end
 
 """
     struct MonteCarlo{P<:PriceDynamics, S<:SimulationStrategy, C<:SimulationConfig}
@@ -318,18 +320,6 @@ function get_ensemble_problem(prob, strategy_config::SimulationConfig)
     EnsembleProblem(prob, prob_func=prob_func)
 end
 
-# ------------------ Terminal Value Extractors ------------------
-
-"""
-    get_terminal_value(path, dynamics, strategy)
-
-Extracts the terminal asset value from a simulated path, depending on model and strategy.
-"""
-get_terminal_value(path, ::HestonDynamics, ::HestonBroadieKaya) = exp(last(path)[1])
-get_terminal_value(path, ::LognormalDynamics, ::EulerMaruyama) = exp(last(path))
-get_terminal_value(path, ::PriceDynamics, ::SimulationStrategy) =
-    last(path) isa Number ? last(path) : last(path)[1]
-
 # ------------------ Monte Carlo Method ------------------
 
 """
@@ -372,59 +362,94 @@ function simulate_paths(
     return (normal_sol, antithetic_sol)
 end
 
-"""
-    reduce_payoffs(result, payoff, ::NoVarianceReduction, dynamics, strategy)
+# ------------------ Sampler ------------------
 
-Computes the payoff from terminal values without applying variance reduction.
-"""
-function reduce_payoffs(
-    result::EnsembleSolution,
-    payoff::F,
-    ::NoVarianceReduction,
-    dynamics::PriceDynamics,
-    strategy::SimulationStrategy,
-) where {F}
-    return [payoff(get_terminal_value(p, dynamics, strategy)) for p in result.u]
+# final_sample
+# Transform log-domain samples to price-domain (exponentiated) samples.
+#
+# - For plain samples: Apply exp() to convert from log-space
+# - For antithetic: Generate reflected samples around distribution mean
+# - For ensemble solutions: Extract final values and exponentiate
+# 
+# Internal helper function used within Monte Carlo simulation methods.
+final_sample(law, sample, ::NoVarianceReduction) = exp.(sample) 
+
+function final_sample(law, sample, ::Antithetic)
+    antithetic_sample = exp.(2 * mean(law) .- sample)
+    final_sample = exp.(sample) 
+    return final_sample, antithetic_sample
 end
 
-"""
-    reduce_payoffs(result, payoff, ::Antithetic, dynamics, strategy)
+final_sample(ens::EnsembleSolution) = [exp(last(x.u)) for x in ens.u]
 
-Computes the average payoff over paired antithetic paths.
-"""
-function reduce_payoffs(
-    result::Tuple{EnsembleSolution, EnsembleSolution},
-    payoff::F,
-    ::Antithetic,
-    dynamics::PriceDynamics,
-    strategy::SimulationStrategy,
-) where {F}
-    paths₁, paths₂ = result[1].u, result[2].u
-    return [
-        (payoff(get_terminal_value(p1, dynamics, strategy)) +
-        payoff(get_terminal_value(p2, dynamics, strategy))) / 2
-        for (p1, p2) in zip(paths₁, paths₂)
-    ]
+function final_sample(ens::Tuple{EnsembleSolution,EnsembleSolution})
+    return (final_sample(ens[1]), final_sample(ens[2]))
+end
+
+# log_sample
+# Get log price samples.
+# Internal helper function used within Monte Carlo simulation methods.
+function log_sample(rng, law::ContinuousUnivariateDistribution, trajectories)
+    log_sample = Distributions.rand(rng, law, trajectories)
+    return log_sample
+end
+
+function log_sample(rng, law::ContinuousMultivariateDistribution, trajectories)
+    log_sample, _ = Distributions.rand(rng, law, trajectories)
+    return log_sample
+end
+
+# reduce_payoffs
+# Calculate the payoff estimators from the price samples, distinguish betweeen antithetic variates or not.
+reduce_payoffs(result::Vector{T}, payoff, ::NoVarianceReduction) where T = payoff.(result)
+
+function reduce_payoffs(result::Tuple{Vector{T}, Vector{T}}, payoff, ::Antithetic) where T
+    return (payoff.(result[1]) + payoff.(result[2])) / 2
 end
 
 """
     solve(prob::PricingProblem, method::MonteCarlo)
 
 Solves the pricing problem using Monte Carlo simulation and returns the discounted expected payoff.
+This method uses sampling of the price process at the expiry date using EulerMaruyama discretization.
 """
 function solve(
     prob::PricingProblem{VanillaOption{TS, TE, European, C, Spot}, I},
-    method::MonteCarlo{D, S},
-) where {TS, TE, C, I<:AbstractMarketInputs, D<:PriceDynamics, S<:SimulationStrategy}
-    strategy = method.strategy
-    dynamics = method.dynamics
+    method::MonteCarlo{D, EulerMaruyama},
+) where {TS, TE, C, I<:AbstractMarketInputs, D<:PriceDynamics}
     config = method.config
 
     sde_prob = sde_problem(prob, method.dynamics, method.strategy)
     ens = simulate_paths(sde_prob, method, config.variance_reduction)
-    payoffs = reduce_payoffs(ens, prob.payoff, config.variance_reduction, dynamics, strategy)
+    sample_at_expiry = final_sample(ens)
+
+    payoffs = reduce_payoffs(sample_at_expiry, prob.payoff, config.variance_reduction)
     discount = df(prob.market_inputs.rate, prob.payoff.expiry)
     price = discount * mean(payoffs)
 
     return MonteCarloSolution(prob, method, price, ens)
+end
+
+"""
+    solve(prob::PricingProblem, method::MonteCarlo)
+
+Solves the pricing problem using Monte Carlo simulation and returns the discounted expected payoff.
+This method uses sampling of the price process at the expiry date using the known law.
+"""
+function solve(
+    prob::PricingProblem{VanillaOption{TS, TE, European, C, Spot}, I},
+    method::MonteCarlo{D, S},
+) where {TS, TE, C, I<:AbstractMarketInputs, D<:PriceDynamics, S<:ExactSimulation}
+    config = method.config
+
+    log_law = marginal_law(prob, method.dynamics, prob.payoff.expiry)
+    rng = Xoshiro(config.seeds[1])
+    sample = log_sample(rng, log_law, config.trajectories)
+    sample_at_expiry = final_sample(log_law, sample, config.variance_reduction) 
+
+    payoffs = reduce_payoffs(sample_at_expiry, prob.payoff, config.variance_reduction)
+    discount = df(prob.market_inputs.rate, prob.payoff.expiry)
+    price = discount * mean(payoffs)
+
+    return MonteCarloSolution(prob, method, price, sample_at_expiry)
 end
