@@ -391,7 +391,8 @@ function solve(
     config = method.config
 
     log_law = marginal_law(prob, method.dynamics, prob.payoff.expiry)
-    sample = log_sample(log_law, config.trajectories)
+    rng = Xoshiro(config.seeds[1])
+    sample = log_sample(rng, log_law, config.trajectories)
     sample_at_expiry = final_sample(log_law, sample, config.variance_reduction) 
 
     payoffs = reduce_payoffs(sample_at_expiry, prob.payoff, config.variance_reduction)
@@ -415,13 +416,13 @@ function final_sample(ens::Tuple{EnsembleSolution,EnsembleSolution})
     return (final_sample(ens[1]), final_sample(ens[2]))
 end
 
-function log_sample(law::ContinuousUnivariateDistribution, trajectories)
-    log_sample = Distributions.rand(law, trajectories)
+function log_sample(rng, law::ContinuousUnivariateDistribution, trajectories)
+    log_sample = Distributions.rand(rng, law, trajectories)
     return log_sample
 end
 
-function log_sample(law::ContinuousMultivariateDistribution, trajectories)
-    log_sample, _ = Distributions.rand(law, trajectories)
+function log_sample(rng, law::ContinuousMultivariateDistribution, trajectories)
+    log_sample, _ = Distributions.rand(rng, law, trajectories)
     return log_sample
 end
 
