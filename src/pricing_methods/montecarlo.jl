@@ -320,18 +320,6 @@ function get_ensemble_problem(prob, strategy_config::SimulationConfig)
     EnsembleProblem(prob, prob_func=prob_func)
 end
 
-# ------------------ Terminal Value Extractors ------------------
-
-"""
-    get_terminal_value(path, dynamics, strategy)
-
-Extracts the terminal asset value from a simulated path, depending on model and strategy.
-"""
-get_terminal_value(path, ::HestonDynamics, ::HestonBroadieKaya) = exp(last(path)[1])
-get_terminal_value(path, ::LognormalDynamics, ::EulerMaruyama) = exp(last(path))
-get_terminal_value(path, ::PriceDynamics, ::SimulationStrategy) =
-    last(path) isa Number ? last(path) : last(path)[1]
-
 # ------------------ Monte Carlo Method ------------------
 
 """
@@ -375,41 +363,6 @@ function simulate_paths(
 end
 
 """
-    reduce_payoffs(result, payoff, ::NoVarianceReduction, dynamics, strategy)
-
-Computes the payoff from terminal values without applying variance reduction.
-"""
-function reduce_payoffs(
-    result::EnsembleSolution,
-    payoff::F,
-    ::NoVarianceReduction,
-    dynamics::PriceDynamics,
-    strategy::SimulationStrategy,
-) where {F}
-    return [payoff(get_terminal_value(p, dynamics, strategy)) for p in result.u]
-end
-
-"""
-    reduce_payoffs(result, payoff, ::Antithetic, dynamics, strategy)
-
-Computes the average payoff over paired antithetic paths.
-"""
-function reduce_payoffs(
-    result::Tuple{EnsembleSolution, EnsembleSolution},
-    payoff::F,
-    ::Antithetic,
-    dynamics::PriceDynamics,
-    strategy::SimulationStrategy,
-) where {F}
-    paths₁, paths₂ = result[1].u, result[2].u
-    return [
-        (payoff(get_terminal_value(p1, dynamics, strategy)) +
-        payoff(get_terminal_value(p2, dynamics, strategy))) / 2
-        for (p1, p2) in zip(paths₁, paths₂)
-    ]
-end
-
-"""
     solve(prob::PricingProblem, method::MonteCarlo)
 
 Solves the pricing problem using Monte Carlo simulation and returns the discounted expected payoff.
@@ -418,13 +371,13 @@ function solve(
     prob::PricingProblem{VanillaOption{TS, TE, European, C, Spot}, I},
     method::MonteCarlo{D, EulerMaruyama},
 ) where {TS, TE, C, I<:AbstractMarketInputs, D<:PriceDynamics}
-    strategy = method.strategy
-    dynamics = method.dynamics
     config = method.config
 
     sde_prob = sde_problem(prob, method.dynamics, method.strategy)
     ens = simulate_paths(sde_prob, method, config.variance_reduction)
-    payoffs = reduce_payoffs(ens, prob.payoff, config.variance_reduction, dynamics, strategy)
+    sample_at_expiry = final_sample(ens)
+
+    payoffs = reduce_payoffs(sample_at_expiry, prob.payoff, config.variance_reduction)
     discount = df(prob.market_inputs.rate, prob.payoff.expiry)
     price = discount * mean(payoffs)
 
@@ -438,37 +391,42 @@ function solve(
     config = method.config
 
     log_law = marginal_law(prob, method.dynamics, prob.payoff.expiry)
-    sample_at_expiry = final_sample(log_law, config.trajectories, config.variance_reduction) 
+    sample = log_sample(log_law, config.trajectories)
+    sample_at_expiry = final_sample(log_law, sample, config.variance_reduction) 
 
-    payoffs = reduce_payoffs_new(sample_at_expiry, prob.payoff, config.variance_reduction)
+    payoffs = reduce_payoffs(sample_at_expiry, prob.payoff, config.variance_reduction)
     discount = df(prob.market_inputs.rate, prob.payoff.expiry)
     price = discount * mean(payoffs)
 
     return MonteCarloSolution(prob, method, price, sample_at_expiry)
 end
 
-function final_sample(law, trajectories, ::NoVarianceReduction)
+final_sample(law, sample, ::NoVarianceReduction) = exp.(sample) 
+
+function final_sample(law, sample, ::Antithetic)
+    antithetic_sample = exp.(2 * mean(law) .- sample)
+    final_sample = exp.(sample) 
+    return final_sample, antithetic_sample
+end
+
+final_sample(ens::EnsembleSolution) = [exp(last(x.u)) for x in ens.u]
+
+function final_sample(ens::Tuple{EnsembleSolution,EnsembleSolution})
+    return (final_sample(ens[1]), final_sample(ens[2]))
+end
+
+function log_sample(law::ContinuousUnivariateDistribution, trajectories)
     log_sample = Distributions.rand(law, trajectories)
-    final_sample = exp.(log_sample) 
-    return final_sample
+    return log_sample
 end
 
-function final_sample(law, trajectories, ::Antithetic)
-    log_sample = Distributions.rand(law, trajectories)
-    antithetic_sample = exp.(2 * mean(law) .- log_sample)
-    return log_sample, antithetic_sample
+function log_sample(law::ContinuousMultivariateDistribution, trajectories)
+    log_sample, _ = Distributions.rand(law, trajectories)
+    return log_sample
 end
 
-function reduce_payoffs_new(
-    result::Vector{T},
-    payoff::F,
-    ::NoVarianceReduction) where {F,T}
-    payoff.(result)
-end
+reduce_payoffs(result::Vector{T}, payoff, ::NoVarianceReduction) where T = payoff.(result)
 
-function reduce_payoffs_new(
-    result::Tuple{Vector{T}, Vector{T}},
-    payoff::F,
-    ::Antithetic) where {F,T}
+function reduce_payoffs(result::Tuple{Vector{T}, Vector{T}}, payoff, ::Antithetic) where T
     return (payoff.(result[1]) + payoff.(result[2])) / 2
 end

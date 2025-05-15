@@ -21,7 +21,7 @@ euro_pricing_prob = PricingProblem(euro_payoff, market_inputs)
 
 dynamics = LognormalDynamics()
 trajectories = 10000
-config = Hedgehog.SimulationConfig(trajectories; steps=100, variance_reduction=Hedgehog.NoVarianceReduction())
+config = Hedgehog.SimulationConfig(trajectories; steps=100, variance_reduction=Hedgehog.Antithetic())
 strategy = EulerMaruyama()
 montecarlo_method = MonteCarlo(dynamics, strategy, config)
 
@@ -44,4 +44,5 @@ price_anti = discount * mean(payoff_anti_sample)
 
 montecarlo_method_exact = MonteCarlo(dynamics, BlackScholesExact(), config)
 solution_exact = Hedgehog.solve(euro_pricing_prob, montecarlo_method_exact).price
+@btime Hedgehog.solve($euro_pricing_prob, $montecarlo_method_exact).price
 @show solution_exact
