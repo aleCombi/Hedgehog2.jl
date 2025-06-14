@@ -28,7 +28,7 @@ DataInterpolations = "7.2.0"
 Dates = "1.10"
 DiffEqNoiseProcess = "5.24.1"
 Distributions = "0.25"
-ForwardDiff = "0.10.38"
+ForwardDiff = "0.10.38, 1"
 Integrals = "4.5.0"
 NonlinearSolve = "4.5.0"
 Optimization = "4.1.2"
@@ -42,7 +42,6 @@ Statistics = "1.10"
 StochasticDiffEq = "6"
 Test = "1.10"
 julia = "1.10"
-
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
