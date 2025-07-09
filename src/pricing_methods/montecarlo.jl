@@ -407,46 +407,31 @@ function reduce_payoffs(result::Tuple{Vector{T}, Vector{T}}, payoff, ::Antitheti
     return (payoff.(result[1]) + payoff.(result[2])) / 2
 end
 
-"""
-    solve(prob::PricingProblem, method::MonteCarlo)
-
-Solves the pricing problem using Monte Carlo simulation and returns the discounted expected payoff.
-This method uses sampling of the price process at the expiry date using EulerMaruyama discretization.
-"""
-function solve(
-    prob::PricingProblem{VanillaOption{TS, TE, European, C, Spot}, I},
-    method::MonteCarlo{D, EulerMaruyama},
-) where {TS, TE, C, I<:AbstractMarketInputs, D<:PriceDynamics}
-    config = method.config
-
-    sde_prob = sde_problem(prob, method.dynamics, method.strategy)
-    ens = simulate_paths(sde_prob, method, config.variance_reduction)
-    sample_at_expiry = final_sample(ens)
-
-    payoffs = reduce_payoffs(sample_at_expiry, prob.payoff, config.variance_reduction)
-    discount = df(prob.market_inputs.rate, prob.payoff.expiry)
-    price = discount * mean(payoffs)
-
-    return MonteCarloSolution(prob, method, price, ens)
+# This function dispatches to get the final price samples
+function get_final_samples(prob::PricingProblem, method::MonteCarlo{D, EulerMaruyama}) where {D}
+    sde_prob = sde_problem(prob, method)
+    ens = simulate_paths(sde_prob, method, method.config.variance_reduction)
+    return final_sample(ens)
 end
 
-"""
-    solve(prob::PricingProblem, method::MonteCarlo)
+function get_final_samples(prob::PricingProblem, method::MonteCarlo{D, S}) where {D, S<:ExactSimulation}
+    log_law = marginal_law(prob, method.dynamics, prob.payoff.expiry)
+    rng = Xoshiro(method.config.seeds[1]) # Note: See suggestion #3 about seeding
+    sample = log_sample(rng, log_law, method.config.trajectories)
+    return final_sample(log_law, sample, method.config.variance_reduction)
+end
 
-Solves the pricing problem using Monte Carlo simulation and returns the discounted expected payoff.
-This method uses sampling of the price process at the expiry date using the known law.
-"""
 function solve(
     prob::PricingProblem{VanillaOption{TS, TE, European, C, Spot}, I},
-    method::MonteCarlo{D, S},
-) where {TS, TE, C, I<:AbstractMarketInputs, D<:PriceDynamics, S<:ExactSimulation}
+    method::MonteCarlo,
+) where {TS, TE, C, I<:AbstractMarketInputs}
+    
     config = method.config
+    
+    # Get samples using the dispatched helper
+    sample_at_expiry = get_final_samples(prob, method)
 
-    log_law = marginal_law(prob, method.dynamics, prob.payoff.expiry)
-    rng = Xoshiro(config.seeds[1])
-    sample = log_sample(rng, log_law, config.trajectories)
-    sample_at_expiry = final_sample(log_law, sample, config.variance_reduction) 
-
+    # Common logic for pricing
     payoffs = reduce_payoffs(sample_at_expiry, prob.payoff, config.variance_reduction)
     discount = df(prob.market_inputs.rate, prob.payoff.expiry)
     price = discount * mean(payoffs)
