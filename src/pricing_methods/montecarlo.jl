@@ -86,6 +86,12 @@ Euler-Maruyama discretization for simulating SDEs.
 """
 struct EulerMaruyama <: SimulationStrategy end
 
+"""
+    abstract type ExactSimulation <: SimulationStrategy
+
+Abstract supertype for simulation strategies that sample directly from the known
+terminal distribution of an asset price, avoiding step-by-step path simulation.
+"""
 abstract type ExactSimulation <: SimulationStrategy end
 
 """
@@ -364,31 +370,38 @@ end
 
 # ------------------ Sampler ------------------
 
-# final_sample
-# Transform log-domain samples to price-domain (exponentiated) samples.
-#
-# - For plain samples: Apply exp() to convert from log-space
-# - For antithetic: Generate reflected samples around distribution mean
-# - For ensemble solutions: Extract final values and exponentiate
-# 
-# Internal helper function used within Monte Carlo simulation methods.
-final_sample(law, sample, ::NoVarianceReduction) = exp.(sample) 
+"""
+    final_sample(law, sample, ::NoVarianceReduction)
+
+Transforms log-domain samples to price-domain by exponentiating.
+"""
+final_sample(law, sample, ::NoVarianceReduction) = exp.(sample)
 
 function final_sample(law, sample, ::Antithetic)
     antithetic_sample = exp.(2 * mean(law) .- sample)
-    final_sample = exp.(sample) 
+    final_sample = exp.(sample)
     return final_sample, antithetic_sample
 end
 
+"""
+    final_sample(ens::EnsembleSolution)
+
+Extracts the final state from each trajectory in an `EnsembleSolution` and
+exponentiates to get the terminal asset prices.
+"""
 final_sample(ens::EnsembleSolution) = [exp(last(x.u)) for x in ens.u]
 
 function final_sample(ens::Tuple{EnsembleSolution,EnsembleSolution})
     return (final_sample(ens[1]), final_sample(ens[2]))
 end
 
-# log_sample
-# Get log price samples.
-# Internal helper function used within Monte Carlo simulation methods.
+
+"""
+    log_sample(rng, law, trajectories)
+
+Draws a specified number of samples from a given probability distribution (`law`).
+This is primarily used by the `ExactSimulation` strategy.
+"""
 function log_sample(rng, law::ContinuousUnivariateDistribution, trajectories)
     log_sample = Distributions.rand(rng, law, trajectories)
     return log_sample
@@ -399,35 +412,70 @@ function log_sample(rng, law::ContinuousMultivariateDistribution, trajectories)
     return log_sample
 end
 
-# reduce_payoffs
-# Calculate the payoff estimators from the price samples, distinguish betweeen antithetic variates or not.
+
+"""
+    reduce_payoffs(result, payoff, ::NoVarianceReduction)
+
+Calculates the payoff for each final price sample. For antithetic results,
+it averages the payoffs of the original and antithetic paths.
+"""
 reduce_payoffs(result::Vector{T}, payoff, ::NoVarianceReduction) where T = payoff.(result)
 
 function reduce_payoffs(result::Tuple{Vector{T}, Vector{T}}, payoff, ::Antithetic) where T
     return (payoff.(result[1]) + payoff.(result[2])) / 2
 end
 
-# This function dispatches to get the final price samples
+# ------------------ Pricing Execution ------------------
+
+"""
+    get_final_samples(prob, method::MonteCarlo{D, EulerMaruyama})
+
+Generates terminal asset prices by simulating full SDE paths using the Euler-Maruyama
+scheme and extracting the final values.
+"""
 function get_final_samples(prob::PricingProblem, method::MonteCarlo{D, EulerMaruyama}) where {D}
     sde_prob = sde_problem(prob, method)
     ens = simulate_paths(sde_prob, method, method.config.variance_reduction)
     return final_sample(ens)
 end
 
+"""
+    get_final_samples(prob, method::MonteCarlo{D, S})
+
+Generates terminal asset prices by sampling directly from the known `marginal_law`
+of the asset price, avoiding path simulation.
+"""
 function get_final_samples(prob::PricingProblem, method::MonteCarlo{D, S}) where {D, S<:ExactSimulation}
     log_law = marginal_law(prob, method.dynamics, prob.payoff.expiry)
-    rng = Xoshiro(method.config.seeds[1]) # Note: See suggestion #3 about seeding
+    rng = Xoshiro(method.config.seeds[1])
     sample = log_sample(rng, log_law, method.config.trajectories)
     return final_sample(log_law, sample, method.config.variance_reduction)
 end
 
+"""
+    solve(prob::PricingProblem, method::MonteCarlo)
+
+Prices a European-style option using the configured Monte Carlo method.
+
+This function orchestrates the pricing process by:
+1.  Calling `get_final_samples` to generate terminal asset prices using the specified strategy.
+2.  Calculating the option payoff for each terminal price.
+3.  Computing the mean of all payoffs and discounting it to the present value.
+
+# Arguments
+- `prob`: The `PricingProblem` containing the option details and market data.
+- `method`: The `MonteCarlo` configuration defining the simulation dynamics and strategy.
+
+# Returns
+- A `MonteCarloSolution` containing the calculated price and the simulation results.
+"""
 function solve(
     prob::PricingProblem{VanillaOption{TS, TE, European, C, Spot}, I},
     method::MonteCarlo,
 ) where {TS, TE, C, I<:AbstractMarketInputs}
-    
+
     config = method.config
-    
+
     # Get samples using the dispatched helper
     sample_at_expiry = get_final_samples(prob, method)
 
