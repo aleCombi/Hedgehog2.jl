@@ -179,7 +179,7 @@ end
 """
     sde_problem(problem::PricingProblem, ::HestonDynamics, ::EulerMaruyama)
 
-Constructs a `HestonProblem` for Euler-Maruyama simulation of the Heston model.
+Constructs a `LogHestonProblem` for Euler-Maruyama simulation of the Heston model.
 """
 function sde_problem(
     problem::PricingProblem{Payoff, Inputs},
@@ -192,7 +192,7 @@ function sde_problem(
     tspan = (0.0, T)
 
     rate = zero_rate(m.rate, 0.0)
-    return HestonProblem(rate, m.κ, m.θ, m.σ, m.ρ, [m.spot, m.V0], tspan)
+    return LogHestonProblem(rate, m.κ, m.θ, m.σ, m.ρ, [log(m.spot), m.V0], tspan)
 end
 
 """
@@ -310,7 +310,7 @@ function marginal_law(
     m = problem.market_inputs
     α = yearfrac(m.rate.reference_date, t)
     rate = zero_rate(m.rate, t)
-    return HestonDistribution(m.spot, m.V0, m.κ, m.θ, m.σ, m.ρ, rate, α)
+    return LogHestonDistribution(m.spot, m.V0, m.κ, m.θ, m.σ, m.ρ, rate, α)
 end
 
 # ------------------ Ensemble Simulation Wrapper ------------------
@@ -389,7 +389,7 @@ end
 Extracts the final state from each trajectory in an `EnsembleSolution` and
 exponentiates to get the terminal asset prices.
 """
-final_sample(ens::EnsembleSolution) = [exp(last(x.u)) for x in ens.u]
+final_sample(ens::EnsembleSolution) = [exp(first(last(x.u))) for x in ens.u]
 
 function final_sample(ens::Tuple{EnsembleSolution,EnsembleSolution})
     return (final_sample(ens[1]), final_sample(ens[2]))
