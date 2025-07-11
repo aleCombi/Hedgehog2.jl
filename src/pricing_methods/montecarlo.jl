@@ -408,6 +408,7 @@ function log_sample(rng, law::ContinuousUnivariateDistribution, trajectories)
 end
 
 function log_sample(rng, law::ContinuousMultivariateDistribution, trajectories)
+    print((rng, law, trajectories))
     log_sample, _ = Distributions.rand(rng, law, trajectories)
     return log_sample
 end

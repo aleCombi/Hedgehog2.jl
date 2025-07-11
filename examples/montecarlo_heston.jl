@@ -34,7 +34,7 @@ analytic_sol = Hedgehog.solve(pricing_problem, method_heston)
 dynamics = HestonDynamics()
 trajectories = 10000
 config = Hedgehog.SimulationConfig(trajectories; steps=100, variance_reduction=Hedgehog.NoVarianceReduction())
-config_exact = Hedgehog.SimulationConfig(trajectories; steps=1, variance_reduction=Hedgehog.NoVarianceReduction())
+config_exact = Hedgehog.SimulationConfig(trajectories; steps=2, variance_reduction=Hedgehog.NoVarianceReduction())
 
 montecarlo_method = MonteCarlo(dynamics, EulerMaruyama(), config)
 montecarlo_method_exact = MonteCarlo(dynamics, HestonBroadieKaya(), config_exact)
