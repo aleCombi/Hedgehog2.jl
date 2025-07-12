@@ -190,7 +190,7 @@ using Random
     mc_euler_method = MonteCarlo(
         HestonDynamics(),
         EulerMaruyama(),
-        SimulationConfig(num_paths; steps=200, seeds=seeds, variance_reduction=Hedgehog.Antithetic())
+        SimulationConfig(5*num_paths; steps=200, seeds=seeds, variance_reduction=Hedgehog.Antithetic())
     )
     solution_euler = solve(problem, mc_euler_method)
     price_euler = solution_euler.price
