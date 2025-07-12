@@ -60,6 +60,12 @@ struct SimulationConfig{I, S, V<:VarianceReductionStrategy, TSeeds}
     steps::S
     variance_reduction::V
     seeds::Vector{TSeeds}
+
+    function SimulationConfig(trajectories::I, steps::S, variance_reduction::V, seeds::Vector{TSeeds}) where {I, S, V<:VarianceReductionStrategy, TSeeds}
+        length(seeds) < trajectories &&
+            throw(ArgumentError("Number of seeds ($(length(seeds))) must be ≥ number of trajectories ($trajectories)."))
+        new{I, S, V, TSeeds}(trajectories, steps, variance_reduction, seeds)
+    end
 end
 
 """
@@ -67,7 +73,7 @@ end
 
 Constructor for `SimulationConfig`. If `seeds` is not provided, random seeds are generated.
 """
-SimulationConfig(trajectories; steps = 1, seeds = nothing, variance_reduction=Antithetic()) = begin
+SimulationConfig(trajectories; steps = 1, seeds = nothing, variance_reduction=NoVarianceReduction()) = begin
     seeds === nothing && (seeds = Base.rand(UInt64, trajectories))
     SimulationConfig(trajectories, steps, variance_reduction, seeds)
 end
@@ -478,10 +484,8 @@ function solve(
 
     # Get samples using the dispatched helper
     sample_at_expiry = get_final_samples(prob, method)
-    @show typeof(sample_at_expiry)
     # Common logic for pricing
     payoffs = reduce_payoffs(sample_at_expiry, prob.payoff, config.variance_reduction)
-    @show typeof(payoffs)
     discount = df(prob.market_inputs.rate, prob.payoff.expiry)
     price = discount * mean(payoffs)
 
