@@ -401,16 +401,15 @@ end
 
 Draws a specified number of samples from a given probability distribution (`law`).
 This is primarily used by the `ExactSimulation` strategy.
+It assumes that the first component of the multi-dimensional law correspond with the log-price.
 """
 function log_sample(rng, law::ContinuousUnivariateDistribution, trajectories)
-    log_sample = Distributions.rand(rng, law, trajectories)
-    return log_sample
+    return Distributions.rand(rng, law, trajectories)
 end
 
 function log_sample(rng, law::ContinuousMultivariateDistribution, trajectories)
-    print((rng, law, trajectories))
-    log_sample, _ = Distributions.rand(rng, law, trajectories)
-    return log_sample
+    X = Distributions.rand(rng, law, trajectories)  # shape: (n, trajectories)
+    return view(X, 1, :)  # returns a lightweight view of the first row (log-price)
 end
 
 
@@ -479,9 +478,10 @@ function solve(
 
     # Get samples using the dispatched helper
     sample_at_expiry = get_final_samples(prob, method)
-
+    @show typeof(sample_at_expiry)
     # Common logic for pricing
     payoffs = reduce_payoffs(sample_at_expiry, prob.payoff, config.variance_reduction)
+    @show typeof(payoffs)
     discount = df(prob.market_inputs.rate, prob.payoff.expiry)
     price = discount * mean(payoffs)
 

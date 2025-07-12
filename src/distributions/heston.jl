@@ -110,6 +110,13 @@ struct LogHestonDistribution{TS0,TV0,Tκ,Tθ,Tσ,Tρ,Tr,T} <: ContinuousMultivar
     T::T
 end
 
+
+import Distributions: length
+
+function Base.length(::LogHestonDistribution)
+    return 2 # The Heston model is a 2-dimensional process (Asset Price, Variance)
+end
+
 """
     sample_V_T(rng, d::LogHestonDistribution)
 
@@ -249,6 +256,23 @@ function rand(rng::AbstractRNG, d::LogHestonDistribution; antithetic = false, kw
     log_S_T = sample_log_S_T(V_T, integral_V, rng, d1, antithetic = antithetic)
 
     return [log_S_T, V_T]
+end
+
+function Distributions.rand!(
+    rng::AbstractRNG,
+    d::LogHestonDistribution,
+    x::AbstractVector{<:Real};
+    antithetic = false,
+    kwargs...
+)
+    # Call your allocating rand function
+    sample = rand(rng, d; antithetic=antithetic, kwargs...)
+    
+    # Copy the result into the pre-allocated vector x
+    x[1] = sample[1]
+    x[2] = sample[2]
+    
+    return x
 end
 
 function sample_log_S_T(
